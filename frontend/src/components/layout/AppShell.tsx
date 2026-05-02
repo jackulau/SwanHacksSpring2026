@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "../../lib/auth";
+import { ReadingRuler } from "../accessibility/ReadingRuler";
+import { FocusMode } from "../accessibility/FocusMode";
+import { A11yPanel } from "../accessibility/A11yPanel";
+import { AudioPlayer } from "./AudioPlayer";
+import { MobileNav } from "./MobileNav";
+import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
 import {
   Home,
   Mic,
@@ -26,14 +32,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [a11yOpen, setA11yOpen] = useState(false);
+
+  useReadingAidsShortcuts();
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
-      {/* ── Sidebar ── */}
+      {/* ── Sidebar (desktop only; <lg uses bottom MobileNav) ── */}
       <aside
         className={`${
           collapsed ? "w-16" : "w-56"
-        } flex flex-col border-r border-zinc-800 bg-zinc-950 transition-all duration-200 shrink-0`}
+        } hidden lg:flex flex-col border-r border-zinc-800 bg-zinc-950 transition-all duration-200 shrink-0`}
       >
         {/* Logo */}
         <div className="flex items-center gap-2 px-4 h-14 border-b border-zinc-800">
@@ -123,18 +132,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto">{children}</main>
+        {/* Page content — bottom padding reserves space for MobileNav (<lg)
+         * and the AudioPlayer (when a track is loaded). */}
+        <main
+          className="flex-1 overflow-auto"
+          data-focus-zone
+          style={{
+            paddingBottom:
+              "calc(var(--mobile-nav-height, 0px) + var(--audio-player-height, 0px))",
+          }}
+        >
+          {children}
+        </main>
       </div>
 
-      {/* ── Floating accessibility button ── */}
-      <Link
-        to="/settings/accessibility"
-        className="fixed bottom-6 right-6 w-12 h-12 bg-primary hover:bg-primary-hover text-white rounded-full flex items-center justify-center shadow-lg transition-colors z-50"
+      {/* ── Reading aids (mounted globally; render null when off) ── */}
+      <ReadingRuler />
+      <FocusMode />
+
+      {/* ── Accessibility panel (overlay; closes in place) ── */}
+      <A11yPanel isOpen={a11yOpen} onClose={() => setA11yOpen(false)} />
+
+      {/* ── Persistent audio player (renders null when no src) ── */}
+      <AudioPlayer />
+
+      {/* ── Mobile bottom nav (<lg only) ── */}
+      <MobileNav />
+
+      {/* ── Floating accessibility button — lifted on mobile so MobileNav
+       * doesn't overlap, and lifted again when AudioPlayer is active. ── */}
+      <button
+        type="button"
+        onClick={() => setA11yOpen((open) => !open)}
+        className="fixed right-6 w-12 h-12 bg-primary hover:bg-primary-hover text-white rounded-full flex items-center justify-center shadow-lg transition-colors z-50"
+        style={{
+          bottom:
+            "calc(1.5rem + var(--mobile-nav-height, 0px) + var(--audio-player-height, 0px))",
+        }}
         aria-label="Accessibility settings"
+        aria-expanded={a11yOpen}
       >
         <Accessibility className="w-5 h-5" />
-      </Link>
+      </button>
     </div>
   );
 }

@@ -16,7 +16,7 @@ export function NoteEditor({ blocks, title }: NoteEditorProps) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto" data-focus-zone>
       {title && <h1 className="text-3xl font-bold text-zinc-100 mb-6">{title}</h1>}
       <div className="space-y-1">
         {blocks.map((block, i) => (

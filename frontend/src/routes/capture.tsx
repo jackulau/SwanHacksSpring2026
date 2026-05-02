@@ -93,8 +93,18 @@ function RecordingInterface() {
     }
   }, [signEnabled, mediapipe, signLanguage]);
 
+  // Use a ref to guard against duplicate pipeline runs. A naive `processing`
+  // state guard fails because (a) React StrictMode mounts the effect twice in
+  // dev — the second mount sees `processing = false` from a stale closure and
+  // re-fires; (b) any future re-render that re-runs the effect would see the
+  // same stale value. The ref survives both.
+  const pipelineStartedRef = useRef<Blob | null>(null);
+
   useEffect(() => {
-    if (!audio.audioBlob || processing) return;
+    const blob = audio.audioBlob;
+    if (!blob) return;
+    if (pipelineStartedRef.current === blob) return;
+    pipelineStartedRef.current = blob;
 
     const processAudio = async () => {
       setProcessing(true);
@@ -103,7 +113,7 @@ function RecordingInterface() {
       try {
         const lectureData = new FormData();
         lectureData.append('title', `Lecture ${new Date().toLocaleDateString()}`);
-        lectureData.append('audio_file', audio.audioBlob!, 'recording.webm');
+        lectureData.append('audio_file', blob, 'recording.webm');
         lectureData.append('duration_secs', String(audio.duration));
         lectureData.append('status', 'transcribing');
         lectureData.append('recorded_at', new Date().toISOString());
@@ -138,7 +148,7 @@ function RecordingInterface() {
     };
 
     processAudio();
-  }, [audio.audioBlob]);
+  }, [audio.audioBlob, audio.duration, stt.captions]);
 
   const formatDuration = (secs: number) => {
     const m = Math.floor(secs / 60);

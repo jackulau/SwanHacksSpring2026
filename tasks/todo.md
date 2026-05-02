@@ -31,26 +31,41 @@
 
 ## Phase 4: Workspace (Hours 12-16)
 - [x] Dashboard
-- [ ] Course CRUD
+- [x] Course CRUD
 - [x] Lecture detail page with tabs
 - [x] Transcript viewer with audio sync
 - [x] Note editor (block-based)
-- [ ] Audio player bar
+- [x] Audio player bar
 
 ## Phase 5: Study Tools (Hours 16-20)
 - [x] SM-2 algorithm
 - [x] Flashcard review UI
 - [x] Quiz runner
 - [x] Quiz results
-- [ ] Study session tracking
+- [x] Study session tracking
 
 ## Phase 6: Polish & Accessibility (Hours 20-24)
 - [x] Full accessibility panel
 - [x] Font loading (OpenDyslexic, Atkinson Hyperlegible)
 - [x] TTS integration (hook)
-- [ ] Reading ruler + focus mode
+- [x] Reading ruler + focus mode
 - [x] High contrast + sepia themes
 - [x] Pomodoro timer (hook)
-- [ ] Study streak
-- [ ] Responsive design pass
-- [ ] Demo data seeding
+- [x] Study streak
+- [x] Responsive design pass
+- [x] Demo data seeding
+
+## Post-implementation hardening (this round)
+- [x] Security migration: locked down `transcripts`/`notes`/`flashcards`/`quizzes`/`quiz_attempts`/`study_sessions` rules
+- [x] Fixed user-id spoofing on `courses`/`lectures`/`assignments` createRule (now `@request.auth.id = @request.body.user`)
+- [x] Fixed duplicate-record bug in `routes/capture.tsx` (StrictMode + stale closure → ref-guarded)
+- [x] Bottom-padding reservation in AppShell `<main>` for MobileNav + AudioPlayer
+- [x] Floating accessibility button auto-lifts above MobileNav and AudioPlayer
+
+## Documentation produced this round
+- [x] `tasks/architecture-audit.md`
+- [x] `tasks/typescript-audit.md`
+- [x] `tasks/database-audit.md`
+- [x] `tasks/security-audit.md`
+- [x] `tasks/e2e-test-plan.md`
+- [x] `tasks/_done/01-course-crud.md` … `06-demo-data.md`

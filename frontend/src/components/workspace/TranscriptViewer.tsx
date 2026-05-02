@@ -23,7 +23,10 @@ export function TranscriptViewer({ rawText, cleanText }: TranscriptViewerProps) 
         </button>
       </div>
 
-      <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-6">
+      <div
+        className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-6"
+        data-focus-zone
+      >
         {text ? (
           <div className="prose prose-invert max-w-none">
             {text.split('\n\n').map((paragraph, i) => (

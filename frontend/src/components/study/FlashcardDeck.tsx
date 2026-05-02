@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { FlashcardCard } from './FlashcardCard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useStudySession } from '../../hooks/useStudySession';
 import type { Flashcard } from '../../lib/types';
 import type { QualityRating } from '../../lib/sm2';
 
@@ -8,6 +9,7 @@ interface FlashcardDeckProps {
   cards: Flashcard[];
   onRate: (card: Flashcard, rating: QualityRating) => void;
   onComplete: () => void;
+  lectureId?: string;
 }
 
 const RATINGS: { key: QualityRating; label: string; color: string; shortcut: string }[] = [
@@ -17,7 +19,7 @@ const RATINGS: { key: QualityRating; label: string; color: string; shortcut: str
   { key: 'easy', label: 'Easy', color: 'bg-blue-600 hover:bg-blue-500', shortcut: '4' },
 ];
 
-export function FlashcardDeck({ cards, onRate, onComplete }: FlashcardDeckProps) {
+export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: FlashcardDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [reviewed, setReviewed] = useState(0);
@@ -25,21 +27,80 @@ export function FlashcardDeck({ cards, onRate, onComplete }: FlashcardDeckProps)
 
   const currentCard = cards[currentIndex];
 
+  const { start, update, finish } = useStudySession();
+  const sessionIdRef = useRef<string | null>(null);
+  const finishedRef = useRef(false);
+  const sessionStateRef = useRef({ reviewed: 0, correct: 0 });
+
+  // Start a session as soon as the deck has cards to show.
+  useEffect(() => {
+    if (cards.length === 0) return;
+    if (sessionIdRef.current) return;
+
+    let cancelled = false;
+    start({ session_type: 'flashcard_review', lecture: lectureId })
+      .then((id) => {
+        if (cancelled) return;
+        sessionIdRef.current = id;
+      })
+      .catch(() => {
+        // start() failure already logged inside the hook; sessions are best-effort.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cards.length, lectureId, start]);
+
+  // Finish the session on unmount if not already done.
+  useEffect(() => {
+    return () => {
+      const id = sessionIdRef.current;
+      if (!id || finishedRef.current) return;
+      finishedRef.current = true;
+      const { reviewed: r, correct: c } = sessionStateRef.current;
+      void finish(id, { cards_reviewed: r, cards_correct: c });
+    };
+  }, [finish]);
+
   const handleRate = useCallback(
     (rating: QualityRating) => {
       if (!currentCard || !isFlipped) return;
       onRate(currentCard, rating);
-      setReviewed((r) => r + 1);
-      if (rating !== 'again') setCorrect((c) => c + 1);
+
+      const nextReviewed = sessionStateRef.current.reviewed + 1;
+      const nextCorrect =
+        rating !== 'again'
+          ? sessionStateRef.current.correct + 1
+          : sessionStateRef.current.correct;
+      sessionStateRef.current = { reviewed: nextReviewed, correct: nextCorrect };
+
+      setReviewed(nextReviewed);
+      if (rating !== 'again') setCorrect(nextCorrect);
       setIsFlipped(false);
 
+      const sessionId = sessionIdRef.current;
+      if (sessionId) {
+        update(sessionId, {
+          cards_reviewed: nextReviewed,
+          cards_correct: nextCorrect,
+        });
+      }
+
       if (currentIndex + 1 >= cards.length) {
+        if (sessionId && !finishedRef.current) {
+          finishedRef.current = true;
+          void finish(sessionId, {
+            cards_reviewed: nextReviewed,
+            cards_correct: nextCorrect,
+          });
+        }
         onComplete();
       } else {
         setCurrentIndex((i) => i + 1);
       }
     },
-    [currentCard, isFlipped, currentIndex, cards.length, onRate, onComplete],
+    [currentCard, isFlipped, currentIndex, cards.length, onRate, onComplete, update, finish],
   );
 
   useKeyboardShortcuts([

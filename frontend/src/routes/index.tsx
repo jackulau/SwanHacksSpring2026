@@ -21,6 +21,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { AssignmentList } from "../components/canvas/AssignmentList";
+import { StudyStreak } from "../components/study/StudyStreak";
+import { useStudyStreak } from "../hooks/useStudyStreak";
 import type { Course, Lecture } from "../lib/types";
 
 export const Route = createFileRoute("/")({
@@ -341,6 +343,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [dueCount, setDueCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const streak = useStudyStreak();
 
   useEffect(() => {
     Promise.all([
@@ -383,6 +386,12 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           Here&apos;s your study overview
         </p>
       </div>
+
+      {/* Study streak */}
+      <StudyStreak
+        streak={streak.streak}
+        todayCompleted={streak.todayCompleted}
+      />
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { useStudySession } from '../../hooks/useStudySession';
 import type { QuizQuestion } from '../../lib/types';
 
 interface QuizRunnerProps {
   questions: QuizQuestion[];
   onComplete: (answers: QuizAnswer[]) => void;
+  lectureId?: string;
 }
 
 interface QuizAnswer {
@@ -14,13 +16,47 @@ interface QuizAnswer {
   pointsEarned: number;
 }
 
-export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
+export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number | boolean | string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState<QuizAnswer[]>([]);
 
   const question = questions[currentIdx];
+
+  const { start, finish } = useStudySession();
+  const sessionIdRef = useRef<string | null>(null);
+  const finishedRef = useRef(false);
+
+  // Start a quiz session on mount (once questions are available).
+  useEffect(() => {
+    if (questions.length === 0) return;
+    if (sessionIdRef.current) return;
+
+    let cancelled = false;
+    start({ session_type: 'quiz', lecture: lectureId })
+      .then((id) => {
+        if (cancelled) return;
+        sessionIdRef.current = id;
+      })
+      .catch(() => {
+        // Errors are already logged in the hook.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [questions.length, lectureId, start]);
+
+  // Finish the session on unmount if it wasn't submitted.
+  useEffect(() => {
+    return () => {
+      const id = sessionIdRef.current;
+      if (!id || finishedRef.current) return;
+      finishedRef.current = true;
+      void finish(id);
+    };
+  }, [finish]);
 
   const handleAnswer = useCallback(
     (value: number | boolean | string) => {
@@ -59,8 +95,22 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
 
     setResults(quizAnswers);
     setSubmitted(true);
+
+    const sessionId = sessionIdRef.current;
+    if (sessionId && !finishedRef.current) {
+      finishedRef.current = true;
+      const correctAnswers = quizAnswers.reduce(
+        (count, answer) => count + (answer.correct ? 1 : 0),
+        0,
+      );
+      void finish(sessionId, {
+        cards_reviewed: questions.length,
+        cards_correct: correctAnswers,
+      });
+    }
+
     onComplete(quizAnswers);
-  }, [questions, answers, onComplete]);
+  }, [questions, answers, onComplete, finish]);
 
   if (submitted) {
     const totalEarned = results.reduce((s, r) => s + r.pointsEarned, 0);

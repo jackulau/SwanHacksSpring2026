@@ -161,6 +161,7 @@ function LectureDetailPage() {
               cards={flashcards}
               onRate={(card, rating) => rateCard(card, rating as QualityRating)}
               onComplete={() => {}}
+              lectureId={lectureId}
             />
           ) : (
             <p className="text-zinc-500 text-center py-12">No flashcards generated.</p>
@@ -172,6 +173,7 @@ function LectureDetailPage() {
             <QuizRunner
               questions={(quiz.questions as QuizQuestion[]) || []}
               onComplete={() => {}}
+              lectureId={lectureId}
             />
           ) : (
             <p className="text-zinc-500 text-center py-12">No quiz generated.</p>

@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, SkipForward } from 'lucide-react';
 import { usePomodoro } from '../../hooks/usePomodoro';
+import { useStudySession } from '../../hooks/useStudySession';
 
 interface PomodoroTimerProps {
   workMinutes?: number;
@@ -7,6 +9,75 @@ interface PomodoroTimerProps {
 
 export function PomodoroTimer({ workMinutes = 25 }: PomodoroTimerProps) {
   const timer = usePomodoro({ workMinutes });
+  const { start, finish } = useStudySession();
+
+  // Track the active session id and the last completed-session count so we
+  // only commit a record when a work phase actually finishes (not on pause
+  // or reset).
+  const sessionIdRef = useRef<string | null>(null);
+  const prevPhaseRef = useRef(timer.phase);
+  const prevTotalRef = useRef(timer.totalSessions);
+
+  useEffect(() => {
+    const prevPhase = prevPhaseRef.current;
+    const currentPhase = timer.phase;
+
+    // Detect a fresh work phase entry: idle → work OR break → work.
+    if (currentPhase === 'work' && prevPhase !== 'work' && !sessionIdRef.current) {
+      let cancelled = false;
+      start({ session_type: 'pomodoro' })
+        .then((id) => {
+          if (cancelled) return;
+          sessionIdRef.current = id;
+        })
+        .catch(() => {
+          // Best-effort: errors logged inside hook.
+        });
+
+      // Capture the cancellation flag in a closure variable that survives
+      // until the next effect run via prevPhaseRef update below.
+      prevPhaseRef.current = currentPhase;
+      prevTotalRef.current = timer.totalSessions;
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Detect successful completion: totalSessions increments while phase
+    // transitions out of work. This indicates a full work cycle finished
+    // (NOT a manual reset, NOT a pause).
+    if (
+      timer.totalSessions > prevTotalRef.current &&
+      prevPhase === 'work' &&
+      currentPhase !== 'work'
+    ) {
+      const id = sessionIdRef.current;
+      if (id) {
+        sessionIdRef.current = null;
+        void finish(id);
+      }
+    }
+
+    // Detect reset: phase returns to idle. Discard any in-flight session
+    // without writing a completion (the row was created at start; we leave
+    // it as a partial without ended_at, mirroring the abandon-tab case).
+    if (currentPhase === 'idle' && prevPhase !== 'idle') {
+      sessionIdRef.current = null;
+    }
+
+    prevPhaseRef.current = currentPhase;
+    prevTotalRef.current = timer.totalSessions;
+  }, [timer.phase, timer.totalSessions, start, finish]);
+
+  // On unmount, finalize an in-flight session so partial work isn't lost.
+  useEffect(() => {
+    return () => {
+      const id = sessionIdRef.current;
+      if (!id) return;
+      sessionIdRef.current = null;
+      void finish(id);
+    };
+  }, [finish]);
 
   const mins = Math.floor(timer.timeRemaining / 60);
   const secs = timer.timeRemaining % 60;
