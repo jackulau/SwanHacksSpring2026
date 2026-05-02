@@ -3,22 +3,19 @@
   "name": "HackStack Canvas Sync",
   "version": "1.0.0",
   "description": "Sync Canvas LMS courses and assignments to HackStack",
-  "permissions": ["storage"],
+  "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://*.instructure.com/*",
-    "https://canvas.*/*",
     "http://127.0.0.1:8090/*",
     "http://localhost:8090/*"
   ],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://*.instructure.com/*",
-        "https://canvas.*/*"
-      ],
+      "matches": ["https://*.instructure.com/*"],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"

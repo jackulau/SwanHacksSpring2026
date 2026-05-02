@@ -80,6 +80,23 @@ saveUrlBtn.addEventListener("click", async () => {
   }
 });
 
+const injectBtn = document.getElementById("inject-btn");
+
+injectBtn.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+
+  try {
+    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["content.css"] });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+    injectBtn.textContent = "Injected!";
+    setTimeout(() => (injectBtn.textContent = "Inject Sync Button on This Tab"), 2000);
+  } catch (e) {
+    injectBtn.textContent = "Failed — grant permission";
+    setTimeout(() => (injectBtn.textContent = "Inject Sync Button on This Tab"), 3000);
+  }
+});
+
 chrome.storage.local.get("pbUrl").then(({ pbUrl }) => {
   if (pbUrl) pbUrlInput.value = pbUrl;
 });

@@ -1,6 +1,12 @@
 (() => {
   if (document.getElementById("hackstack-sync-btn")) return;
 
+  const isCanvas =
+    document.querySelector("#application") ||
+    document.querySelector(".ic-app") ||
+    document.querySelector('meta[name="csrf-token"]');
+  if (!isCanvas) return;
+
   const btn = document.createElement("button");
   btn.id = "hackstack-sync-btn";
   btn.innerHTML = `

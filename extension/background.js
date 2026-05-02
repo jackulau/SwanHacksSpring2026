@@ -33,6 +33,22 @@ async function pbRequest(method, path, body) {
   return res.json();
 }
 
+async function pbGetAll(collection, filter) {
+  const items = [];
+  let page = 1;
+  while (true) {
+    const encoded = encodeURIComponent(filter);
+    const res = await pbRequest(
+      "GET",
+      `/api/collections/${collection}/records?filter=${encoded}&perPage=200&page=${page}`
+    );
+    items.push(...(res.items || []));
+    if (page >= res.totalPages) break;
+    page++;
+  }
+  return items;
+}
+
 async function login(email, password) {
   const pbUrl = await getPbUrl();
   const res = await fetch(
@@ -74,10 +90,7 @@ async function syncCanvasData(payload) {
 
   const { userId } = auth;
 
-  const existingCourses = await pbRequest(
-    "GET",
-    `/api/collections/courses/records?filter=user="${userId}"&perPage=200`
-  ).then((r) => r.items || []);
+  const existingCourses = await pbGetAll("courses", `user = "${userId}"`);
 
   const colors = [
     "#6366f1",
@@ -115,10 +128,7 @@ async function syncCanvasData(payload) {
     }
   }
 
-  const existingAssignments = await pbRequest(
-    "GET",
-    `/api/collections/assignments/records?filter=user="${userId}"&perPage=500`
-  ).then((r) => r.items || []);
+  const existingAssignments = await pbGetAll("assignments", `user = "${userId}"`);
 
   const existingByCanvasId = new Map(
     existingAssignments.map((a) => [a.canvas_id, a])
@@ -138,11 +148,11 @@ async function syncCanvasData(payload) {
       canvas_id: ca.id,
       title: ca.name,
       description: ca.description || "",
-      due_at: ca.due_at || "",
+      due_at: ca.due_at || null,
       points_possible: ca.points_possible || 0,
       status,
-      canvas_url: ca.html_url,
-      submission_types: JSON.stringify(ca.submission_types),
+      canvas_url: ca.html_url || "",
+      submission_types: JSON.stringify(ca.submission_types || []),
     };
 
     const existing = existingByCanvasId.get(ca.id);
