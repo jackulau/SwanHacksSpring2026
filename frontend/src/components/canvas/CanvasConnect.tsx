@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link2, Unlink, RefreshCw, CheckCircle, AlertCircle, Copy, Terminal, ChevronDown, ChevronUp } from "lucide-react";
 
-const GRAB_TOKEN_SCRIPT = `// Paste this in your Canvas browser console (while logged in)
-(async()=>{const c=document.querySelector('meta[name="csrf-token"]')?.content;if(!c){console.error("Not on a Canvas page or not logged in.");return}const r=await fetch("/api/v1/users/self/tokens",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":c},body:JSON.stringify({token:{purpose:"HackStack"}})});const d=await r.json();if(d.token){await navigator.clipboard.writeText(d.token).catch(()=>{});console.log("%c Token: "+d.token,"font-size:16px;color:#6366f1;font-weight:bold");console.log("Copied to clipboard! Paste it in HackStack.")}else{console.error("Failed:",d)}})();`;
+const GRAB_TOKEN_SCRIPT = `// Paste in Canvas console while logged in
+(async()=>{let c=window.ENV?.CSRF_TOKEN;if(!c){const ck=document.cookie.match(/(?:^|;\\s*)_csrf_token=([^;]*)/);if(ck)c=decodeURIComponent(ck[1])}if(!c){const m=document.querySelector('meta[name="csrf-token"]');if(m)c=m.content}if(!c){console.error("Could not find CSRF token. Make sure you are on Canvas and logged in.");return}const r=await fetch("/api/v1/users/self/tokens",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":c},body:JSON.stringify({token:{purpose:"HackStack"}})});const d=await r.json();if(d.token){await navigator.clipboard.writeText(d.token).catch(()=>{});console.log("%c✅ Token: "+d.token,"font-size:16px;color:#6366f1;font-weight:bold");console.log("Copied to clipboard! Paste it in HackStack.")}else{console.error("Failed:",d)}})();`;
 
 interface Props {
   connected: boolean;
@@ -176,27 +176,39 @@ export function CanvasConnect({
                   <div className="relative">
                     <pre className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-[11px] text-zinc-300 font-mono overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
 {`// Paste in Canvas console while logged in
-(async()=>{
-  const c = document.querySelector(
-    'meta[name="csrf-token"]'
-  )?.content;
+(async () => {
+  let c = window.ENV?.CSRF_TOKEN;
+  if (!c) {
+    const ck = document.cookie
+      .match(/(?:^|;\\s*)_csrf_token=([^;]*)/);
+    if (ck) c = decodeURIComponent(ck[1]);
+  }
+  if (!c) {
+    const m = document.querySelector(
+      'meta[name="csrf-token"]');
+    if (m) c = m.content;
+  }
+  if (!c) {
+    console.error("CSRF token not found.");
+    return;
+  }
   const r = await fetch(
     "/api/v1/users/self/tokens",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": c
+        "X-CSRF-Token": c,
       },
       body: JSON.stringify({
-        token: { purpose: "HackStack" }
-      })
+        token: { purpose: "HackStack" },
+      }),
     }
   );
   const d = await r.json();
   if (d.token) {
-    await navigator.clipboard.writeText(d.token)
-      .catch(()=>{});
+    await navigator.clipboard
+      .writeText(d.token).catch(() => {});
     console.log("Token: " + d.token);
     console.log("Copied to clipboard!");
   } else console.error("Failed:", d);
