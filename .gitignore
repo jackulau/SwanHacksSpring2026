@@ -1,0 +1,5 @@
+backend/pb_data/
+backend/pocketbase
+node_modules/
+.env.local
+.claude/
