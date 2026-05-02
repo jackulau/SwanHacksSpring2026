@@ -313,3 +313,49 @@ export interface StudySession extends RecordModel {
   started_at: string;
   ended_at: string;
 }
+
+// ──────────────────────────────────────────────
+// Canvas LMS integration
+// ──────────────────────────────────────────────
+
+export interface CanvasConfig {
+  base_url: string;
+  api_token: string;
+}
+
+export interface CanvasCourse {
+  id: number;
+  name: string;
+  course_code: string;
+  enrollment_term_id: number;
+  start_at: string | null;
+  end_at: string | null;
+  workflow_state: string;
+}
+
+export interface CanvasAssignment {
+  id: number;
+  name: string;
+  description: string | null;
+  due_at: string | null;
+  unlock_at: string | null;
+  lock_at: string | null;
+  points_possible: number;
+  course_id: number;
+  html_url: string;
+  submission_types: string[];
+  has_submitted_submissions: boolean;
+}
+
+export interface Assignment extends RecordModel {
+  user: string;
+  course: string;
+  canvas_id: number;
+  title: string;
+  description: string;
+  due_at: string;
+  points_possible: number;
+  status: "upcoming" | "submitted" | "graded" | "missing";
+  canvas_url: string;
+  submission_types: string[];
+}

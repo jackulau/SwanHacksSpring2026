@@ -18,7 +18,9 @@ import {
   Zap,
   FileText,
   BarChart3,
+  Calendar,
 } from "lucide-react";
+import { AssignmentList } from "../components/canvas/AssignmentList";
 import type { Course, Lecture } from "../lib/types";
 
 export const Route = createFileRoute("/")({
@@ -586,6 +588,23 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Upcoming Assignments */}
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-amber-400" />
+            <h2 className="font-semibold">Upcoming Assignments</h2>
+          </div>
+          <Link
+            to="/settings"
+            className="text-xs text-indigo-400 hover:text-indigo-300"
+          >
+            Canvas settings
+          </Link>
+        </div>
+        <AssignmentList userId={userId} limit={5} />
       </div>
     </div>
   );
