@@ -1,0 +1,208 @@
+import { pb } from './pocketbase';
+import {
+  TRANSCRIPT_CLEANUP_SYSTEM,
+  NOTE_GENERATION_SYSTEM,
+  FLASHCARD_GENERATION_SYSTEM,
+  QUIZ_GENERATION_SYSTEM,
+} from './prompts';
+import type { NoteBlock, QuizQuestion } from './types';
+
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+
+async function callOpenAI(
+  systemPrompt: string,
+  userPrompt: string,
+  model = 'gpt-4o-mini',
+): Promise<string> {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  if (!apiKey) throw new Error('VITE_OPENAI_API_KEY not set');
+
+  const res = await fetch(OPENAI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 4096,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI API error (${res.status}): ${err}`);
+  }
+
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+function parseJSON<T>(raw: string): T {
+  const cleaned = raw.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
+  return JSON.parse(cleaned);
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  let lastError: Error | undefined;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+      if (i < retries) await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+    }
+  }
+  throw lastError;
+}
+
+async function updateLectureStatus(lectureId: string, status: string, errorMessage?: string) {
+  await pb.collection('lectures').update(lectureId, {
+    status,
+    ...(errorMessage ? { error_message: errorMessage } : {}),
+  });
+}
+
+export async function cleanTranscript(rawText: string): Promise<string> {
+  return withRetry(() =>
+    callOpenAI(TRANSCRIPT_CLEANUP_SYSTEM, `Clean this transcript:\n\n${rawText}`),
+  );
+}
+
+export async function generateNotes(transcript: string): Promise<NoteBlock[]> {
+  const raw = await withRetry(() =>
+    callOpenAI(
+      NOTE_GENERATION_SYSTEM,
+      `Generate structured notes from this lecture transcript:\n\n${transcript}`,
+    ),
+  );
+  return parseJSON<NoteBlock[]>(raw);
+}
+
+interface RawFlashcard {
+  front: string;
+  back: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  tags: string[];
+}
+
+export async function generateFlashcards(transcript: string): Promise<RawFlashcard[]> {
+  const raw = await withRetry(() =>
+    callOpenAI(
+      FLASHCARD_GENERATION_SYSTEM,
+      `Generate flashcards from this lecture transcript:\n\n${transcript}`,
+    ),
+  );
+  return parseJSON<RawFlashcard[]>(raw);
+}
+
+export async function generateQuiz(transcript: string): Promise<QuizQuestion[]> {
+  const raw = await withRetry(() =>
+    callOpenAI(
+      QUIZ_GENERATION_SYSTEM,
+      `Generate a quiz from this lecture transcript:\n\n${transcript}`,
+    ),
+  );
+  return parseJSON<QuizQuestion[]>(raw);
+}
+
+export interface PipelineResult {
+  cleanText?: string;
+  notes?: NoteBlock[];
+  flashcards?: RawFlashcard[];
+  quiz?: QuizQuestion[];
+  errors: string[];
+}
+
+export async function runPipeline(lectureId: string, rawTranscript: string): Promise<PipelineResult> {
+  const result: PipelineResult = { errors: [] };
+
+  await updateLectureStatus(lectureId, 'processing');
+
+  try {
+    result.cleanText = await cleanTranscript(rawTranscript);
+    await pb.collection('transcripts').create({
+      lecture: lectureId,
+      raw_text: rawTranscript,
+      clean_text: result.cleanText,
+      segments: [],
+      speakers: [],
+      language: 'en',
+      word_count: result.cleanText.split(/\s+/).length,
+    });
+  } catch (e) {
+    result.errors.push(`Transcript cleanup failed: ${e}`);
+  }
+
+  const textForGeneration = result.cleanText || rawTranscript;
+  await updateLectureStatus(lectureId, 'generating');
+
+  const userId = pb.authStore.record?.id;
+
+  try {
+    result.notes = await generateNotes(textForGeneration);
+    const keyConcepts = result.notes
+      .filter((b): b is Extract<NoteBlock, { type: 'key_term' }> => b.type === 'key_term')
+      .map((b) => ({ term: b.term, definition: b.definition, importance: 'medium' as const }));
+    await pb.collection('notes').create({
+      lecture: lectureId,
+      user: userId,
+      title: 'Auto-generated Notes',
+      content: result.notes,
+      content_type: 'auto_generated',
+      key_concepts: keyConcepts,
+      summary: '',
+    });
+  } catch (e) {
+    result.errors.push(`Note generation failed: ${e}`);
+  }
+
+  try {
+    result.flashcards = await generateFlashcards(textForGeneration);
+    for (const card of result.flashcards) {
+      await pb.collection('flashcards').create({
+        lecture: lectureId,
+        user: userId,
+        deck_name: 'Lecture Flashcards',
+        front: card.front,
+        back: card.back,
+        tags: card.tags,
+        difficulty: card.difficulty,
+        source: 'auto_generated',
+        ease_factor: 2.5,
+        interval_days: 0,
+        repetitions: 0,
+      });
+    }
+  } catch (e) {
+    result.errors.push(`Flashcard generation failed: ${e}`);
+  }
+
+  try {
+    result.quiz = await generateQuiz(textForGeneration);
+    const totalPoints = result.quiz.reduce((sum, q) => sum + q.points, 0);
+    await pb.collection('quizzes').create({
+      lecture: lectureId,
+      user: userId,
+      title: 'Auto-generated Quiz',
+      questions: result.quiz,
+      total_points: totalPoints,
+      source: 'auto_generated',
+    });
+  } catch (e) {
+    result.errors.push(`Quiz generation failed: ${e}`);
+  }
+
+  await updateLectureStatus(
+    lectureId,
+    result.errors.length === 0 ? 'ready' : 'error',
+    result.errors.length > 0 ? result.errors.join('; ') : undefined,
+  );
+
+  return result;
+}

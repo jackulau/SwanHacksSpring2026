@@ -1,59 +1,22 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { pb } from "../lib/pocketbase";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useAuth } from "../lib/auth";
-import type { Item } from "../lib/types";
+import { AppShell } from "../components/layout/AppShell";
+import { Mic, Upload, BookOpen, Flame, Clock, GraduationCap } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  component: Home,
+  component: Dashboard,
 });
 
-function Home() {
-  const { user, loading: authLoading, logout } = useAuth();
+function Dashboard() {
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [items, setItems] = useState<Item[]>([]);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate({ to: "/login" });
     }
   }, [authLoading, user, navigate]);
-
-  async function fetchItems() {
-    try {
-      const records = await pb.collection("items").getFullList<Item>();
-      setItems(records);
-      setError("");
-    } catch {
-      setError(
-        "Cannot connect to PocketBase. Make sure it's running on port 8090.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (user) fetchItems();
-  }, [user]);
-
-  async function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    await pb.collection("items").create({ name, description });
-    setName("");
-    setDescription("");
-    fetchItems();
-  }
-
-  async function handleDelete(id: string) {
-    await pb.collection("items").delete(id);
-    fetchItems();
-  }
 
   if (authLoading || !user) {
     return (
@@ -64,81 +27,100 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold">HackStack</h1>
-            <p className="text-zinc-400">Signed in as {user.email}</p>
-          </div>
-          <button
-            onClick={() => {
-              logout();
-              navigate({ to: "/login" });
-            }}
-            className="text-zinc-400 hover:text-white border border-zinc-700 px-4 py-2 rounded-lg transition-colors"
-          >
-            Sign Out
-          </button>
+    <AppShell>
+      <div className="p-6 max-w-5xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <p className="text-zinc-400 text-sm mt-1">Welcome back, {user.email}</p>
         </div>
 
-        {error && (
-          <div className="bg-red-900/50 border border-red-700 rounded-lg p-4 mb-6 text-red-200">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleAdd} className="flex gap-3 mb-8">
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:outline-none focus:border-zinc-500"
-          />
-          <input
-            type="text"
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:outline-none focus:border-zinc-500"
-          />
-          <button
-            type="submit"
-            className="bg-white text-black font-medium px-6 py-2 rounded-lg hover:bg-zinc-200 transition-colors"
+        {/* Quick actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link
+            to="/capture"
+            className="flex items-center gap-4 p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
           >
-            Add
-          </button>
-        </form>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Mic className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium">Record Lecture</p>
+              <p className="text-sm text-zinc-500">Start a live recording</p>
+            </div>
+          </Link>
 
-        {loading ? (
-          <p className="text-zinc-500">Loading...</p>
-        ) : items.length === 0 ? (
-          <p className="text-zinc-500">No items yet. Add one above.</p>
-        ) : (
-          <ul className="space-y-3">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center justify-between bg-zinc-800/50 border border-zinc-800 rounded-lg p-4"
-              >
-                <div>
-                  <p className="font-medium">{item.name}</p>
-                  {item.description && (
-                    <p className="text-zinc-400 text-sm">{item.description}</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="text-zinc-500 hover:text-red-400 transition-colors"
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+          <Link
+            to="/capture/upload"
+            className="flex items-center gap-4 p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Upload className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium">Upload Audio</p>
+              <p className="text-sm text-zinc-500">Upload a recording file</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Due for Review */}
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-warning" />
+              <h3 className="text-sm font-medium text-zinc-400">Due for Review</h3>
+            </div>
+            <p className="text-3xl font-bold">0</p>
+            <p className="text-xs text-zinc-500 mt-1">flashcards due today</p>
+          </div>
+
+          {/* Study Streak */}
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Flame className="w-4 h-4 text-error" />
+              <h3 className="text-sm font-medium text-zinc-400">Study Streak</h3>
+            </div>
+            <p className="text-3xl font-bold">0</p>
+            <p className="text-xs text-zinc-500 mt-1">days in a row</p>
+          </div>
+
+          {/* Courses */}
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <GraduationCap className="w-4 h-4 text-success" />
+              <h3 className="text-sm font-medium text-zinc-400">Courses</h3>
+            </div>
+            <p className="text-3xl font-bold">0</p>
+            <p className="text-xs text-zinc-500 mt-1">active courses</p>
+          </div>
+        </div>
+
+        {/* Recent Lectures */}
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-medium text-zinc-400">Recent Lectures</h3>
+          </div>
+          <div className="text-center py-8">
+            <p className="text-zinc-500 text-sm">No lectures yet.</p>
+            <p className="text-zinc-600 text-xs mt-1">
+              Record or upload your first lecture to get started.
+            </p>
+          </div>
+        </div>
+
+        {/* Course chips placeholder */}
+        <div>
+          <h3 className="text-sm font-medium text-zinc-400 mb-3">Your Courses</h3>
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-zinc-500 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1">
+              No courses yet
+            </span>
+          </div>
+        </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

@@ -1,1 +1,119 @@
 @import "tailwindcss";
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
+
+@theme {
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-surface: #18181b;
+  --color-surface-raised: #27272a;
+  --color-border: #3f3f46;
+  --color-text: #fafafa;
+  --color-text-muted: #a1a1aa;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
+/* ── Font classes ── */
+
+.font-atkinson {
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+.font-opendyslexic {
+  font-family: "OpenDyslexic", "Comic Sans MS", cursive, sans-serif;
+}
+
+/* ── Theme overrides ── */
+
+.theme-high-contrast {
+  --color-surface: #000000;
+  --color-surface-raised: #1a1a1a;
+  --color-border: #ffffff;
+  --color-text: #ffffff;
+  --color-text-muted: #e0e0e0;
+  --color-primary: #818cf8;
+  --color-primary-hover: #6366f1;
+}
+
+.theme-high-contrast {
+  @apply bg-black text-white;
+}
+
+.theme-sepia {
+  --color-surface: #f5f0e8;
+  --color-surface-raised: #ede6d6;
+  --color-border: #c9b99a;
+  --color-text: #3b2e1a;
+  --color-text-muted: #7a6b52;
+  --color-primary: #8b5e3c;
+  --color-primary-hover: #6d4a2e;
+}
+
+.theme-sepia {
+  @apply bg-[#f5f0e8] text-[#3b2e1a];
+}
+
+/* ── Focus mode ── */
+
+.focus-highlight {
+  background-color: rgba(99, 102, 241, 0.08);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+body:has(.focus-highlight) *:not(.focus-highlight):not(.focus-highlight *) {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+body:has(.focus-highlight) .focus-highlight,
+body:has(.focus-highlight) .focus-highlight * {
+  opacity: 1;
+}
+
+/* ── Reduced motion ── */
+
+.reduce-motion,
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ── Perspective for card flips ── */
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* ── Responsive sidebar ── */
+
+@media (max-width: 768px) {
+  .sidebar-desktop {
+    display: none;
+  }
+}
+
+/* ── Scrollbar styling ── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}

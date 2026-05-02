@@ -1,0 +1,138 @@
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
+import { pb } from "./pocketbase";
+import { useAuth } from "./auth";
+
+export interface Preferences {
+  theme: "dark" | "light" | "high-contrast" | "sepia";
+  font: "system" | "opendyslexic" | "atkinson";
+  fontSize: number;
+  lineSpacing: number;
+  reducedMotion: boolean;
+  ttsEnabled: boolean;
+  ttsSpeed: number;
+  readingLevel: "original" | "simplified" | "basic";
+  cardsPerSession: number;
+  pomodoroLength: number;
+  breakReminders: boolean;
+}
+
+const defaults: Preferences = {
+  theme: "dark",
+  font: "system",
+  fontSize: 16,
+  lineSpacing: 1.5,
+  reducedMotion: false,
+  ttsEnabled: false,
+  ttsSpeed: 1,
+  readingLevel: "original",
+  cardsPerSession: 20,
+  pomodoroLength: 25,
+  breakReminders: true,
+};
+
+interface PreferencesContextValue {
+  prefs: Preferences;
+  update: (patch: Partial<Preferences>) => void;
+}
+
+const PreferencesContext = createContext<PreferencesContextValue | null>(null);
+
+const STORAGE_KEY = "hackstack-preferences";
+
+function loadFromStorage(): Preferences {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...defaults, ...JSON.parse(raw) };
+  } catch {
+    // ignore
+  }
+  return { ...defaults };
+}
+
+function applyToDOM(prefs: Preferences) {
+  const root = document.documentElement;
+
+  // Theme class
+  root.classList.remove("theme-high-contrast", "theme-sepia");
+  if (prefs.theme === "high-contrast") {
+    root.classList.add("theme-high-contrast");
+  } else if (prefs.theme === "sepia") {
+    root.classList.add("theme-sepia");
+  }
+
+  // Font class
+  root.classList.remove("font-atkinson", "font-opendyslexic");
+  if (prefs.font === "atkinson") {
+    root.classList.add("font-atkinson");
+  } else if (prefs.font === "opendyslexic") {
+    root.classList.add("font-opendyslexic");
+  }
+
+  // CSS custom properties
+  root.style.setProperty("--user-font-size", `${prefs.fontSize}px`);
+  root.style.setProperty("--user-line-spacing", `${prefs.lineSpacing}`);
+  root.style.fontSize = `${prefs.fontSize}px`;
+  root.style.lineHeight = `${prefs.lineSpacing}`;
+
+  // Reduced motion
+  if (prefs.reducedMotion) {
+    root.classList.add("reduce-motion");
+  } else {
+    root.classList.remove("reduce-motion");
+  }
+}
+
+export function PreferencesProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const [prefs, setPrefs] = useState<Preferences>(loadFromStorage);
+
+  // Apply to DOM on mount and whenever prefs change
+  useEffect(() => {
+    applyToDOM(prefs);
+  }, [prefs]);
+
+  // Sync to PocketBase when user is authenticated and prefs change
+  const syncToPB = useCallback(
+    async (p: Preferences) => {
+      if (!user) return;
+      try {
+        await pb.collection("users").update(user.id, { preferences: p });
+      } catch {
+        // silently fail — local storage is the source of truth
+      }
+    },
+    [user],
+  );
+
+  const update = useCallback(
+    (patch: Partial<Preferences>) => {
+      setPrefs((prev) => {
+        const next = { ...prev, ...patch };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        syncToPB(next);
+        return next;
+      });
+    },
+    [syncToPB],
+  );
+
+  return (
+    <PreferencesContext value={{ prefs, update }}>
+      {children}
+    </PreferencesContext>
+  );
+}
+
+export function usePreferences() {
+  const ctx = useContext(PreferencesContext);
+  if (!ctx)
+    throw new Error("usePreferences must be inside PreferencesProvider");
+  return ctx;
+}
