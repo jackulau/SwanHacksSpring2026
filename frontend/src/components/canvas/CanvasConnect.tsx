@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link2, Unlink, RefreshCw, CheckCircle, AlertCircle, Copy, ClipboardPaste } from "lucide-react";
 
 const IMPORT_SCRIPT = `// Paste in Canvas console while logged in
-(async()=>{try{const b=window.location.origin;console.log("Fetching profile...");const pr=await fetch("/api/v1/users/self/profile");if(!pr.ok){console.error("Not logged in or not on Canvas (status "+pr.status+")");return}const u=await pr.json();console.log("Hi "+u.name+"! Fetching courses...");const cr=await fetch("/api/v1/courses?enrollment_state=active&per_page=50&include[]=term");if(!cr.ok){console.error("Failed to fetch courses: "+cr.status);return}const cs=await cr.json();if(!Array.isArray(cs)){console.error("Unexpected response:",cs);return}console.log("Found "+cs.length+" courses. Fetching assignments...");const al=[];for(const c of cs){try{const r=await fetch("/api/v1/courses/"+c.id+"/assignments?per_page=100&order_by=due_at&include[]=submission");const d=await r.json();if(Array.isArray(d))al.push(...d)}catch(e){console.warn("Skipped course "+c.id)}}console.log("Found "+al.length+" assignments.");const p=JSON.stringify({base_url:b,user:u.name,courses:cs,assignments:al});let copied=false;try{await navigator.clipboard.writeText(p);copied=true}catch(e){}if(copied){console.log("%c✅ Data copied to clipboard!","font-size:16px;color:#6366f1;font-weight:bold");console.log("Go to HackStack Settings → Canvas → paste it in the box.")}else{console.log("%c⚠️ Clipboard blocked. Copy the text below manually:","font-size:14px;color:#f59e0b;font-weight:bold");console.log(p)}}catch(e){console.error("Script error:",e)}})();`;
+(async()=>{try{const b=window.location.origin;console.log("Fetching profile...");const pr=await fetch("/api/v1/users/self/profile");if(!pr.ok){console.error("Not logged in or not on Canvas (status "+pr.status+")");return}const u=await pr.json();console.log("Hi "+u.name+"! Fetching courses...");const cr=await fetch("/api/v1/courses?enrollment_state=active&per_page=50&include[]=term");if(!cr.ok){console.error("Failed to fetch courses: "+cr.status);return}const cs=await cr.json();if(!Array.isArray(cs)){console.error("Unexpected response:",cs);return}console.log("Found "+cs.length+" courses. Fetching assignments...");const al=[];for(const c of cs){try{const r=await fetch("/api/v1/courses/"+c.id+"/assignments?per_page=100&order_by=due_at&include[]=submission");const d=await r.json();if(Array.isArray(d))al.push(...d)}catch(e){console.warn("Skipped course "+c.id)}}console.log("Found "+al.length+" assignments.");const p=JSON.stringify({base_url:b,user:u.name,courses:cs,assignments:al});copy(p);console.log("%c✅ Data copied to clipboard!","font-size:16px;color:#6366f1;font-weight:bold");console.log("Go to HackStack Settings → Canvas → paste it in the box.")}catch(e){console.error("Script error:",e)}})();`;
 
 interface Props {
   connected: boolean;
@@ -90,14 +90,8 @@ export function CanvasConnect({
       base_url: b, user: u.name,
       courses: cs, assignments: al,
     });
-    try {
-      await navigator.clipboard
-        .writeText(p);
-      console.log("Copied to clipboard!");
-    } catch (e) {
-      console.log("Copy this text:");
-      console.log(p);
-    }
+    copy(p);
+    console.log("Copied to clipboard!");
   } catch (e) {
     console.error("Error:", e);
   }
