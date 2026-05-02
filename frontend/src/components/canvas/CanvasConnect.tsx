@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link2, Unlink, RefreshCw, CheckCircle, AlertCircle, Copy, Terminal, ChevronDown, ChevronUp } from "lucide-react";
 
 const GRAB_TOKEN_SCRIPT = `// Paste in Canvas console while logged in
-(async()=>{let c=window.ENV?.CSRF_TOKEN;if(!c){const ck=document.cookie.match(/(?:^|;\\s*)_csrf_token=([^;]*)/);if(ck)c=decodeURIComponent(ck[1])}if(!c){const m=document.querySelector('meta[name="csrf-token"]');if(m)c=m.content}if(!c){console.error("Could not find CSRF token. Make sure you are on Canvas and logged in.");return}const exp=new Date();exp.setFullYear(exp.getFullYear()+1);const r=await fetch("/api/v1/users/self/tokens",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":c},body:JSON.stringify({token:{purpose:"HackStack",expires_at:exp.toISOString()}})});const d=await r.json();if(d.token){await navigator.clipboard.writeText(d.token).catch(()=>{});console.log("%c✅ Token: "+d.token,"font-size:16px;color:#6366f1;font-weight:bold");console.log("Copied to clipboard! Paste it in HackStack.")}else{console.error("Failed:",d)}})();`;
+(async()=>{let c=window.ENV?.CSRF_TOKEN;if(!c){const ck=document.cookie.match(/(?:^|;\\s*)_csrf_token=([^;]*)/);if(ck)c=decodeURIComponent(ck[1])}if(!c){const m=document.querySelector('meta[name="csrf-token"]');if(m)c=m.content}if(!c){console.error("Could not find CSRF token. Make sure you are on Canvas and logged in.");return}const exp=new Date();exp.setDate(exp.getDate()+90);const r=await fetch("/api/v1/users/self/tokens",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":c},body:JSON.stringify({token:{purpose:"HackStack",expires_at:exp.toISOString()}})});const d=await r.json();if(d.token){await navigator.clipboard.writeText(d.token).catch(()=>{});console.log("%c✅ Token: "+d.token,"font-size:16px;color:#6366f1;font-weight:bold");console.log("Copied to clipboard! Paste it in HackStack.")}else{console.error("Failed:",d)}})();`;
 
 interface Props {
   connected: boolean;
@@ -193,7 +193,7 @@ export function CanvasConnect({
     return;
   }
   const exp = new Date();
-  exp.setFullYear(exp.getFullYear() + 1);
+  exp.setDate(exp.getDate() + 90);
   const r = await fetch(
     "/api/v1/users/self/tokens",
     {
