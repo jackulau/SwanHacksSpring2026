@@ -2,7 +2,7 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 99999;
+  z-index: 10000;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -47,7 +47,7 @@
   position: fixed;
   bottom: 80px;
   right: 24px;
-  z-index: 99999;
+  z-index: 10000;
   padding: 12px 20px;
   border-radius: 10px;
   font-size: 13px;
@@ -81,4 +81,14 @@
   background: #1e1b4b;
   color: #c7d2fe;
   border: 1px solid #3730a3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #hackstack-sync-btn,
+  #hackstack-toast {
+    transition: none;
+  }
+  #hackstack-sync-btn.hackstack-loading svg {
+    animation: none;
+  }
 }
