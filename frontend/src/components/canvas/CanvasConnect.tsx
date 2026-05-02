@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link2, Unlink, RefreshCw, CheckCircle, AlertCircle, Copy, Terminal, ChevronDown, ChevronUp } from "lucide-react";
+import { Link2, Unlink, RefreshCw, CheckCircle, AlertCircle, Copy, ClipboardPaste } from "lucide-react";
 
-const GRAB_TOKEN_SCRIPT = `// Paste in Canvas console while logged in
-(async()=>{let c=window.ENV?.CSRF_TOKEN;if(!c){const ck=document.cookie.match(/(?:^|;\\s*)_csrf_token=([^;]*)/);if(ck)c=decodeURIComponent(ck[1])}if(!c){const m=document.querySelector('meta[name="csrf-token"]');if(m)c=m.content}if(!c){console.error("Could not find CSRF token. Make sure you are on Canvas and logged in.");return}const exp=new Date();exp.setDate(exp.getDate()+90);const r=await fetch("/api/v1/users/self/tokens",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":c},body:JSON.stringify({token:{purpose:"HackStack",expires_at:exp.toISOString()}})});const d=await r.json();if(d.token){await navigator.clipboard.writeText(d.token).catch(()=>{});console.log("%c✅ Token: "+d.token,"font-size:16px;color:#6366f1;font-weight:bold");console.log("Copied to clipboard! Paste it in HackStack.")}else{console.error("Failed:",d)}})();`;
+const IMPORT_SCRIPT = `// Paste in Canvas console while logged in
+(async()=>{const b=window.location.origin;const pr=await fetch("/api/v1/users/self/profile");const u=await pr.json();console.log("Hi "+u.name+"!");const cr=await fetch("/api/v1/courses?enrollment_state=active&per_page=50&include[]=term");if(!cr.ok){console.error("Failed: "+cr.status);return}const cs=await cr.json();if(!Array.isArray(cs)){console.error("Not on Canvas or not logged in");return}console.log(cs.length+" courses");const as=[];for(const c of cs){try{const r=await fetch("/api/v1/courses/"+c.id+"/assignments?per_page=100&order_by=due_at&include[]=submission");const d=await r.json();if(Array.isArray(d))as.push(...d)}catch(e){}}const p=JSON.stringify({base_url:b,user:u.name,courses:cs,assignments:as});await navigator.clipboard.writeText(p).catch(()=>{});console.log("%c✅ Copied! "+cs.length+" courses, "+as.length+" assignments","font-size:16px;color:#6366f1;font-weight:bold");console.log("Paste in HackStack to import.")})();`;
 
 interface Props {
   connected: boolean;
@@ -10,9 +10,8 @@ interface Props {
   lastSync: string | null;
   error: string | null;
   canvasUser: string | null;
-  onConnect: (baseUrl: string, token: string) => Promise<void>;
+  onImport: (jsonData: string) => Promise<void>;
   onDisconnect: () => void;
-  onSync: () => Promise<void>;
 }
 
 export function CanvasConnect({
@@ -21,28 +20,134 @@ export function CanvasConnect({
   lastSync,
   error,
   canvasUser,
-  onConnect,
+  onImport,
   onDisconnect,
-  onSync,
 }: Props) {
-  const [baseUrl, setBaseUrl] = useState("");
-  const [token, setToken] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const [pasteData, setPasteData] = useState("");
   const [copied, setCopied] = useState(false);
 
-  async function handleConnect(e: React.FormEvent) {
-    e.preventDefault();
-    if (!baseUrl.trim() || !token.trim()) return;
-    await onConnect(baseUrl.trim(), token.trim());
-    setToken("");
+  async function handleImport() {
+    if (!pasteData.trim()) return;
+    await onImport(pasteData.trim());
+    setPasteData("");
+    setShowForm(false);
   }
 
   function copyScript() {
-    navigator.clipboard.writeText(GRAB_TOKEN_SCRIPT);
+    navigator.clipboard.writeText(IMPORT_SCRIPT);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+
+  const importForm = (
+    <div className="space-y-4 pt-2">
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold">1</div>
+          <span className="text-sm font-medium">Copy this script</span>
+        </div>
+        <div className="relative">
+          <pre className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-[11px] text-zinc-300 font-mono overflow-x-auto whitespace-pre-wrap break-all leading-relaxed max-h-40 overflow-y-auto">
+{`// Paste in Canvas console
+(async () => {
+  const b = window.location.origin;
+  const pr = await fetch(
+    "/api/v1/users/self/profile");
+  const u = await pr.json();
+  console.log("Hi " + u.name + "!");
+  const cr = await fetch(
+    "/api/v1/courses?"
+    + "enrollment_state=active"
+    + "&per_page=50&include[]=term");
+  const cs = await cr.json();
+  if (!Array.isArray(cs)) {
+    console.error("Not logged in");
+    return;
+  }
+  const as = [];
+  for (const c of cs) {
+    try {
+      const r = await fetch(
+        "/api/v1/courses/" + c.id
+        + "/assignments?per_page=100"
+        + "&order_by=due_at"
+        + "&include[]=submission");
+      const d = await r.json();
+      if (Array.isArray(d))
+        as.push(...d);
+    } catch (e) {}
+  }
+  const p = JSON.stringify({
+    base_url: b, user: u.name,
+    courses: cs, assignments: as,
+  });
+  await navigator.clipboard
+    .writeText(p).catch(() => {});
+  console.log("Copied! Paste in HackStack.");
+})();`}
+          </pre>
+          <button
+            type="button"
+            onClick={copyScript}
+            className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-medium bg-zinc-700 hover:bg-zinc-600 text-zinc-300 px-2 py-1 rounded-md transition-colors"
+          >
+            <Copy className="w-3 h-3" />
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold">2</div>
+          <span className="text-sm font-medium">Paste in Canvas console</span>
+        </div>
+        <p className="text-xs text-zinc-500 ml-7">
+          Go to Canvas, press <kbd className="px-1.5 py-0.5 bg-zinc-700 rounded text-zinc-300 font-mono text-[10px]">F12</kbd>, open Console tab, paste the script, hit Enter
+        </p>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold">3</div>
+          <span className="text-sm font-medium">Paste the result here</span>
+        </div>
+        <textarea
+          value={pasteData}
+          onChange={(e) => setPasteData(e.target.value)}
+          placeholder="Data auto-copies to clipboard. Just Ctrl+V / Cmd+V here."
+          rows={3}
+          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors resize-none"
+        />
+      </div>
+
+      <div className="flex gap-2 justify-end">
+        <button
+          type="button"
+          onClick={() => { setShowForm(false); setPasteData(""); }}
+          className="text-zinc-400 hover:text-zinc-200 px-4 py-2 text-sm"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleImport}
+          disabled={syncing || !pasteData.trim()}
+          className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2 rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+        >
+          <ClipboardPaste className="w-4 h-4" />
+          {syncing ? "Importing..." : "Import"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 bg-red-900/20 border border-red-800/50 rounded-xl p-3">
+          <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-red-300">{error}</p>
+        </div>
+      )}
+    </div>
+  );
 
   if (connected) {
     return (
@@ -54,19 +159,17 @@ export function CanvasConnect({
             </div>
             <div>
               <p className="font-medium">Canvas Connected</p>
-              {canvasUser && (
-                <p className="text-sm text-zinc-500">{canvasUser}</p>
-              )}
+              {canvasUser && <p className="text-sm text-zinc-500">{canvasUser}</p>}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={onSync}
+              onClick={() => setShowForm(!showForm)}
               disabled={syncing}
               className="flex items-center gap-1.5 text-sm text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Syncing..." : "Sync"}
+              {syncing ? "Importing..." : "Re-import"}
             </button>
             <button
               onClick={onDisconnect}
@@ -80,11 +183,13 @@ export function CanvasConnect({
 
         {lastSync && (
           <p className="text-xs text-zinc-600">
-            Last synced: {new Date(lastSync).toLocaleString()}
+            Last imported: {new Date(lastSync).toLocaleString()}
           </p>
         )}
 
-        {error && (
+        {showForm && importForm}
+
+        {!showForm && error && (
           <div className="flex items-start gap-2 bg-red-900/20 border border-red-800/50 rounded-xl p-3">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
             <p className="text-sm text-red-300">{error}</p>
@@ -103,9 +208,7 @@ export function CanvasConnect({
           </div>
           <div>
             <p className="font-medium">Canvas LMS</p>
-            <p className="text-sm text-zinc-500">
-              Import courses & assignments automatically
-            </p>
+            <p className="text-sm text-zinc-500">Import courses & assignments</p>
           </div>
         </div>
         {!showForm && (
@@ -113,166 +216,12 @@ export function CanvasConnect({
             onClick={() => setShowForm(true)}
             className="text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-colors"
           >
-            Connect
+            Import
           </button>
         )}
       </div>
 
-      {showForm && (
-        <form onSubmit={handleConnect} className="space-y-3 pt-2">
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
-              Canvas URL
-            </label>
-            <input
-              type="url"
-              placeholder="https://your-school.instructure.com"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              required
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
-              API Access Token
-            </label>
-            <input
-              type="password"
-              placeholder="Paste your Canvas API token"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              required
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-            />
-          </div>
-
-          {/* Token help */}
-          <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowHelp(!showHelp)}
-              className="w-full flex items-center justify-between px-4 py-2.5 text-left"
-            >
-              <span className="text-xs font-medium text-zinc-400">How do I get my token?</span>
-              {showHelp ? (
-                <ChevronUp className="w-3.5 h-3.5 text-zinc-500" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
-              )}
-            </button>
-
-            {showHelp && (
-              <div className="px-4 pb-4 space-y-3">
-                {/* Quick method */}
-                <div>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-                    <span className="text-xs font-semibold text-indigo-400">Quick: Console Script</span>
-                  </div>
-                  <p className="text-xs text-zinc-500 mb-2">
-                    Open Canvas in your browser, press <kbd className="px-1.5 py-0.5 bg-zinc-700 rounded text-zinc-300 font-mono text-[10px]">F12</kbd> to open DevTools, go to Console, and paste this:
-                  </p>
-                  <div className="relative">
-                    <pre className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-[11px] text-zinc-300 font-mono overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
-{`// Paste in Canvas console while logged in
-(async () => {
-  let c = window.ENV?.CSRF_TOKEN;
-  if (!c) {
-    const ck = document.cookie
-      .match(/(?:^|;\\s*)_csrf_token=([^;]*)/);
-    if (ck) c = decodeURIComponent(ck[1]);
-  }
-  if (!c) {
-    const m = document.querySelector(
-      'meta[name="csrf-token"]');
-    if (m) c = m.content;
-  }
-  if (!c) {
-    console.error("CSRF token not found.");
-    return;
-  }
-  const exp = new Date();
-  exp.setDate(exp.getDate() + 90);
-  const r = await fetch(
-    "/api/v1/users/self/tokens",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": c,
-      },
-      body: JSON.stringify({
-        token: {
-          purpose: "HackStack",
-          expires_at: exp.toISOString(),
-        },
-      }),
-    }
-  );
-  const d = await r.json();
-  if (d.token) {
-    await navigator.clipboard
-      .writeText(d.token).catch(() => {});
-    console.log("Token: " + d.token);
-    console.log("Copied to clipboard!");
-  } else console.error("Failed:", d);
-})();`}
-                    </pre>
-                    <button
-                      type="button"
-                      onClick={copyScript}
-                      className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-medium bg-zinc-700 hover:bg-zinc-600 text-zinc-300 px-2 py-1 rounded-md transition-colors"
-                    >
-                      <Copy className="w-3 h-3" />
-                      {copied ? "Copied!" : "Copy"}
-                    </button>
-                  </div>
-                  <p className="text-xs text-zinc-600 mt-1.5">
-                    Token auto-copies to clipboard. Come back here and paste it.
-                  </p>
-                </div>
-
-                {/* Manual method */}
-                <div className="border-t border-zinc-700/50 pt-3">
-                  <span className="text-xs font-semibold text-zinc-400">Manual Method</span>
-                  <ol className="mt-1.5 space-y-1 text-xs text-zinc-500">
-                    <li>1. Go to Canvas → click your profile picture → <strong className="text-zinc-300">Settings</strong></li>
-                    <li>2. Scroll to "Approved Integrations"</li>
-                    <li>3. Click <strong className="text-zinc-300">+ New Access Token</strong></li>
-                    <li>4. Purpose: "HackStack", leave expiry blank</li>
-                    <li>5. Click <strong className="text-zinc-300">Generate Token</strong> → copy the token</li>
-                  </ol>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-2 justify-end pt-1">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="text-zinc-400 hover:text-zinc-200 px-4 py-2 text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={syncing}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2 rounded-xl text-sm transition-colors disabled:opacity-50"
-            >
-              {syncing ? "Connecting..." : "Connect & Sync"}
-            </button>
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 bg-red-900/20 border border-red-800/50 rounded-xl p-3">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-red-300">{error}</p>
-            </div>
-          )}
-        </form>
-      )}
+      {showForm && importForm}
     </div>
   );
 }

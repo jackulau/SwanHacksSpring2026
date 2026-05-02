@@ -50,9 +50,8 @@ function SettingsIndex({ userId }: { userId: string }) {
           lastSync={canvas.lastSync}
           error={canvas.error}
           canvasUser={canvas.canvasUser}
-          onConnect={canvas.connect}
+          onImport={canvas.importData}
           onDisconnect={canvas.disconnect}
-          onSync={canvas.sync}
         />
       </div>
 

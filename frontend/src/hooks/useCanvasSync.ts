@@ -1,13 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import {
-  CanvasClient,
-  getCanvasConfig,
-  saveCanvasConfig,
-  clearCanvasConfig,
-} from "../lib/canvas";
 import { pb } from "../lib/pocketbase";
 import type {
-  CanvasConfig,
   CanvasCourse,
   CanvasAssignment,
   Assignment,
@@ -22,6 +15,13 @@ interface CanvasSyncState {
   canvasUser: string | null;
 }
 
+interface CanvasImportPayload {
+  base_url: string;
+  user: string;
+  courses: CanvasCourse[];
+  assignments: CanvasAssignment[];
+}
+
 export function useCanvasSync(userId: string) {
   const [state, setState] = useState<CanvasSyncState>({
     connected: false,
@@ -32,37 +32,49 @@ export function useCanvasSync(userId: string) {
   });
 
   useEffect(() => {
-    const config = getCanvasConfig();
-    if (config) {
+    if (localStorage.getItem("hackstack_canvas_user")) {
       setState((s) => ({ ...s, connected: true }));
     }
   }, []);
 
-  const connect = useCallback(
-    async (baseUrl: string, apiToken: string) => {
+  const importData = useCallback(
+    async (jsonStr: string) => {
       setState((s) => ({ ...s, syncing: true, error: null }));
       try {
-        const config: CanvasConfig = {
-          base_url: baseUrl,
-          api_token: apiToken,
-        };
-        const client = new CanvasClient(config);
-        const profile = await client.testConnection();
-        saveCanvasConfig(config);
-        localStorage.setItem("hackstack_canvas_user", profile.name);
+        let data: CanvasImportPayload;
+        try {
+          data = JSON.parse(jsonStr);
+        } catch {
+          throw new Error(
+            "Invalid data. Make sure you copied the entire output from the Canvas console.",
+          );
+        }
+
+        if (!Array.isArray(data.courses) || !Array.isArray(data.assignments)) {
+          throw new Error(
+            "Invalid format. Run the script again on Canvas and copy the full output.",
+          );
+        }
+
+        await syncFromPayload(userId, data);
+
+        const now = new Date().toISOString();
+        const userName = data.user || data.base_url;
+        localStorage.setItem("hackstack_canvas_last_sync", now);
+        localStorage.setItem("hackstack_canvas_user", userName);
+
         setState((s) => ({
           ...s,
           connected: true,
           syncing: false,
-          canvasUser: profile.name,
+          canvasUser: userName,
+          lastSync: now,
         }));
-        await syncAll(userId, client);
       } catch (err) {
         setState((s) => ({
           ...s,
           syncing: false,
-          error:
-            err instanceof Error ? err.message : "Failed to connect to Canvas",
+          error: err instanceof Error ? err.message : "Import failed",
         }));
       }
     },
@@ -70,7 +82,6 @@ export function useCanvasSync(userId: string) {
   );
 
   const disconnect = useCallback(() => {
-    clearCanvasConfig();
     localStorage.removeItem("hackstack_canvas_last_sync");
     localStorage.removeItem("hackstack_canvas_user");
     setState({
@@ -82,54 +93,36 @@ export function useCanvasSync(userId: string) {
     });
   }, []);
 
-  const sync = useCallback(async () => {
-    const config = getCanvasConfig();
-    if (!config) return;
-    setState((s) => ({ ...s, syncing: true, error: null }));
-    try {
-      const client = new CanvasClient(config);
-      await syncAll(userId, client);
-      const now = new Date().toISOString();
-      localStorage.setItem("hackstack_canvas_last_sync", now);
-      setState((s) => ({ ...s, syncing: false, lastSync: now }));
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        syncing: false,
-        error: err instanceof Error ? err.message : "Sync failed",
-      }));
-    }
-  }, [userId]);
-
-  return { ...state, connect, disconnect, sync };
+  return { ...state, importData, disconnect };
 }
 
-async function syncAll(userId: string, client: CanvasClient) {
-  const canvasCourses = await client.getCourses();
-
+async function syncFromPayload(
+  userId: string,
+  data: CanvasImportPayload,
+) {
   const existingCourses = await pb
     .collection("courses")
     .getFullList<Course>({ filter: `user = "${userId}"` })
     .catch(() => [] as Course[]);
 
   const courseMap = new Map<number, string>();
+  const colors = [
+    "#6366f1",
+    "#ec4899",
+    "#14b8a6",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#06b6d4",
+  ];
 
-  for (const cc of canvasCourses) {
+  for (const cc of data.courses) {
     const existing = existingCourses.find(
       (c) => c.code === cc.course_code && c.name === cc.name,
     );
     if (existing) {
       courseMap.set(cc.id, existing.id);
     } else {
-      const colors = [
-        "#6366f1",
-        "#ec4899",
-        "#14b8a6",
-        "#f59e0b",
-        "#ef4444",
-        "#8b5cf6",
-        "#06b6d4",
-      ];
       const created = await pb.collection("courses").create({
         user: userId,
         name: cc.name,
@@ -141,10 +134,6 @@ async function syncAll(userId: string, client: CanvasClient) {
     }
   }
 
-  const canvasAssignments = await client.getAllAssignments(
-    canvasCourses.map((c) => c.id),
-  );
-
   const existingAssignments = await pb
     .collection("assignments")
     .getFullList<Assignment>({ filter: `user = "${userId}"` })
@@ -154,12 +143,12 @@ async function syncAll(userId: string, client: CanvasClient) {
     existingAssignments.map((a) => [a.canvas_id, a]),
   );
 
-  for (const ca of canvasAssignments) {
+  for (const ca of data.assignments) {
     const courseId = courseMap.get(ca.course_id);
     if (!courseId) continue;
 
     const status = getAssignmentStatus(ca);
-    const data = {
+    const assignmentData = {
       user: userId,
       course: courseId,
       canvas_id: ca.id,
@@ -174,9 +163,9 @@ async function syncAll(userId: string, client: CanvasClient) {
 
     const existing = existingByCanvasId.get(ca.id);
     if (existing) {
-      await pb.collection("assignments").update(existing.id, data);
+      await pb.collection("assignments").update(existing.id, assignmentData);
     } else {
-      await pb.collection("assignments").create(data);
+      await pb.collection("assignments").create(assignmentData);
     }
   }
 }
