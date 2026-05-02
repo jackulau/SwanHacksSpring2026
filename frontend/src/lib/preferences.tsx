@@ -9,6 +9,16 @@ import {
 import { pb } from "./pocketbase";
 import { useAuth } from "./auth";
 
+export type ReadingRulerMode = "off" | "bar" | "window";
+export type ReadingRulerTint =
+  | "none"
+  | "yellow"
+  | "peach"
+  | "blue"
+  | "lavender"
+  | "mint";
+export type FocusModeScope = "off" | "paragraph" | "sentence";
+
 export interface Preferences {
   theme: "dark" | "light" | "high-contrast" | "sepia";
   font: "system" | "opendyslexic" | "atkinson";
@@ -21,6 +31,12 @@ export interface Preferences {
   cardsPerSession: number;
   pomodoroLength: number;
   breakReminders: boolean;
+  readingRuler: ReadingRulerMode;
+  readingRulerHeight: number;
+  readingRulerTint: ReadingRulerTint;
+  readingRulerOpacity: number;
+  focusMode: FocusModeScope;
+  focusModeDim: number;
 }
 
 const defaults: Preferences = {
@@ -35,6 +51,12 @@ const defaults: Preferences = {
   cardsPerSession: 20,
   pomodoroLength: 25,
   breakReminders: true,
+  readingRuler: "off",
+  readingRulerHeight: 32,
+  readingRulerTint: "yellow",
+  readingRulerOpacity: 60,
+  focusMode: "off",
+  focusModeDim: 35,
 };
 
 interface PreferencesContextValue {
@@ -87,6 +109,14 @@ function applyToDOM(prefs: Preferences) {
   } else {
     root.classList.remove("reduce-motion");
   }
+
+  // Reading-aid CSS vars
+  root.style.setProperty("--reading-ruler-height", `${prefs.readingRulerHeight}px`);
+  root.style.setProperty("--reading-ruler-dim", `${prefs.readingRulerOpacity / 100}`);
+  root.style.setProperty("--focus-dim", `${prefs.focusModeDim / 100}`);
+  root.dataset.readingRuler = prefs.readingRuler;
+  root.dataset.readingRulerTint = prefs.readingRulerTint;
+  root.dataset.focusMode = prefs.focusMode;
 }
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {

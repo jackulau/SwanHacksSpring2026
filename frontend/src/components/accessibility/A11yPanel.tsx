@@ -1,4 +1,5 @@
-import { X, Volume2, Type, Eye, Monitor, Brain } from 'lucide-react';
+import { useEffect } from 'react';
+import { X, Volume2, Type, Eye, Brain, BookOpen } from 'lucide-react';
 import { usePreferences } from '../../lib/preferences';
 
 interface A11yPanelProps {
@@ -8,9 +9,24 @@ interface A11yPanelProps {
 
 export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
   const { prefs: preferences, update } = usePreferences();
-  const updatePreference = <K extends keyof typeof preferences>(key: K, value: (typeof preferences)[K]) => {
-    update({ [key]: value } as any);
+  const updatePreference = <K extends keyof typeof preferences>(
+    key: K,
+    value: (typeof preferences)[K],
+  ) => {
+    update({ [key]: value } as Partial<typeof preferences>);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -82,6 +98,79 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
               ]}
               onChange={(v) => updatePreference('readingLevel', v as typeof preferences.readingLevel)}
             />
+          </Section>
+
+          <Section icon={<BookOpen className="w-4 h-4" />} title="Reading Aids">
+            <SelectOption
+              label="Reading Ruler (Alt+R)"
+              value={preferences.readingRuler}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'bar', label: 'Bar' },
+                { value: 'window', label: 'Window' },
+              ]}
+              onChange={(v) => updatePreference('readingRuler', v as typeof preferences.readingRuler)}
+            />
+            {preferences.readingRuler !== 'off' && (
+              <>
+                <SliderOption
+                  label="Ruler Height"
+                  value={preferences.readingRulerHeight}
+                  min={16}
+                  max={80}
+                  step={2}
+                  unit="px"
+                  onChange={(v) => updatePreference('readingRulerHeight', v)}
+                />
+                <SelectOption
+                  label="Ruler Tint"
+                  value={preferences.readingRulerTint}
+                  options={[
+                    { value: 'none', label: 'None' },
+                    { value: 'yellow', label: 'Yellow' },
+                    { value: 'peach', label: 'Peach' },
+                    { value: 'blue', label: 'Blue' },
+                    { value: 'lavender', label: 'Lavender' },
+                    { value: 'mint', label: 'Mint' },
+                  ]}
+                  onChange={(v) =>
+                    updatePreference('readingRulerTint', v as typeof preferences.readingRulerTint)
+                  }
+                />
+                {preferences.readingRuler === 'window' && (
+                  <SliderOption
+                    label="Dim Opacity"
+                    value={preferences.readingRulerOpacity}
+                    min={0}
+                    max={90}
+                    step={5}
+                    unit="%"
+                    onChange={(v) => updatePreference('readingRulerOpacity', v)}
+                  />
+                )}
+              </>
+            )}
+            <SelectOption
+              label="Focus Mode (Alt+F)"
+              value={preferences.focusMode}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'paragraph', label: 'Paragraph' },
+                { value: 'sentence', label: 'Sentence' },
+              ]}
+              onChange={(v) => updatePreference('focusMode', v as typeof preferences.focusMode)}
+            />
+            {preferences.focusMode !== 'off' && (
+              <SliderOption
+                label="Surrounding Text Dim"
+                value={preferences.focusModeDim}
+                min={30}
+                max={95}
+                step={5}
+                unit="%"
+                onChange={(v) => updatePreference('focusModeDim', v)}
+              />
+            )}
           </Section>
 
           <Section icon={<Volume2 className="w-4 h-4" />} title="Text-to-Speech">
