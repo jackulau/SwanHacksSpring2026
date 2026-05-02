@@ -10,8 +10,11 @@ export class CanvasClient {
   }
 
   private async request<T>(path: string): Promise<T> {
-    const res = await fetch(`${this.baseUrl}/api/v1${path}`, {
-      headers: { Authorization: `Bearer ${this.token}` },
+    const res = await fetch(`/api/canvas-proxy${path}`, {
+      headers: {
+        "x-canvas-url": this.baseUrl,
+        "x-canvas-token": this.token,
+      },
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
