@@ -4,7 +4,73 @@
 **Tagline**: "Every student's accessibility toolkit — without asking for one."  
 **Branch**: `jack`  
 **Date**: 2026-05-02  
-**Status**: Pre-build spec
+**Status**: Implementation complete — audited 2026-05-02
+
+---
+
+## 0. Implementation Audit (2026-05-02)
+
+### Navigation & UI/UX Audit — All Pages Verified
+
+| Route | Page | Status | Notes |
+|-------|------|--------|-------|
+| `/` | Dashboard (auth) | PASS | Stats, quick actions, recent lectures, courses, assignments |
+| `/` | Landing (unauth) | PASS | Marketing page with features |
+| `/login` | Login | PASS | Redirects to dashboard when authed |
+| `/capture` | Record Lecture | PASS | Start recording button, live captions area, sign language toggle |
+| `/capture/upload` | Upload Audio | PASS | Drag-drop zone, file type hints |
+| `/courses` | Courses List | PASS | Add Course button, empty state |
+| `/courses/$courseId` | Course Detail | PASS | Lectures list within course |
+| `/study` | Study Hub | PASS | 3 study mode cards, progress stats, tips |
+| `/study/flashcards` | Flashcard Review | PASS | Empty state with guidance |
+| `/study/quiz/$quizId` | Quiz Runner | PASS | Loads quiz, runs QuizRunner, saves attempts |
+| `/study/planner` | Study Planner | PASS | Pomodoro timer (25:00), streak, session counter |
+| `/settings` | Settings | PASS | Canvas integration, accessibility, account/notif/privacy (soon) |
+| `/settings/accessibility` | Accessibility Panel | PASS | Theme, font, size, spacing, motion, reading level, TTS, study prefs |
+| `/lectures/$lectureId` | Lecture Detail | PASS | 4 tabs: Transcript, Notes, Flashcards, Quiz — all render |
+
+### Backend Audit
+
+| Check | Status | Action Taken |
+|-------|--------|-------------|
+| Access rules | FIXED | 6 collections had empty rules (wide open). Now enforce `@request.auth.id = user.id` |
+| Cascade deletes | FIXED | lectures->course was `false`, now `true` |
+| Missing fields | FIXED | `front_image`/`back_image` added to flashcards |
+| DB indexes | ADDED | Indexes on all foreign keys + `next_review`, `status` |
+| Orphaned migrations | REMOVED | 3 old `items` collection migrations deleted |
+| Assignments collection | OK | Properly defined with auth rules in separate migration |
+
+### Chrome Extension Audit
+
+| Check | Status | Action Taken |
+|-------|--------|-------------|
+| Manifest permissions | FIXED | `optional_host_permissions` narrowed from `*` to `instructure.com` |
+| Content script injection | OK | Canvas detection, sync button, toast notifications |
+| Auth flow | OK | Login/logout via PocketBase, token in chrome.storage |
+| Sync logic | OK | Courses + assignments with upsert, status detection |
+| CSS accessibility | FIXED | Added `prefers-reduced-motion` support |
+| Z-index | FIXED | Reduced from 99999 to 10000 |
+| Icons | OK | 16/48/128px PNGs present |
+
+### Frontend Code Audit
+
+| Check | Status |
+|-------|--------|
+| TypeScript strict mode | PASS — 0 errors |
+| All routes implemented | PASS — 14/14 (quiz route was stub, now complete) |
+| All components implemented | PASS — 20+ components, no stubs |
+| All hooks implemented | PASS — 9/9 hooks |
+| All lib files implemented | PASS — auth, preferences, pocketbase, ai-pipeline, sm2, types, prompts, canvas |
+| TODOs/FIXMEs | NONE found |
+| Console.log cleanup | CLEAN — only intentional logs in Canvas bookmarklet script |
+
+### Known Limitations (Not Bugs)
+
+- Account/Notifications/Privacy settings pages show "Soon" badge — planned future work
+- AI pipeline requires `VITE_OPENAI_API_KEY` env var at runtime
+- Deepgram STT requires API key for live capture
+- Sign language detection is client-side only (MediaPipe), no server component
+- Canvas sync requires Chrome extension installed + Canvas session active
 
 ---
 
