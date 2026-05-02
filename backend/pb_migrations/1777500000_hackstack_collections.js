@@ -11,7 +11,9 @@ migrate((app) => {
     "createRule": "@request.auth.id != ''",
     "updateRule": "@request.auth.id = user.id",
     "deleteRule": "@request.auth.id = user.id",
-    "indexes": [],
+    "indexes": [
+      "CREATE INDEX idx_courses_user ON courses (user)"
+    ],
     "fields": [
       { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text3208210256", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
       { "autogeneratePattern": "", "hidden": false, "id": "f_name", "max": 0, "min": 1, "name": "name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
@@ -34,7 +36,11 @@ migrate((app) => {
     "createRule": "@request.auth.id != ''",
     "updateRule": "@request.auth.id = user.id",
     "deleteRule": "@request.auth.id = user.id",
-    "indexes": [],
+    "indexes": [
+      "CREATE INDEX idx_lectures_user ON lectures (user)",
+      "CREATE INDEX idx_lectures_course ON lectures (course)",
+      "CREATE INDEX idx_lectures_status ON lectures (status)"
+    ],
     "fields": [
       { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text3208210256", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
       { "autogeneratePattern": "", "hidden": false, "id": "f_title", "max": 0, "min": 1, "name": "title", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
@@ -44,7 +50,7 @@ migrate((app) => {
       { "autogeneratePattern": "", "hidden": false, "id": "f_err", "max": 0, "min": 0, "name": "error_message", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
       { "hidden": false, "id": "f_rec_at", "max": "", "min": "", "name": "recorded_at", "presentable": false, "required": false, "system": false, "type": "date" },
       { "cascadeDelete": false, "collectionId": "_pb_users_auth_", "hidden": false, "id": "f_lec_user", "maxSelect": 1, "minSelect": 0, "name": "user", "presentable": false, "required": false, "system": false, "type": "relation" },
-      { "cascadeDelete": false, "collectionId": "pbc_courses", "hidden": false, "id": "f_course", "maxSelect": 1, "minSelect": 0, "name": "course", "presentable": false, "required": false, "system": false, "type": "relation" }
+      { "cascadeDelete": true, "collectionId": "pbc_courses", "hidden": false, "id": "f_course", "maxSelect": 1, "minSelect": 0, "name": "course", "presentable": false, "required": false, "system": false, "type": "relation" }
     ]
   });
   app.save(lectures);
@@ -55,12 +61,14 @@ migrate((app) => {
     "name": "transcripts",
     "type": "base",
     "system": false,
-    "listRule": "",
-    "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": "",
-    "indexes": [],
+    "listRule": "@request.auth.id = lecture.user.id",
+    "viewRule": "@request.auth.id = lecture.user.id",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = lecture.user.id",
+    "deleteRule": "@request.auth.id = lecture.user.id",
+    "indexes": [
+      "CREATE INDEX idx_transcripts_lecture ON transcripts (lecture)"
+    ],
     "fields": [
       { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text3208210256", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
       { "autogeneratePattern": "", "hidden": false, "id": "f_raw", "max": 0, "min": 0, "name": "raw_text", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
@@ -80,12 +88,15 @@ migrate((app) => {
     "name": "notes",
     "type": "base",
     "system": false,
-    "listRule": "",
-    "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": "",
-    "indexes": [],
+    "listRule": "@request.auth.id = user.id",
+    "viewRule": "@request.auth.id = user.id",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = user.id",
+    "deleteRule": "@request.auth.id = user.id",
+    "indexes": [
+      "CREATE INDEX idx_notes_user ON notes (user)",
+      "CREATE INDEX idx_notes_lecture ON notes (lecture)"
+    ],
     "fields": [
       { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text3208210256", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
       { "autogeneratePattern": "", "hidden": false, "id": "f_n_title", "max": 0, "min": 1, "name": "title", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
@@ -105,17 +116,23 @@ migrate((app) => {
     "name": "flashcards",
     "type": "base",
     "system": false,
-    "listRule": "",
-    "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": "",
-    "indexes": [],
+    "listRule": "@request.auth.id = user.id",
+    "viewRule": "@request.auth.id = user.id",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = user.id",
+    "deleteRule": "@request.auth.id = user.id",
+    "indexes": [
+      "CREATE INDEX idx_flashcards_user ON flashcards (user)",
+      "CREATE INDEX idx_flashcards_lecture ON flashcards (lecture)",
+      "CREATE INDEX idx_flashcards_next_review ON flashcards (next_review)"
+    ],
     "fields": [
       { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text3208210256", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
       { "autogeneratePattern": "", "hidden": false, "id": "f_deck", "max": 0, "min": 1, "name": "deck_name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
       { "autogeneratePattern": "", "hidden": false, "id": "f_front", "max": 0, "min": 1, "name": "front", "pattern": "", "presentable": false, "primaryKey": false, "required": true, "system": false, "type": "text" },
       { "autogeneratePattern": "", "hidden": false, "id": "f_back", "max": 0, "min": 1, "name": "back", "pattern": "", "presentable": false, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "f_front_img", "maxSelect": 1, "maxSize": 5242880, "mimeTypes": ["image/jpeg","image/png","image/gif","image/webp"], "name": "front_image", "presentable": false, "protected": false, "required": false, "system": false, "thumbs": ["200x200"], "type": "file" },
+      { "hidden": false, "id": "f_back_img", "maxSelect": 1, "maxSize": 5242880, "mimeTypes": ["image/jpeg","image/png","image/gif","image/webp"], "name": "back_image", "presentable": false, "protected": false, "required": false, "system": false, "thumbs": ["200x200"], "type": "file" },
       { "hidden": false, "id": "f_tags", "maxSize": 0, "name": "tags", "presentable": false, "required": false, "system": false, "type": "json" },
       { "hidden": false, "id": "f_diff", "maxSelect": 1, "name": "difficulty", "presentable": false, "required": false, "system": false, "type": "select", "values": ["easy","medium","hard"] },
       { "hidden": false, "id": "f_src", "maxSelect": 1, "name": "source", "presentable": false, "required": false, "system": false, "type": "select", "values": ["auto_generated","manual"] },
@@ -136,12 +153,15 @@ migrate((app) => {
     "name": "quizzes",
     "type": "base",
     "system": false,
-    "listRule": "",
-    "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": "",
-    "indexes": [],
+    "listRule": "@request.auth.id = user.id",
+    "viewRule": "@request.auth.id = user.id",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = user.id",
+    "deleteRule": "@request.auth.id = user.id",
+    "indexes": [
+      "CREATE INDEX idx_quizzes_user ON quizzes (user)",
+      "CREATE INDEX idx_quizzes_lecture ON quizzes (lecture)"
+    ],
     "fields": [
       { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text3208210256", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
       { "autogeneratePattern": "", "hidden": false, "id": "f_q_title", "max": 0, "min": 1, "name": "title", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
@@ -160,12 +180,15 @@ migrate((app) => {
     "name": "quiz_attempts",
     "type": "base",
     "system": false,
-    "listRule": "",
-    "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": "",
-    "indexes": [],
+    "listRule": "@request.auth.id = user.id",
+    "viewRule": "@request.auth.id = user.id",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = user.id",
+    "deleteRule": "@request.auth.id = user.id",
+    "indexes": [
+      "CREATE INDEX idx_quiz_attempts_user ON quiz_attempts (user)",
+      "CREATE INDEX idx_quiz_attempts_quiz ON quiz_attempts (quiz)"
+    ],
     "fields": [
       { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text3208210256", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
       { "hidden": false, "id": "f_ans", "maxSize": 0, "name": "answers", "presentable": false, "required": false, "system": false, "type": "json" },
@@ -186,12 +209,14 @@ migrate((app) => {
     "name": "study_sessions",
     "type": "base",
     "system": false,
-    "listRule": "",
-    "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": "",
-    "indexes": [],
+    "listRule": "@request.auth.id = user.id",
+    "viewRule": "@request.auth.id = user.id",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = user.id",
+    "deleteRule": "@request.auth.id = user.id",
+    "indexes": [
+      "CREATE INDEX idx_study_sessions_user ON study_sessions (user)"
+    ],
     "fields": [
       { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text3208210256", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
       { "hidden": false, "id": "f_st", "maxSelect": 1, "name": "session_type", "presentable": false, "required": false, "system": false, "type": "select", "values": ["flashcard_review","quiz","pomodoro","free_study"] },

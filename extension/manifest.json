@@ -9,7 +9,7 @@
     "http://127.0.0.1:8090/*",
     "http://localhost:8090/*"
   ],
-  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "optional_host_permissions": ["https://*.instructure.com/*"],
   "background": {
     "service_worker": "background.js"
   },
