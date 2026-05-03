@@ -99,6 +99,17 @@
 - [x] sort=-updated queries work (was failing with 400)
 - [x] PocketBase restarted with migration applied
 
+## 17. Final Sweep (2026-05-03)
+- [x] TypeScript compiles clean (tsc --noEmit)
+- [x] Vite build succeeds (2329 modules, 4.2s)
+- [x] All PB sort queries return 200 (courses, lectures, notes, flashcards)
+- [x] Zero console errors across all 9 pages (dashboard, courses, capture, upload, study, calendar, planner, settings, trash)
+- [x] Deep codebase sweep: 16 routes, 28 components, 13 hooks — all imports valid
+- [x] 7 backend migrations — all syntactically correct
+- [x] No dead imports, no TODO/FIXME/HACK in source
+- [x] No references to VITE_DEEPGRAM_API_KEY or VITE_OPENAI_API_KEY
+- [x] Favicon added (SVG, Converge branding)
+
 ## Ship
 - [x] All checks pass
 - [ ] Commit
