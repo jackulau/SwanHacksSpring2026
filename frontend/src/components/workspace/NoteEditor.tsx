@@ -61,7 +61,7 @@ export function NoteEditor({
     >
       {title && (
         <header className="mb-6">
-          <h2 className="text-3xl font-semibold text-white tracking-tight">
+          <h2 className="text-3xl font-semibold text-[var(--color-text)] tracking-tight">
             {title}
           </h2>
         </header>

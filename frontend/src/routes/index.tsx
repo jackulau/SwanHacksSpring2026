@@ -50,23 +50,23 @@ function HomePage() {
 
 function LandingPage() {
   return (
-    <div className="min-h-screen text-white">
+    <div className="min-h-screen text-[var(--color-text)] bg-[var(--color-bg)]">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 lg:px-12 h-16 border-b border-[var(--color-border)] bg-black/80 backdrop-blur">
-        <div className="flex items-center gap-2 text-white">
+      <nav className="flex items-center justify-between px-6 lg:px-12 h-16 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur">
+        <div className="flex items-center gap-2 text-[var(--color-primary)]">
           <ConvergeLogo className="w-7 h-7" />
-          <span className="text-xl font-bold tracking-tight">Converge</span>
+          <span className="text-xl font-bold tracking-tight font-brand">Converge</span>
         </div>
         <div className="flex items-center gap-3">
           <Link
             to="/login"
-            className="text-sm text-[var(--color-text-muted)] hover:text-white transition-colors px-4 py-2"
+            className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors px-4 py-2"
           >
             Log in
           </Link>
           <Link
             to="/login"
-            className="text-sm font-semibold bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-5 py-2 rounded-full transition-colors"
+            className="text-sm font-semibold bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-5 py-2 rounded-full transition-colors"
           >
             Sign up free
           </Link>
@@ -94,7 +94,7 @@ function LandingPage() {
         <div className="flex items-center justify-center gap-4 mt-10">
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold px-8 py-3.5 rounded-full text-base transition-colors"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold px-8 py-3.5 rounded-full text-base transition-colors"
           >
             Get started free
             <ArrowRight className="w-4 h-4" />
@@ -170,7 +170,7 @@ function LandingPage() {
                   "Reduced motion",
                   "Adjustable text size",
                 ].map((feature) => (
-                  <div key={feature} className="flex items-center gap-2 text-sm text-white">
+                  <div key={feature} className="flex items-center gap-2 text-sm text-[var(--color-text)]">
                     <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] shrink-0" />
                     {feature}
                   </div>
@@ -178,21 +178,21 @@ function LandingPage() {
               </div>
             </div>
             <div className="flex-1 grid grid-cols-2 gap-3">
-              <div className="bg-black border border-[var(--color-border)] rounded-xl p-4 space-y-2">
+              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 space-y-2 shadow-sm">
                 <div className="text-2xl font-bold font-atkinson">Aa</div>
                 <div className="text-xs text-[var(--color-text-subtle)]">Atkinson Hyperlegible</div>
               </div>
-              <div className="bg-black border border-[var(--color-border)] rounded-xl p-4 space-y-2">
+              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 space-y-2 shadow-sm">
                 <div className="text-2xl font-bold font-opendyslexic">Aa</div>
                 <div className="text-xs text-[var(--color-text-subtle)]">OpenDyslexic</div>
               </div>
-              <div className="bg-black border border-white rounded-xl p-4 space-y-2">
+              <div className="bg-[var(--color-primary)] text-white rounded-xl p-4 space-y-2 shadow-sm">
                 <div className="text-lg font-bold">High Contrast</div>
-                <div className="text-xs text-[var(--color-text-muted)]">Maximum readability</div>
+                <div className="text-xs text-white/70">Maximum readability</div>
               </div>
-              <div className="rounded-xl p-4 space-y-2 vibe-aurora">
-                <div className="relative z-10 text-lg font-bold text-white">Aurora Dark</div>
-                <div className="relative z-10 text-xs text-[var(--color-text-muted)]">Calm, focused canvas</div>
+              <div className="bg-[var(--color-primary-soft)] rounded-xl p-4 space-y-2 border border-[var(--color-border)]">
+                <div className="text-lg font-bold text-[var(--color-primary)]">Sepia</div>
+                <div className="text-xs text-[var(--color-text-muted)]">Reduced eye strain</div>
               </div>
             </div>
           </div>
@@ -214,7 +214,7 @@ function LandingPage() {
           </p>
           <div className="flex justify-center gap-3 flex-wrap">
             {["A", "B", "D", "F", "I", "O", "S", "V", "W", "Y"].map((letter) => (
-              <div key={letter} className="w-12 h-12 rounded-xl bg-black border border-[var(--color-border)] flex items-center justify-center text-lg font-bold text-[var(--color-primary-strong)]">
+              <div key={letter} className="w-12 h-12 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center text-lg font-bold text-[var(--color-primary)] shadow-sm">
                 {letter}
               </div>
             ))}
@@ -232,7 +232,7 @@ function LandingPage() {
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold px-8 py-3.5 rounded-full text-base transition-colors"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold px-8 py-3.5 rounded-full text-base transition-colors"
           >
             Get started free
             <ArrowRight className="w-4 h-4" />
@@ -261,8 +261,8 @@ interface FeatureCardProps {
 
 function FeatureCard({ icon, title, description }: FeatureCardProps) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-black p-6 hover:border-[var(--color-primary)]/40 transition-colors">
-      <div className="w-12 h-12 bg-[var(--color-primary)] rounded-xl flex items-center justify-center text-black mb-4">
+    <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:border-[var(--color-primary)]/40 transition-colors shadow-sm">
+      <div className="w-12 h-12 bg-[var(--color-primary)] rounded-xl flex items-center justify-center text-white mb-4">
         {icon}
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
@@ -280,7 +280,7 @@ interface StepCardProps {
 function StepCard({ step, title, description }: StepCardProps) {
   return (
     <div className="text-center">
-      <div className="w-10 h-10 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-black font-bold text-sm mx-auto mb-4">
+      <div className="w-10 h-10 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-sm mx-auto mb-4">
         {step}
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>

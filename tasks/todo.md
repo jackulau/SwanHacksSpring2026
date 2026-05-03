@@ -1,71 +1,39 @@
-# HackStack Implementation Plan
+# Converge — Ship Checklist (2026-05-03)
 
-## Phase 1: Foundation (Hours 0-4)
-- [x] Install all dependencies (TanStack Query, lucide-react, framer-motion, MediaPipe, fonts)
-- [x] Extend PocketBase schema: create all collections with migrations
-- [x] Define TypeScript types for all data models
-- [x] Build AppShell layout with sidebar navigation
-- [x] Build route structure (all routes with placeholder pages)
-- [x] User preferences context + CSS custom properties
-- [x] Basic accessibility panel (font size, theme toggle)
+## Theme Transformation (DONE)
+- [x] CSS variables: dark → Converge light (cream #fbfbf9, green #2f5d4f)
+- [x] Georgia serif branding font
+- [x] All routes + components: text-white/text-black → CSS vars
+- [x] Sidebar: dark green with white text
+- [x] Landing, login, dashboard: light theme
+- [x] Focus-highlight, skeleton, glass, aurora: light mode
+- [x] WCAG AA contrast: text-subtle=#777, text-muted=#555
+- [x] Indigo/purple remnants → green
 
-## Phase 2: Capture (Hours 4-8)
-- [x] `useAudioRecorder` hook
-- [x] `useDeepgramSTT` hook
-- [x] `useMediaPipeHands` hook
-- [x] `useSignLanguage` hook
-- [x] SignLanguageDetector component
-- [x] Caption merger (audio STT + sign-to-text)
-- [x] Live recording page
-- [x] File upload page
-- [x] Processing status component
+## Features (All Built)
+- [x] Recording (live audio capture + Deepgram STT) — requires VITE_DEEPGRAM_API_KEY
+- [x] AI Pipeline (clean transcript → notes → flashcards → quiz) — requires VITE_OPENAI_API_KEY
+- [x] File upload (drag-drop + audio processing)
+- [x] Canvas LMS sync (popup + console paste fallback)
+- [x] Chrome extension (content script + popup + background worker)
+- [x] Course CRUD (add/edit/delete)
+- [x] Lecture viewer (transcript + notes tabs, audio seek)
+- [x] Flashcard review (SM-2 spaced repetition)
+- [x] Quiz runner (MC, T/F, short answer, fill-blank)
+- [x] Pomodoro timer + study sessions
+- [x] Study planner (to-do tasks)
+- [x] Calendar (week/month views, Canvas assignment sync)
+- [x] Accessibility (OpenDyslexic, high contrast, TTS, focus mode, reading ruler, sign language)
+- [x] Sign language detection (MediaPipe Hands + ASL letters)
+- [x] Settings (profile, preferences, accessibility, account, data export)
+- [x] Trash (soft-delete recovery)
 
-## Phase 3: AI Pipeline (Hours 8-12)
-- [x] Prompt templates
-- [x] AI pipeline orchestrator
-- [x] Transcript cleanup
-- [x] Note generation
-- [x] Flashcard generation
-- [x] Quiz generation
-- [x] Error handling + partial result saving
+## Database
+- [x] PocketBase :8090 healthy
+- [x] 9 collections with access rules
+- [x] Cascade deletes + indexes
 
-## Phase 4: Workspace (Hours 12-16)
-- [x] Dashboard
-- [x] Course CRUD
-- [x] Lecture detail page with tabs
-- [x] Transcript viewer with audio sync
-- [x] Note editor (block-based)
-- [x] Audio player bar
-
-## Phase 5: Study Tools (Hours 16-20)
-- [x] SM-2 algorithm
-- [x] Flashcard review UI
-- [x] Quiz runner
-- [x] Quiz results
-- [x] Study session tracking
-
-## Phase 6: Polish & Accessibility (Hours 20-24)
-- [x] Full accessibility panel
-- [x] Font loading (OpenDyslexic, Atkinson Hyperlegible)
-- [x] TTS integration (hook)
-- [x] Reading ruler + focus mode
-- [x] High contrast + sepia themes
-- [x] Pomodoro timer (hook)
-- [x] Study streak
-- [x] Responsive design pass
-- [x] Demo data seeding
-
-## Post-implementation hardening (this round)
-- [x] Security migration: locked down `transcripts`/`notes`/`flashcards`/`quizzes`/`quiz_attempts`/`study_sessions` rules
-- [x] Fixed user-id spoofing on `courses`/`lectures`/`assignments` createRule (now `@request.auth.id = @request.body.user`)
-- [x] Fixed duplicate-record bug in `routes/capture.tsx` (StrictMode + stale closure → ref-guarded)
-- [x] Bottom-padding reservation in AppShell `<main>` for MobileNav + AudioPlayer
-- [x] Floating accessibility button auto-lifts above MobileNav and AudioPlayer
-
-## Documentation produced this round
-- [x] `tasks/architecture-audit.md`
-- [x] `tasks/typescript-audit.md`
-- [x] `tasks/database-audit.md`
-- [x] `tasks/security-audit.md`
-- [x] `tasks/e2e-test-plan.md`
-- [x] `tasks/_done/01-course-crud.md` … `06-demo-data.md`
+## Ship
+- [ ] Commit all theme + contrast changes
+- [ ] Push to remote
+- [ ] Merge jack → main

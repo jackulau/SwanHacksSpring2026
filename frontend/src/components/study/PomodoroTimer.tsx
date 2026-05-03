@@ -158,7 +158,7 @@ export function PomodoroTimer({
             {phaseLabel}
           </p>
           <p
-            className={`${fontSize} font-mono font-semibold text-white tabular-nums tracking-tight`}
+            className={`${fontSize} font-mono font-semibold text-[var(--color-text)] tabular-nums tracking-tight`}
           >
             {timeLabel}
           </p>
@@ -168,7 +168,7 @@ export function PomodoroTimer({
       <div className="flex items-center gap-2">
         <button
           onClick={timer.isRunning ? timer.pause : timer.start}
-          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-medium h-10 px-6 rounded-md transition-colors flex items-center gap-2"
+          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium h-10 px-6 rounded-md transition-colors flex items-center gap-2"
           aria-label={timer.isRunning ? 'Pause timer' : 'Start timer'}
         >
           {timer.isRunning ? (
@@ -185,7 +185,7 @@ export function PomodoroTimer({
         </button>
         <button
           onClick={timer.skip}
-          className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-white transition-colors flex items-center gap-2"
+          className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors flex items-center gap-2"
           aria-label="Skip phase"
         >
           <SkipForward className="w-4 h-4" />

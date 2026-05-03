@@ -7,8 +7,8 @@
 body {
   width: 320px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #0f0f0f;
-  color: #e4e4e7;
+  background: #fbfbf9;
+  color: #1a1a1a;
   padding: 20px;
 }
 
@@ -22,13 +22,14 @@ body {
 .logo {
   width: 32px;
   height: 32px;
-  background: #4f46e5;
+  background: #2f5d4f;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: 16px;
+  color: white;
 }
 
 h1 {
@@ -37,7 +38,7 @@ h1 {
 }
 
 .subtitle {
-  color: #71717a;
+  color: #555555;
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -49,10 +50,10 @@ h1 {
 input {
   width: 100%;
   padding: 10px 12px;
-  background: #18181b;
-  border: 1px solid #27272a;
+  background: #f0ede6;
+  border: 1px solid #e0ddd5;
   border-radius: 8px;
-  color: #e4e4e7;
+  color: #1a1a1a;
   font-size: 13px;
   margin-bottom: 10px;
   outline: none;
@@ -60,7 +61,7 @@ input {
 }
 
 input:focus {
-  border-color: #4f46e5;
+  border-color: #2f5d4f;
 }
 
 button {
@@ -75,12 +76,12 @@ button {
 }
 
 #login-btn {
-  background: #4f46e5;
+  background: #2f5d4f;
   color: white;
 }
 
 #login-btn:hover {
-  background: #4338ca;
+  background: #3a7261;
 }
 
 #login-btn:disabled {
@@ -96,24 +97,24 @@ button {
 
 .settings-details {
   margin-top: 16px;
-  border-top: 1px solid #27272a;
+  border-top: 1px solid #e0ddd5;
   padding-top: 12px;
 }
 
 .settings-details summary {
-  color: #71717a;
+  color: #555555;
   font-size: 12px;
   cursor: pointer;
   margin-bottom: 8px;
 }
 
 .btn-secondary {
-  background: #27272a;
-  color: #a1a1aa;
+  background: #f0ede6;
+  color: #555555;
 }
 
 .btn-secondary:hover {
-  background: #3f3f46;
+  background: #e0ddd5;
 }
 
 .user-row {
@@ -126,7 +127,8 @@ button {
 .avatar {
   width: 36px;
   height: 36px;
-  background: #4f46e5;
+  background: #2f5d4f;
+  color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -141,20 +143,20 @@ button {
 }
 
 .user-email {
-  color: #71717a;
+  color: #555555;
   font-size: 12px;
 }
 
 .status-card {
-  background: #18181b;
-  border: 1px solid #27272a;
+  background: #f5f5f0;
+  border: 1px solid #e0ddd5;
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 12px;
 }
 
 .status-label {
-  color: #71717a;
+  color: #555555;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -167,30 +169,30 @@ button {
 }
 
 .hint {
-  color: #71717a;
+  color: #555555;
   font-size: 12px;
   text-align: center;
   margin-bottom: 16px;
 }
 
 .btn-inject {
-  background: #1e1b4b;
-  color: #a5b4fc;
-  border: 1px solid #3730a3;
+  background: #e8f0eb;
+  color: #2f5d4f;
+  border: 1px solid #2f5d4f;
   margin-bottom: 8px;
 }
 
 .btn-inject:hover {
-  background: #312e81;
+  background: #d0e4d6;
 }
 
 .btn-logout {
   background: transparent;
-  color: #71717a;
-  border: 1px solid #27272a;
+  color: #777777;
+  border: 1px solid #e0ddd5;
 }
 
 .btn-logout:hover {
-  color: #f87171;
-  border-color: #7f1d1d;
+  color: #dc2626;
+  border-color: #dc2626;
 }

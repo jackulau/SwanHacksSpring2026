@@ -70,14 +70,14 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
           className={`w-full flex flex-col items-center justify-center px-8 py-16 rounded-sm border border-dashed text-center transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${
             dragOver
               ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)]/30'
-              : 'border-[var(--color-border-strong)] hover:border-[var(--color-primary)] hover:bg-white/[0.02]'
+              : 'border-[var(--color-border-strong)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)]/30'
           }`}
         >
           <Upload
             className="w-8 h-8 text-[var(--color-text-muted)] mb-4"
             aria-hidden="true"
           />
-          <p className="text-white text-base font-medium">
+          <p className="text-[var(--color-text)] text-base font-medium">
             Drop an audio file
           </p>
           <p className="text-[var(--color-text-muted)] text-sm mt-2">
@@ -113,7 +113,7 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
               aria-hidden="true"
             />
             <div className="min-w-0">
-              <p className="text-white font-medium truncate">{selectedFile.name}</p>
+              <p className="text-[var(--color-text)] font-medium truncate">{selectedFile.name}</p>
               <p className="text-[var(--color-text-muted)] text-xs">
                 {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
               </p>
@@ -125,14 +125,14 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
                 type="button"
                 onClick={() => setSelectedFile(null)}
                 aria-label="Remove file"
-                className="text-[var(--color-text-muted)] hover:text-white p-2 rounded-md hover:bg-white/5 transition-colors"
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-2 rounded-md hover:bg-[var(--color-primary-soft)] transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => onUpload(selectedFile)}
-                className="h-10 px-4 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold text-sm transition-colors"
+                className="h-10 px-4 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold text-sm transition-colors"
               >
                 Upload & process
               </button>

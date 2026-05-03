@@ -123,7 +123,7 @@ function CourseDetailPage() {
         actions={
           <Link
             to="/capture"
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold rounded-md px-4 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold rounded-md px-4 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
           >
             <Plus className="w-4 h-4" aria-hidden="true" />
             Add lecture
@@ -134,7 +134,7 @@ function CourseDetailPage() {
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
         <Link
           to="/courses"
-          className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-white transition-colors mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-md"
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-md"
         >
           <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
           All courses
@@ -162,8 +162,8 @@ function CourseDetailPage() {
                 onClick={() => setTab(t.id)}
                 className={`relative -mb-px py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-sm ${
                   active
-                    ? "text-white border-b-2 border-[var(--color-primary)]"
-                    : "text-[var(--color-text-muted)] hover:text-white border-b-2 border-transparent"
+                    ? "text-[var(--color-text)] border-b-2 border-[var(--color-primary)]"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] border-b-2 border-transparent"
                 }`}
               >
                 {t.label}
@@ -207,7 +207,7 @@ function LecturesPanel({ lectures }: { lectures: Lecture[] }) {
         action={
           <Link
             to="/capture"
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold rounded-md px-4 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold rounded-md px-4 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
           >
             Go to Capture
           </Link>
@@ -229,7 +229,7 @@ function LecturesPanel({ lectures }: { lectures: Lecture[] }) {
             className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-3 px-2 hover:bg-[var(--color-surface-raised)] transition-colors focus:outline-none focus-visible:bg-[var(--color-surface-raised)] focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
           >
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{lec.title}</p>
+              <p className="text-sm font-medium text-[var(--color-text)] truncate">{lec.title}</p>
               <p className="text-xs text-[var(--color-text-subtle)] mt-1">
                 {new Date(lec.recorded_at).toLocaleDateString(undefined, {
                   weekday: "short",
@@ -293,7 +293,7 @@ function NotesPanel({ notes }: { notes: Array<Note & { lectureTitle?: string }> 
               aria-hidden="true"
             />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{n.title}</p>
+              <p className="text-sm font-medium text-[var(--color-text)] truncate">{n.title}</p>
               {n.lectureTitle && (
                 <p className="text-xs text-[var(--color-text-subtle)] mt-1 truncate">
                   {n.lectureTitle}

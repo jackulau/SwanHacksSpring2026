@@ -101,7 +101,7 @@ export function TranscriptViewer({
                 <p
                   className={`leading-7 ${
                     isActive
-                      ? 'text-white'
+                      ? 'text-[var(--color-text)]'
                       : 'text-[var(--color-text-muted)]'
                   }`}
                 >

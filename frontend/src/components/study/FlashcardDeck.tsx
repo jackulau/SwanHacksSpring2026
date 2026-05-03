@@ -122,7 +122,7 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
   if (!currentCard) {
     return (
       <div className="text-center py-24">
-        <p className="text-3xl font-semibold text-white tracking-tight mb-2">
+        <p className="text-3xl font-semibold text-[var(--color-text)] tracking-tight mb-2">
           Session complete
         </p>
         <p className="text-[var(--color-text-muted)] tabular-nums">
@@ -183,8 +183,8 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
                 onClick={() => handleRate(r.key)}
                 className={`h-10 px-4 rounded-md text-sm font-medium transition-colors ${
                   r.key === 'good'
-                    ? 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black'
-                    : 'border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-white bg-transparent'
+                    ? 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white'
+                    : 'border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] bg-transparent'
                 }`}
               >
                 {r.label}
@@ -197,14 +197,14 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
             <button
               onClick={goPrev}
               disabled={currentIndex === 0}
-              className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+              className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="Previous card"
             >
               <ChevronLeft className="w-4 h-4" /> Prev
             </button>
             <button
               onClick={() => setIsFlipped(true)}
-              className="h-10 px-6 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-medium transition-colors"
+              className="h-10 px-6 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors"
             >
               Flip
               <span className="ml-2 text-[11px] opacity-70">Space</span>
@@ -212,7 +212,7 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
             <button
               onClick={goNext}
               disabled={currentIndex === cards.length - 1}
-              className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+              className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="Next card"
             >
               Next <ChevronRight className="w-4 h-4" />

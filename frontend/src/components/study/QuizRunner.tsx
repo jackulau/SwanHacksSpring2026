@@ -135,7 +135,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
     return (
       <div className="space-y-8">
         <div className="text-center py-12">
-          <p className="text-6xl font-semibold text-white tracking-tight tabular-nums">
+          <p className="text-6xl font-semibold text-[var(--color-text)] tracking-tight tabular-nums">
             {pct}%
           </p>
           <p className="text-[var(--color-text-muted)] mt-2 tabular-nums">
@@ -163,7 +163,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
                   />
                 )}
                 <div className="min-w-0">
-                  <p className="text-white">{q.question}</p>
+                  <p className="text-[var(--color-text)]">{q.question}</p>
                   {q.explanation && (
                     <p className="text-[var(--color-text-muted)] text-sm mt-2">
                       {q.explanation}
@@ -206,7 +206,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
       </div>
 
       <div className="flex-1 flex flex-col justify-center py-12 max-w-2xl mx-auto w-full">
-        <h2 className="text-2xl sm:text-3xl text-white font-medium tracking-tight leading-snug mb-8">
+        <h2 className="text-2xl sm:text-3xl text-[var(--color-text)] font-medium tracking-tight leading-snug mb-8">
           {question.question}
         </h2>
 
@@ -246,7 +246,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
                       <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
                     )}
                   </span>
-                  <span className="text-white text-base">{opt}</span>
+                  <span className="text-[var(--color-text)] text-base">{opt}</span>
                 </label>
               );
             })}
@@ -266,7 +266,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
                   key={String(val)}
                   className={`flex items-center justify-center p-6 rounded-md border cursor-pointer transition-colors text-lg font-medium ${
                     selected
-                      ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-white'
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-text)]'
                       : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]'
                   }`}
                 >
@@ -293,7 +293,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
               question.type === 'fill_blank' ? 'Fill in the blank…' : 'Type your answer…'
             }
             autoFocus
-            className="w-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-md px-4 h-12 text-lg text-white placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)]"
+            className="w-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-md px-4 h-12 text-lg text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)]"
             aria-label="Your answer"
           />
         )}
@@ -303,7 +303,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
         <button
           onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
           disabled={currentIdx === 0}
-          className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+          className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
         >
           <ChevronLeft className="w-4 h-4" /> Previous
         </button>
@@ -312,7 +312,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
           <button
             onClick={handleSubmit}
             disabled={!hasAnswer}
-            className="h-10 px-6 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-10 px-6 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Submit
             <span className="ml-2 text-[11px] opacity-70">Enter</span>

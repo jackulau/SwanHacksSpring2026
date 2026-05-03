@@ -80,7 +80,7 @@ function FlashcardsPage() {
           subtitle={`${cards.length} card${cards.length === 1 ? "" : "s"} ready for review.`}
         />
         <div className="px-6 lg:px-8 py-16 max-w-md mx-auto text-center">
-          <p className="text-4xl font-semibold text-white tracking-tight tabular-nums mb-2">
+          <p className="text-4xl font-semibold text-[var(--color-text)] tracking-tight tabular-nums mb-2">
             {cards.length}
           </p>
           <p className="text-[var(--color-text-muted)] mb-8">
@@ -88,7 +88,7 @@ function FlashcardsPage() {
           </p>
           <button
             onClick={() => setStage("reviewing")}
-            className="w-full h-12 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-medium transition-colors flex items-center justify-center gap-2"
+            className="w-full h-12 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors flex items-center justify-center gap-2"
           >
             <Play className="w-4 h-4" /> Start review
           </button>
@@ -102,7 +102,7 @@ function FlashcardsPage() {
       <>
         <PageHeader title="Flashcards" />
         <div className="px-6 lg:px-8 py-16 max-w-md mx-auto text-center">
-          <p className="text-3xl font-semibold text-white tracking-tight mb-2">
+          <p className="text-3xl font-semibold text-[var(--color-text)] tracking-tight mb-2">
             Session complete
           </p>
           <p className="text-[var(--color-text-muted)] mb-8">
@@ -110,7 +110,7 @@ function FlashcardsPage() {
           </p>
           <button
             onClick={() => navigate({ to: "/study" })}
-            className="w-full h-12 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-medium transition-colors"
+            className="w-full h-12 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors"
           >
             Back to Study
           </button>

@@ -142,7 +142,7 @@ export function CanvasConnect({
     <section className="space-y-6" aria-label="Canvas connection">
       <header className="flex items-baseline justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-base font-medium text-white">Canvas LMS</h2>
+          <h2 className="text-base font-medium text-[var(--color-text)]">Canvas LMS</h2>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
             {connected
               ? canvasUser
@@ -187,15 +187,15 @@ export function CanvasConnect({
               onChange={(e) => setCanvasUrl(e.target.value)}
               onBlur={() => canvasUrl.trim() && saveCanvasUrl()}
               placeholder="https://canvas.your-school.edu"
-              className="w-full bg-transparent border-0 border-b border-[var(--color-border)] text-white placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
+              className="w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
             />
           ) : (
             <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-2">
-              <span className="text-sm text-white truncate">{canvasUrl}</span>
+              <span className="text-sm text-[var(--color-text)] truncate">{canvasUrl}</span>
               <button
                 type="button"
                 onClick={() => setEditingUrl(true)}
-                className="text-xs text-[var(--color-text-muted)] hover:text-white px-2 py-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-2 py-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Change
               </button>
@@ -218,7 +218,7 @@ export function CanvasConnect({
           <button
             type="submit"
             disabled={busy || (editingUrl && !canvasUrl.trim())}
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
           >
             {busy ? (
               <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
@@ -262,7 +262,7 @@ export function CanvasConnect({
         onToggle={(e) => setShowFallback((e.target as HTMLDetailsElement).open)}
         className="border-t border-[var(--color-border)] pt-4"
       >
-        <summary className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-white cursor-pointer list-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-md">
+        <summary className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer list-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-md">
           <ChevronDown
             className={`w-3 h-3 transition-transform ${showFallback ? "" : "-rotate-90"}`}
             aria-hidden="true"
@@ -283,7 +283,7 @@ export function CanvasConnect({
             placeholder="Paste JSON"
             rows={3}
             aria-label="Pasted Canvas data"
-            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[var(--color-primary)] resize-none"
+            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm font-mono text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)] resize-none"
           />
           <div className="flex justify-end">
             <button
@@ -319,7 +319,7 @@ function ScriptBox({
         type="button"
         onClick={onCopy}
         aria-label="Copy sync script"
-        className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--color-text-muted)] hover:text-white px-2 py-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-2 py-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         <Copy className="w-3 h-3" aria-hidden="true" />
         {copied ? "Copied" : "Copy"}

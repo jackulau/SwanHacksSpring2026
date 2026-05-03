@@ -42,7 +42,7 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
           className="absolute inset-0 bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-lg p-12 flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <p className="text-3xl sm:text-4xl text-white text-center leading-snug font-medium tracking-tight">
+          <p className="text-3xl sm:text-4xl text-[var(--color-text)] text-center leading-snug font-medium tracking-tight">
             {front}
           </p>
         </div>
@@ -51,7 +51,7 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
           className="absolute inset-0 bg-[var(--color-surface-raised)] border border-[var(--color-primary)]/40 rounded-lg p-12 flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          <p className="text-3xl sm:text-4xl text-white text-center leading-snug font-medium tracking-tight">
+          <p className="text-3xl sm:text-4xl text-[var(--color-text)] text-center leading-snug font-medium tracking-tight">
             {back}
           </p>
         </div>

@@ -44,7 +44,7 @@ export function ProcessingStatus({ currentStage, error }: ProcessingStatusProps)
       aria-live="polite"
     >
       <div className="flex items-center justify-between text-sm">
-        <span className="inline-flex items-center gap-2 text-white font-medium">
+        <span className="inline-flex items-center gap-2 text-[var(--color-text)] font-medium">
           {isDone && (
             <CheckCircle2
               className="w-4 h-4 text-[var(--color-primary-strong)]"

@@ -60,22 +60,22 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-white flex items-center justify-center px-4 py-16">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex items-center justify-center px-4 py-16">
       <main className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <Link
             to="/"
             aria-label="Converge home"
-            className="flex items-center gap-2 text-white"
+            className="flex items-center gap-2 text-[var(--color-primary)]"
           >
             <ConvergeLogo className="w-7 h-7" />
-            <span className="text-lg font-semibold tracking-tight">
+            <span className="text-lg font-semibold tracking-tight font-brand">
               Converge
             </span>
           </Link>
         </div>
 
-        <div className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-lg shadow-lg shadow-black/40 p-8">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-lg shadow-black/8 p-8">
           <h1 className="text-xl font-semibold tracking-tight">
             {isSignup ? "Create your account" : "Sign in"}
           </h1>
@@ -89,7 +89,7 @@ function LoginPage() {
             <div
               role="alert"
               aria-live="assertive"
-              className="bg-red-500/10 border border-red-500/40 rounded-md px-3 py-2 mb-6 text-red-300 text-sm"
+              className="bg-red-50 border border-red-200 rounded-md px-3 py-2 mb-6 text-red-700 text-sm"
             >
               {error}
             </div>
@@ -114,7 +114,7 @@ function LoginPage() {
                 aria-invalid={!!error}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-white placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
+                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
               />
             </div>
 
@@ -136,14 +136,14 @@ function LoginPage() {
                 aria-invalid={!!error}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-white placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
+                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold text-sm py-2 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold text-sm py-2 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting
                 ? isSignup

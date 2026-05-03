@@ -54,7 +54,7 @@ export function RecentNotesDropdown({
         <div className="flex items-center mx-1">
           <Link
             to="/courses"
-            className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2 text-sm text-[var(--color-text-muted)] hover:text-white rounded-l-md transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2 text-sm text-white/70 hover:text-white rounded-l-md transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
           >
             <NotebookPen className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />
             <span>Notes</span>
@@ -64,7 +64,7 @@ export function RecentNotesDropdown({
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
             aria-label={open ? "Collapse recent notes" : "Expand recent notes"}
-            className="p-2 rounded-r-md text-[var(--color-text-muted)] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="p-2 rounded-r-md text-white/70 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
           >
             <ChevronDown
               className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
@@ -92,7 +92,7 @@ export function RecentNotesDropdown({
                     <Link
                       to="/lectures/$lectureId"
                       params={{ lectureId: lec.id }}
-                      className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-[var(--color-text-muted)] hover:text-white truncate rounded-sm hover:bg-white/[0.04] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                      className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-white/60 hover:text-white truncate rounded-sm hover:bg-white/[0.08] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                       title={lec.title}
                     >
                       <span className="truncate">{lec.title || "Untitled"}</span>
@@ -119,13 +119,13 @@ export function RecentNotesDropdown({
         <div className="flex items-baseline justify-between">
           <Link
             to="/courses"
-            className="text-base font-semibold text-white hover:text-[var(--color-primary-strong)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+            className="text-base font-semibold text-[var(--color-text)] hover:text-[var(--color-primary-strong)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
           >
             Recent notes
           </Link>
           <Link
             to="/courses"
-            className="text-xs text-[var(--color-text-muted)] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
           >
             View all
           </Link>
@@ -154,7 +154,7 @@ export function RecentNotesDropdown({
                 params={{ lectureId: lec.id }}
                 className="flex items-baseline justify-between gap-4 py-2 text-sm group focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
               >
-                <span className="truncate text-white group-hover:text-[var(--color-primary-strong)] transition-colors">
+                <span className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-strong)] transition-colors">
                   {lec.title || "Untitled"}
                 </span>
                 <span className="shrink-0 text-xs tabular-nums text-[var(--color-text-subtle)]">

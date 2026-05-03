@@ -102,7 +102,7 @@ export function SettingsShell({ userId, initialSection }: SettingsShellProps) {
     <div>
       <PageHeader title="Settings" subtitle="Manage your Converge account and preferences." />
 
-      <div className="px-4 sm:px-6 lg:px-8 pb-16 -mt-4">
+      <div className="px-4 sm:px-6 lg:px-8 pb-16 pt-4 relative z-10">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-[200px_1fr] gap-8">
           {/* Sub-nav */}
           <nav aria-label="Settings sections" className="md:sticky md:top-8 md:self-start">
@@ -117,8 +117,8 @@ export function SettingsShell({ userId, initialSection }: SettingsShellProps) {
                       aria-current={active ? "page" : undefined}
                       className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors whitespace-nowrap ${
                         active
-                          ? "bg-[var(--color-primary-soft)] text-white"
-                          : "text-[var(--color-text-muted)] hover:text-white hover:bg-white/5"
+                          ? "bg-[var(--color-primary-soft)] text-[var(--color-text)]"
+                          : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-primary-soft)]"
                       }`}
                     >
                       {SECTION_TITLES[id].title}
@@ -134,7 +134,7 @@ export function SettingsShell({ userId, initialSection }: SettingsShellProps) {
             <header className="mb-6 pb-4 border-b border-[var(--color-border)]">
               <h2
                 id="settings-section-heading"
-                className="text-lg font-semibold text-white tracking-tight"
+                className="text-lg font-semibold text-[var(--color-text)] tracking-tight"
               >
                 {meta.title}
               </h2>
@@ -173,7 +173,7 @@ function Row({ label, hint, htmlFor, children, stacked = false }: RowProps) {
     <div className="py-4 border-b border-[var(--color-border)] last:border-b-0">
       {stacked ? (
         <div>
-          <label htmlFor={htmlFor} className="block text-sm font-medium text-white">
+          <label htmlFor={htmlFor} className="block text-sm font-medium text-[var(--color-text)]">
             {label}
           </label>
           {hint && (
@@ -184,7 +184,7 @@ function Row({ label, hint, htmlFor, children, stacked = false }: RowProps) {
       ) : (
         <div className="flex items-start justify-between gap-6">
           <div className="min-w-0 flex-1">
-            <label htmlFor={htmlFor} className="block text-sm font-medium text-white">
+            <label htmlFor={htmlFor} className="block text-sm font-medium text-[var(--color-text)]">
               {label}
             </label>
             {hint && (
@@ -246,7 +246,7 @@ function Select<T extends string>({
       aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(e.target.value as T)}
-      className="bg-[var(--color-input)] border border-[var(--color-border)] text-white rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--color-primary)] min-w-44"
+      className="bg-[var(--color-input)] border border-[var(--color-border)] text-[var(--color-text)] rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--color-primary)] min-w-44"
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value}>
@@ -352,7 +352,7 @@ function ProfileSection() {
           type="text"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          className="bg-[var(--color-input)] border border-[var(--color-border)] text-white rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--color-primary)] w-64"
+          className="bg-[var(--color-input)] border border-[var(--color-border)] text-[var(--color-text)] rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--color-primary)] w-64"
         />
       </Row>
       <Row label="Email">
@@ -366,7 +366,7 @@ function ProfileSection() {
         <button
           type="submit"
           disabled={!dirty || saving}
-          className="bg-[var(--color-primary)] text-black rounded-md px-4 py-1.5 text-sm font-semibold hover:bg-[var(--color-primary-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="bg-[var(--color-primary)] text-white rounded-md px-4 py-1.5 text-sm font-semibold hover:bg-[var(--color-primary-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
@@ -429,7 +429,7 @@ function PreferencesSection({ userId }: { userId: string }) {
       </Row>
 
       <div className="pt-8">
-        <h3 className="text-sm font-semibold text-white mb-1">Canvas integration</h3>
+        <h3 className="text-sm font-semibold text-[var(--color-text)] mb-1">Canvas integration</h3>
         <p className="text-xs text-[var(--color-text-muted)] mb-4">
           Import your courses, assignments, and announcements from Canvas.
         </p>
@@ -686,7 +686,7 @@ function AccountSection() {
         <button
           type="button"
           onClick={logout}
-          className="text-sm text-white border border-[var(--color-border-strong)] hover:bg-white/5 rounded-md px-4 py-1.5 transition-colors"
+          className="text-sm text-[var(--color-text)] border border-[var(--color-border-strong)] hover:bg-[var(--color-primary-soft)] rounded-md px-4 py-1.5 transition-colors"
         >
           Sign out
         </button>
@@ -701,7 +701,7 @@ function AccountSection() {
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
-              className="text-sm text-[var(--color-text-muted)] hover:text-white px-3 py-1.5 rounded-md"
+              className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-3 py-1.5 rounded-md"
             >
               Cancel
             </button>
@@ -754,7 +754,7 @@ function DataSection({ userId }: { userId: string }) {
           type="button"
           onClick={handleExport}
           disabled={exporting}
-          className="text-sm font-semibold text-black bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:opacity-40 rounded-md px-4 py-1.5 transition-colors"
+          className="text-sm font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:opacity-40 rounded-md px-4 py-1.5 transition-colors"
         >
           {exporting ? "Exporting…" : "Export"}
         </button>

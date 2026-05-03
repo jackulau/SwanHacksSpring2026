@@ -93,13 +93,13 @@ async function syncCanvasData(payload) {
   const existingCourses = await pbGetAll("courses", `user = "${userId}"`);
 
   const colors = [
-    "#6366f1",
-    "#ec4899",
-    "#14b8a6",
-    "#f59e0b",
-    "#ef4444",
-    "#8b5cf6",
-    "#06b6d4",
+    "#2f5d4f",
+    "#e07a5f",
+    "#3d8b7a",
+    "#d4a373",
+    "#c1666b",
+    "#5b8e7d",
+    "#4a7c6f",
   ];
 
   const courseMap = new Map();

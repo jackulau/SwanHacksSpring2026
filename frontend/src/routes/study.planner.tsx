@@ -165,13 +165,13 @@ function StudyPlannerPage() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Add a task and press Enter"
-              className="flex-1 h-10 px-3 rounded-md bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)]"
+              className="flex-1 h-10 px-3 rounded-md bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)]"
               aria-label="New task"
             />
             <button
               type="submit"
               disabled={!draft.trim()}
-              className="h-10 px-4 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+              className="h-10 px-4 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
             >
               <Plus className="w-4 h-4" /> Add
             </button>
@@ -206,7 +206,7 @@ function StudyPlannerPage() {
                           : "border-[var(--color-border-strong)] hover:border-[var(--color-primary)]"
                       }`}
                     >
-                      {done && <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />}
+                      {done && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                     </button>
 
                     {isEditing ? (
@@ -220,7 +220,7 @@ function StudyPlannerPage() {
                           if (e.key === "Enter") commitEdit();
                           if (e.key === "Escape") setEditingId(null);
                         }}
-                        className="flex-1 bg-transparent text-white focus:outline-none border-b border-[var(--color-primary)]"
+                        className="flex-1 bg-transparent text-[var(--color-text)] focus:outline-none border-b border-[var(--color-primary)]"
                         aria-label="Edit task"
                       />
                     ) : (
@@ -229,7 +229,7 @@ function StudyPlannerPage() {
                         className={`flex-1 text-left text-base ${
                           done
                             ? "text-[var(--color-text-subtle)] line-through"
-                            : "text-white"
+                            : "text-[var(--color-text)]"
                         }`}
                       >
                         {task.title}

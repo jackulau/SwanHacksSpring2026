@@ -47,7 +47,7 @@ export function LiveCaptions({
           {placeholder}
         </p>
       ) : (
-        <p className="text-white">
+        <p className="text-[var(--color-text)]">
           {captions.map((segment, i) => {
             const isSign = segment.source === 'sign';
             const prev = captions[i - 1];
@@ -74,7 +74,7 @@ export function LiveCaptions({
                     isSign
                       ? 'italic text-[var(--color-primary-strong)]'
                       : segment.isFinal
-                        ? 'text-white'
+                        ? 'text-[var(--color-text)]'
                         : 'text-[var(--color-text-muted)]'
                   }
                   style={{

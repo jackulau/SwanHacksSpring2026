@@ -29,7 +29,7 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
     >
       <Link
         to="/capture"
-        className="inline-flex items-center justify-center gap-2 self-start bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold text-sm rounded-md px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+        className="inline-flex items-center justify-center gap-2 self-start bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold text-sm rounded-md px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
       >
         <Mic className="w-4 h-4" aria-hidden="true" />
         Start recording
@@ -41,25 +41,25 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
       >
         <Link
           to="/capture/upload"
-          className="text-[var(--color-text-muted)] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
         >
           Upload lecture
         </Link>
         <Link
           to="/courses"
-          className="text-[var(--color-text-muted)] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
         >
           Notes
         </Link>
         <Link
           to="/study/flashcards"
-          className="text-[var(--color-text-muted)] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
         >
           {dueLabel}
         </Link>
         <Link
           to="/calendar"
-          className="text-[var(--color-text-muted)] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
         >
           Calendar
         </Link>

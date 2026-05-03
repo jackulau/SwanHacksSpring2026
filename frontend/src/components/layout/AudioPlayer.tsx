@@ -59,11 +59,11 @@ export function AudioPlayer() {
     <div
       role="region"
       aria-label="Audio player"
-      className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-2 sm:gap-4 border-t border-zinc-700 bg-zinc-900 px-3 sm:px-4 py-2"
+      className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-2 sm:gap-4 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:px-4 py-2 shadow-lg"
       style={{ height: "var(--audio-player-height, 56px)" }}
     >
       {title && (
-        <span className="hidden sm:inline truncate max-w-48 text-sm text-zinc-400">
+        <span className="hidden sm:inline truncate max-w-48 text-sm text-[var(--color-text-muted)]">
           {title}
         </span>
       )}
@@ -71,7 +71,7 @@ export function AudioPlayer() {
       <button
         type="button"
         onClick={() => skip(-10)}
-        className="hidden sm:inline-flex items-center gap-1 text-zinc-400 hover:text-zinc-200"
+        className="hidden sm:inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
         aria-label="Skip back 10 seconds"
       >
         <SkipBack className="w-4 h-4" />
@@ -80,7 +80,7 @@ export function AudioPlayer() {
       <button
         type="button"
         onClick={() => { void togglePlay(); }}
-        className="rounded-full bg-[var(--color-primary)] p-2 text-black hover:bg-[var(--color-primary-hover)]"
+        className="rounded-full bg-[var(--color-primary)] p-2 text-white hover:bg-[var(--color-primary-hover)]"
         aria-label={playing ? "Pause" : "Play"}
         aria-pressed={playing}
       >
@@ -90,13 +90,13 @@ export function AudioPlayer() {
       <button
         type="button"
         onClick={() => skip(10)}
-        className="hidden sm:inline-flex items-center gap-1 text-zinc-400 hover:text-zinc-200"
+        className="hidden sm:inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
         aria-label="Skip forward 10 seconds"
       >
         <SkipForward className="w-4 h-4" />
       </button>
 
-      <span className="hidden sm:inline w-10 text-right text-xs text-zinc-500 tabular-nums">
+      <span className="hidden sm:inline w-10 text-right text-xs text-[var(--color-text-subtle)] tabular-nums">
         {formatTime(currentTime)}
       </span>
 
@@ -111,7 +111,7 @@ export function AudioPlayer() {
         aria-label="Seek"
       />
 
-      <span className="hidden sm:inline w-10 text-xs text-zinc-500 tabular-nums">
+      <span className="hidden sm:inline w-10 text-xs text-[var(--color-text-subtle)] tabular-nums">
         {formatTime(duration)}
       </span>
 
@@ -120,7 +120,7 @@ export function AudioPlayer() {
         <select
           value={rate}
           onChange={handleRateChange}
-          className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.5 font-mono text-xs text-zinc-300 hover:border-zinc-500"
+          className="rounded border border-[var(--color-border)] bg-[var(--color-input)] px-1 py-0.5 font-mono text-xs text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)]"
           aria-label="Playback speed"
         >
           {SPEED_OPTIONS.map((speed) => (
@@ -131,7 +131,7 @@ export function AudioPlayer() {
         </select>
       </label>
 
-      <Volume2 className="hidden sm:inline w-4 h-4 text-zinc-500" aria-hidden="true" />
+      <Volume2 className="hidden sm:inline w-4 h-4 text-[var(--color-text-subtle)]" aria-hidden="true" />
     </div>
   );
 }

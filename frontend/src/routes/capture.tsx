@@ -235,7 +235,7 @@ function RecordingInterface() {
               <div className="flex items-center gap-3 text-sm">
                 {isRecording && (
                   <span
-                    className="inline-flex items-center gap-2 font-mono text-white tabular-nums text-base"
+                    className="inline-flex items-center gap-2 font-mono text-[var(--color-text)] tabular-nums text-base"
                     aria-live="off"
                   >
                     <span
@@ -261,7 +261,7 @@ function RecordingInterface() {
                   type="button"
                   onClick={handleToggleSign}
                   aria-pressed={signEnabled}
-                  className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-xs font-medium border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-xs font-medium border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
                 >
                   <Hand className="w-3.5 h-3.5" aria-hidden="true" />
                   {signEnabled ? 'Sign language: on' : 'Enable sign language'}
@@ -324,9 +324,9 @@ function RecordingInterface() {
 export function ModeTabs({ current }: { current: 'record' | 'upload' }) {
   const base =
     'inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm font-medium transition-colors';
-  const active = 'bg-white/10 text-white';
+  const active = 'bg-[var(--color-primary-soft)] text-[var(--color-text)]';
   const inactive =
-    'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5';
+    'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-primary-soft)]';
   return (
     <div
       role="tablist"

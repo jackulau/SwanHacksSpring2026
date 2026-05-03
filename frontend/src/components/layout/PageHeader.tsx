@@ -25,7 +25,7 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: PageHeaderProp
               {eyebrow}
             </p>
           )}
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] tracking-tight">
             {title}
           </h1>
           {subtitle && (

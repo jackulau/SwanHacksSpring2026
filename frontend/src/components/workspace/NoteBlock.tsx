@@ -15,18 +15,18 @@ export function NoteBlock({ block }: NoteBlockProps) {
     case 'heading':
       if (block.level === 1)
         return (
-          <h2 className="text-2xl font-semibold text-white tracking-tight mt-8 mb-2">
+          <h2 className="text-2xl font-semibold text-[var(--color-text)] tracking-tight mt-8 mb-2">
             {block.text}
           </h2>
         );
       if (block.level === 2)
         return (
-          <h3 className="text-lg font-semibold text-white tracking-tight mt-6 mb-2">
+          <h3 className="text-lg font-semibold text-[var(--color-text)] tracking-tight mt-6 mb-2">
             {block.text}
           </h3>
         );
       return (
-        <h4 className="text-base font-semibold text-white mt-4 mb-2">
+        <h4 className="text-base font-semibold text-[var(--color-text)] mt-4 mb-2">
           {block.text}
         </h4>
       );
@@ -50,7 +50,7 @@ export function NoteBlock({ block }: NoteBlockProps) {
     case 'key_term':
       return (
         <p className="text-[var(--color-text-muted)] leading-7">
-          <strong className="text-white font-semibold">{block.term}</strong>
+          <strong className="text-[var(--color-text)] font-semibold">{block.term}</strong>
           <span className="text-[var(--color-text-subtle)]"> — </span>
           <span>{block.definition}</span>
         </p>

@@ -114,7 +114,7 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
   if (loading) {
     return (
       <section aria-label="Upcoming" className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-white">Today</h2>
+        <h2 className="text-base font-semibold text-[var(--color-text)]">Today</h2>
         <div className="space-y-2">
           <Skeleton className="h-6" />
           <Skeleton className="h-6" />
@@ -127,7 +127,7 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
   if (items.length === 0) {
     return (
       <section aria-label="Upcoming" className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-white">Today</h2>
+        <h2 className="text-base font-semibold text-[var(--color-text)]">Today</h2>
         <EmptyState
           size="sm"
           icon={Calendar}
@@ -166,7 +166,7 @@ function Section({
 }) {
   return (
     <section aria-label={title} className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold text-white">{title}</h2>
+      <h2 className="text-base font-semibold text-[var(--color-text)]">{title}</h2>
       {children.length === 0 ? (
         <p className="text-sm text-[var(--color-text-subtle)]">{emptyText}</p>
       ) : (
@@ -178,7 +178,7 @@ function Section({
 
 function UpcomingRow({ item }: { item: UpcomingItem }) {
   const titleNode = (
-    <span className="truncate text-white group-hover:text-[var(--color-primary-strong)] transition-colors">
+    <span className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
       {item.title}
       {item.isMeeting && (
         <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)] text-[10px] font-semibold uppercase tracking-wider">

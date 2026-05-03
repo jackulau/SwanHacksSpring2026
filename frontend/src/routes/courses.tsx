@@ -121,7 +121,7 @@ function CourseList({ userId }: { userId: string }) {
             type="button"
             onClick={() => setShowForm((s) => !s)}
             aria-expanded={showForm}
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
           >
             <Plus className="w-4 h-4" aria-hidden="true" />
             Add course
@@ -144,7 +144,7 @@ function CourseList({ userId }: { userId: string }) {
                   placeholder="Biology 201"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-white placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-base focus:outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-base focus:outline-none focus:border-[var(--color-primary)]"
                   autoFocus
                 />
               </label>
@@ -155,7 +155,7 @@ function CourseList({ userId }: { userId: string }) {
                   placeholder="BIO 201"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-white placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
                 />
               </label>
               <label className="block text-xs font-medium text-[var(--color-text-muted)]">
@@ -165,7 +165,7 @@ function CourseList({ userId }: { userId: string }) {
                   placeholder="Fall 2026"
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
-                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-white placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
                 />
               </label>
             </div>
@@ -173,14 +173,14 @@ function CourseList({ userId }: { userId: string }) {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="text-sm text-[var(--color-text-muted)] hover:text-white px-4 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)]"
+                className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-4 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!name.trim()}
-                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
               >
                 Create
               </button>
@@ -215,7 +215,7 @@ function CourseList({ userId }: { userId: string }) {
                 >
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-3 min-w-0">
-                      <h2 className="text-base font-medium text-white truncate">
+                      <h2 className="text-base font-medium text-[var(--color-text)] truncate">
                         {course.name}
                       </h2>
                       {course.code && (
@@ -243,7 +243,7 @@ function CourseList({ userId }: { userId: string }) {
                     </div>
                   </div>
                   <ChevronRight
-                    className="w-4 h-4 text-[var(--color-text-subtle)] group-hover:text-white transition-colors"
+                    className="w-4 h-4 text-[var(--color-text-subtle)] group-hover:text-[var(--color-text)] transition-colors"
                     aria-hidden="true"
                   />
                 </Link>

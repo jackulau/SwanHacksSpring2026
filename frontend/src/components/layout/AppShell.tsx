@@ -107,7 +107,7 @@ export function AppShell({ children }: AppShellProps) {
   }, [user]);
 
   return (
-    <div className="min-h-screen text-white flex bg-[var(--color-bg)]">
+    <div className="min-h-screen text-[var(--color-text)] flex bg-[var(--color-bg)]">
       {/* Skip link — visible only on focus, jumps over the entire sidebar */}
       <a
         href="#main"
@@ -198,7 +198,7 @@ export function AppShell({ children }: AppShellProps) {
       <button
         type="button"
         onClick={() => setA11yOpen((open) => !open)}
-        className="fixed right-6 w-12 h-12 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black rounded-full flex items-center justify-center shadow-lg shadow-black/40 transition-colors z-50"
+        className="fixed right-6 w-12 h-12 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white rounded-full flex items-center justify-center shadow-lg shadow-black/15 transition-colors z-50"
         style={{
           bottom:
             "calc(1.5rem + var(--mobile-nav-height, 0px) + var(--audio-player-height, 0px))",
@@ -257,8 +257,8 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
       aria-current={active ? "page" : undefined}
       className={`relative flex items-center gap-3 pl-5 pr-3 py-2.5 mx-1 rounded-md text-sm transition-colors group ${
         active
-          ? "text-white bg-white/[0.04]"
-          : "text-[var(--color-text-muted)] hover:text-white hover:bg-white/[0.03]"
+          ? "text-white bg-white/[0.12]"
+          : "text-white/70 hover:text-white hover:bg-white/[0.08]"
       }`}
     >
       {active && (
@@ -296,7 +296,7 @@ function UserMenu({
       <button
         type="button"
         onClick={onToggle}
-        className="flex items-center gap-2 bg-black text-white text-sm px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20 transition-colors"
+        className="flex items-center gap-2 bg-[var(--color-surface)] text-[var(--color-text)] text-sm px-3 py-1.5 rounded-full border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors shadow-sm"
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -333,7 +333,7 @@ function UserMenu({
               to="/settings"
               role="menuitem"
               onClick={onClose}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
               <Settings className="w-4 h-4" />
               Settings
@@ -342,7 +342,7 @@ function UserMenu({
               to="/capture"
               role="menuitem"
               onClick={onClose}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
               <Mic className="w-4 h-4" />
               New recording
@@ -354,7 +354,7 @@ function UserMenu({
                 onLogout();
                 onClose();
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
               <Settings className="w-4 h-4" />
               Sign Out

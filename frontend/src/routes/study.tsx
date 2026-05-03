@@ -74,7 +74,7 @@ function StudyHub({ userId }: { userId: string }) {
         <Link
           to="/study/planner"
           search={{ start: true }}
-          className="block bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black rounded-md h-12 flex items-center justify-center font-medium transition-colors mb-8"
+          className="block bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white rounded-md h-12 flex items-center justify-center font-medium transition-colors mb-8"
         >
           Start Pomodoro
         </Link>
@@ -132,7 +132,7 @@ function LauncherRow({ to, label, description, meta, metaActive, disabled }: Lau
   const content = (
     <>
       <div className="min-w-0">
-        <p className="text-base text-white font-medium tracking-tight">{label}</p>
+        <p className="text-base text-[var(--color-text)] font-medium tracking-tight">{label}</p>
         <p className="text-sm text-[var(--color-text-muted)] mt-0.5">{description}</p>
       </div>
       <div className="flex items-center gap-3 shrink-0">
@@ -146,7 +146,7 @@ function LauncherRow({ to, label, description, meta, metaActive, disabled }: Lau
           {meta}
         </span>
         <ArrowUpRight
-          className="w-4 h-4 text-[var(--color-text-subtle)] group-hover:text-white transition-colors"
+          className="w-4 h-4 text-[var(--color-text-subtle)] group-hover:text-[var(--color-text)] transition-colors"
           aria-hidden="true"
         />
       </div>

@@ -226,7 +226,7 @@ function LectureDetailPage() {
       type="button"
       onClick={handleGenerateStudySet}
       disabled={generating || lecture.status === "generating"}
-      className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-black hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+      className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
     >
       <Sparkles className="w-4 h-4" aria-hidden="true" />
       {generating || lecture.status === "generating"
@@ -255,7 +255,7 @@ function LectureDetailPage() {
               <li>
                 <Link
                   to="/courses"
-                  className="hover:text-white focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 rounded-sm"
+                  className="hover:text-[var(--color-text)] focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 rounded-sm"
                 >
                   Courses
                 </Link>
@@ -265,7 +265,7 @@ function LectureDetailPage() {
                 <Link
                   to="/courses/$courseId"
                   params={{ courseId: course.id }}
-                  className="hover:text-white focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 rounded-sm"
+                  className="hover:text-[var(--color-text)] focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 rounded-sm"
                 >
                   {course.code}
                 </Link>
@@ -346,8 +346,8 @@ function ViewTab({ id, label, icon: Icon, active, onSelect }: ViewTabProps) {
       onClick={onSelect}
       className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] focus-visible:outline-offset-2 rounded-sm ${
         active
-          ? "border-[var(--color-primary)] text-white"
-          : "border-transparent text-[var(--color-text-muted)] hover:text-white"
+          ? "border-[var(--color-primary)] text-[var(--color-text)]"
+          : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
       }`}
     >
       <Icon className="w-4 h-4" aria-hidden="true" />

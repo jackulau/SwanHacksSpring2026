@@ -53,12 +53,12 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
         <div ref={liveRef} role="status" aria-live="polite" className="sr-only" />
 
         <header className="sticky top-0 bg-[var(--color-bg)] flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] z-10">
-          <h2 id="a11y-panel-title" className="text-base font-semibold text-white">
+          <h2 id="a11y-panel-title" className="text-base font-semibold text-[var(--color-text)]">
             Accessibility
           </h2>
           <button
             onClick={onClose}
-            className="text-[var(--color-text-muted)] hover:text-white p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
             aria-label="Close accessibility panel"
           >
             <X className="w-4 h-4" />
@@ -166,7 +166,7 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
 function PanelRow({ label, control }: { label: string; control: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-[var(--color-border)]">
-      <span className="text-sm text-white">{label}</span>
+      <span className="text-sm text-[var(--color-text)]">{label}</span>
       {control}
     </div>
   );
@@ -225,7 +225,7 @@ function PanelSelect({
           aria-label={label}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="bg-[var(--color-input)] border border-[var(--color-border)] text-white rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[var(--color-primary)]"
+          className="bg-[var(--color-input)] border border-[var(--color-border)] text-[var(--color-text)] rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[var(--color-primary)]"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -258,7 +258,7 @@ function PanelSlider({
   return (
     <div className="py-3 border-b border-[var(--color-border)]">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-white">{label}</span>
+        <span className="text-sm text-[var(--color-text)]">{label}</span>
         <span className="text-xs tabular-nums text-[var(--color-text-muted)]">
           {value}
           {unit}

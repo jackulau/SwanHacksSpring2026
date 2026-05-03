@@ -90,7 +90,7 @@ export function SignLanguageDetector({
           type="button"
           onClick={onToggle}
           aria-label="Disable sign language detection"
-          className="text-[var(--color-text-muted)] hover:text-white p-1 rounded-md transition-colors"
+          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-md transition-colors"
         >
           <X className="w-3.5 h-3.5" />
         </button>

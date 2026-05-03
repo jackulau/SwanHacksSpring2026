@@ -7,7 +7,7 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: #4f46e5;
+  background: #2f5d4f;
   color: white;
   border: none;
   border-radius: 12px;
@@ -15,14 +15,14 @@
   font-weight: 600;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 4px 12px rgba(47, 93, 79, 0.4);
   transition: all 0.2s ease;
 }
 
 #hackstack-sync-btn:hover {
-  background: #4338ca;
+  background: #3a7261;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.5);
+  box-shadow: 0 6px 16px rgba(47, 93, 79, 0.5);
 }
 
 #hackstack-sync-btn:active {
@@ -78,9 +78,9 @@
 }
 
 #hackstack-toast.hackstack-toast-info {
-  background: #1e1b4b;
-  color: #c7d2fe;
-  border: 1px solid #3730a3;
+  background: #1a3a2f;
+  color: #a7f3d0;
+  border: 1px solid #2f5d4f;
 }
 
 @media (prefers-reduced-motion: reduce) {

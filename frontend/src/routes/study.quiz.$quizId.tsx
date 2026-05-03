@@ -92,7 +92,7 @@ function QuizPage() {
             action={
               <button
                 onClick={() => navigate({ to: "/study" })}
-                className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-white text-sm flex items-center gap-1"
+                className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] text-sm flex items-center gap-1"
               >
                 <ArrowLeft className="w-4 h-4" /> Back to Study
               </button>
@@ -109,7 +109,7 @@ function QuizPage() {
       <div className="px-6 lg:px-8 pt-4 pb-8 max-w-2xl mx-auto">
         <button
           onClick={() => navigate({ to: "/study" })}
-          className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-white mb-4"
+          className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>

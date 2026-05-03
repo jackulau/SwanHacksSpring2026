@@ -60,7 +60,7 @@ const KIND_STYLE: Record<EventKind, { bg: string; bar: string; text: string; sub
   lecture: {
     bg: "bg-[var(--color-primary-soft)] hover:bg-[color-mix(in_oklab,var(--color-primary-soft)_85%,white)]",
     bar: "bg-[var(--color-primary)]",
-    text: "text-white",
+    text: "text-[var(--color-text)]",
     sub: "text-[var(--color-text-muted)]",
   },
   assignment: {
@@ -71,8 +71,8 @@ const KIND_STYLE: Record<EventKind, { bg: string; bar: string; text: string; sub
   },
   user: {
     bg: "bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface-elevated)]",
-    bar: "bg-white/40",
-    text: "text-white",
+    bar: "bg-[var(--color-text-subtle)]",
+    text: "text-[var(--color-text)]",
     sub: "text-[var(--color-text-muted)]",
   },
 };
@@ -272,7 +272,7 @@ function CalendarPage() {
       <div className="flex items-center gap-1 px-4 h-12 border-b border-[var(--color-border)] bg-[var(--color-surface-raised)] shrink-0 overflow-x-auto">
         <button
           onClick={() => handleSlotClick(isoDate(anchor), Math.max(DAY_START_HOUR, new Date().getHours()))}
-          className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black text-sm font-medium transition-colors shrink-0"
+          className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-sm font-medium transition-colors shrink-0"
         >
           <Plus className="w-4 h-4" />
           New event
@@ -326,10 +326,10 @@ function CalendarPage() {
               <CalendarIcon className="w-3.5 h-3.5" />
               Today
             </button>
-            <button onClick={() => navigateRange(-1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-white grid place-items-center" aria-label="Previous">
+            <button onClick={() => navigateRange(-1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] grid place-items-center" aria-label="Previous">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={() => navigateRange(1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-white grid place-items-center" aria-label="Next">
+            <button onClick={() => navigateRange(1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] grid place-items-center" aria-label="Next">
               <ChevronRight className="w-4 h-4" />
             </button>
             <h1 className="text-base font-semibold text-[var(--color-text)] ml-1">{rangeLabel}</h1>
@@ -385,10 +385,10 @@ function ToolbarToggle({
       disabled={disabled}
       className={`flex items-center gap-1.5 px-2.5 h-8 rounded-md text-sm transition-colors shrink-0 ${
         active
-          ? "bg-[var(--color-surface-elevated)] text-white ring-1 ring-[var(--color-border-strong)]"
+          ? "bg-[var(--color-surface-elevated)] text-[var(--color-text)] ring-1 ring-[var(--color-border-strong)]"
           : disabled
           ? "text-[var(--color-text-subtle)] cursor-not-allowed"
-          : "hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-white"
+          : "hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
       }`}
     >
       <Icon className="w-3.5 h-3.5" />
@@ -465,9 +465,9 @@ function MiniMonth({
               onClick={() => onPick(d)}
               className={`h-7 text-xs rounded-full transition-colors ${
                 isSelected
-                  ? "bg-[var(--color-primary)] text-black font-semibold"
+                  ? "bg-[var(--color-primary)] text-white font-semibold"
                   : isToday
-                  ? "bg-[var(--color-primary-soft)] text-white"
+                  ? "bg-[var(--color-primary-soft)] text-[var(--color-text)]"
                   : inMonth
                   ? "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
                   : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-raised)]/60"
@@ -649,12 +649,12 @@ function DraftEventBlock({
             if (e.key === "Escape") onCancel();
           }}
           placeholder="Event name"
-          className="flex-1 bg-transparent text-xs text-white placeholder:text-[var(--color-text-muted)] focus:outline-none min-w-0"
+          className="flex-1 bg-transparent text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none min-w-0"
         />
-        <button onClick={onCommit} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-white" aria-label="Save">
+        <button onClick={onCommit} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Save">
           <Check className="w-3 h-3" />
         </button>
-        <button onClick={onCancel} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-white" aria-label="Cancel">
+        <button onClick={onCancel} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Cancel">
           <X className="w-3 h-3" />
         </button>
       </div>
@@ -703,7 +703,7 @@ function MonthView({
               <div
                 className={`text-xs mb-1 ${
                   isToday
-                    ? "inline-grid place-items-center w-5 h-5 rounded-full bg-[var(--color-primary)] text-black font-semibold"
+                    ? "inline-grid place-items-center w-5 h-5 rounded-full bg-[var(--color-primary)] text-white font-semibold"
                     : inMonth
                     ? "text-[var(--color-text)]"
                     : "text-[var(--color-text-subtle)]"
