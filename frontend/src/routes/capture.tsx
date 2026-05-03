@@ -9,7 +9,7 @@ import { LiveCaptions } from "../components/capture/LiveCaptions";
 import { SignLanguageDetector } from "../components/capture/SignLanguageDetector";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
-import { useLocalWhisper } from "../hooks/useLocalWhisper";
+import { useLocalWhisper, transcribeAudioFile } from "../hooks/useLocalWhisper";
 import { useMediaPipeHands } from "../hooks/useMediaPipeHands";
 import { useSignLanguage } from "../hooks/useSignLanguage";
 import { useWordSignRecognition } from "../hooks/useWordSignRecognition";
@@ -102,7 +102,10 @@ function RecordingInterface() {
 
   const handleStop = useCallback(async () => {
     audioControls.stop();
-    stt.disconnect();
+    // Await disconnect so the final caption chunk is appended before the
+    // pipeline effect reads stt.captions. Without this, the pipeline can
+    // race ahead and see an empty captions array on the last chunk.
+    await stt.disconnect();
     if (signEnabled) {
       mediapipe.stop();
       wordSign.reset();
@@ -180,12 +183,27 @@ function RecordingInterface() {
 
         const lecture = await pb.collection('lectures').create(lectureData);
 
-        const fullTranscript = stt.captions
+        let fullTranscript = stt.captions
           .filter((c) => c.isFinal)
           .map((c) => c.text)
-          .join(' ');
+          .join(' ')
+          .trim();
 
-        if (!fullTranscript.trim()) {
+        // Fallback: if live captioning produced nothing (short clip, late
+        // model warm-up, or mostly-silent audio that filtered to [BLANK_AUDIO]
+        // tokens), run a one-shot transcription over the whole saved blob
+        // before declaring no-speech. The model is already loaded so this is
+        // typically only a few seconds.
+        if (!fullTranscript) {
+          try {
+            const file = new File([blob], 'recording.webm', { type: blob.type });
+            fullTranscript = (await transcribeAudioFile(file)).trim();
+          } catch (err) {
+            console.error('[capture] batch transcription fallback failed', err);
+          }
+        }
+
+        if (!fullTranscript) {
           setPipelineStage('error');
           setPipelineError('No speech detected in recording.');
           return;

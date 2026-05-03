@@ -144,8 +144,39 @@ async function callLLM(
 }
 
 function parseJSON<T>(raw: string): T {
-  const cleaned = raw.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
-  return JSON.parse(cleaned);
+  let cleaned = raw.trim();
+
+  // Strip a code fence anywhere in the response. Handles ```json … ```,
+  // ```js … ```, plain ``` … ```, and intro/outro chatter around the fence
+  // (Llama and friends like to say "Here's the JSON:" before and "Hope this
+  // helps!" after).
+  const fenceMatch = cleaned.match(/```[a-zA-Z]*\s*\n?([\s\S]*?)```/);
+  if (fenceMatch) {
+    cleaned = fenceMatch[1].trim();
+  }
+
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch (err) {
+    // Last resort: extract the substring between the first opening bracket
+    // and the last matching closing bracket. Catches outputs like
+    // "Here's an array: [ ... ] — hope this helps." that escape the fence
+    // strip above.
+    const firstArr = cleaned.indexOf('[');
+    const firstObj = cleaned.indexOf('{');
+    const start =
+      firstArr === -1
+        ? firstObj
+        : firstObj === -1
+          ? firstArr
+          : Math.min(firstArr, firstObj);
+    if (start === -1) throw err;
+    const open = cleaned[start];
+    const close = open === '[' ? ']' : '}';
+    const end = cleaned.lastIndexOf(close);
+    if (end <= start) throw err;
+    return JSON.parse(cleaned.slice(start, end + 1)) as T;
+  }
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {

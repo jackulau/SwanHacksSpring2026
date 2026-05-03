@@ -48,5 +48,15 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
+    // COOP/COEP enable cross-origin isolation, which transformers.js
+    // (`@huggingface/transformers`) needs for SharedArrayBuffer + threaded
+    // WASM. Without these the Whisper model load can fail with a vague
+    // "fetch failed" or "RuntimeError: WASM" error.
+    // `credentialless` lets cross-origin fetches (HuggingFace CDN) work
+    // without the model's host needing CORP headers.
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "credentialless",
+    },
   },
 });

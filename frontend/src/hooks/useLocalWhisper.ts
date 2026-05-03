@@ -16,15 +16,31 @@ async function loadTranscriber(
   if (_transcriber) return _transcriber;
   if (_loading) return _loading;
 
-  _loading = pipeline('automatic-speech-recognition', WHISPER_MODEL, {
-    dtype: 'q8' as any,
-    device: 'wasm' as any,
-    progress_callback: (info: any) => {
+  // The q8 variant of `onnx-community/whisper-tiny.en` ships with broken
+  // quantization metadata (missing `weight_merged_0_scale` on the decoder's
+  // embed_tokens), which makes ONNX Runtime fail to create a session. Using
+  // per-component dtypes — fp32 for the encoder (small, ~30MB) and q4 for
+  // the decoder (~30MB) — avoids the bad q8 file while keeping the total
+  // download reasonable.
+  const options = {
+    dtype: {
+      encoder_model: 'fp32',
+      decoder_model_merged: 'q4',
+    },
+    device: 'wasm',
+    progress_callback: (info: { status?: string; progress?: number }) => {
       if (info.status === 'progress' && onProgress) {
         onProgress(Math.round(info.progress ?? 0));
       }
     },
-  }) as Promise<Transcriber>;
+  } as unknown as Parameters<typeof pipeline>[2];
+
+  _loading = (pipeline('automatic-speech-recognition', WHISPER_MODEL, options) as Promise<Transcriber>)
+    .catch((err) => {
+      _loading = null;
+      console.error('[whisper] pipeline load failed', err);
+      throw err;
+    });
 
   _transcriber = await _loading;
   _loading = null;
@@ -110,11 +126,20 @@ export function useLocalWhisper() {
         await loadTranscriber((p) =>
           setState((s) => ({ ...s, modelProgress: p })),
         );
-      } catch {
+      } catch (err) {
+        // Live captions are best-effort. We still mark the hook as "connected"
+        // so the caller's recording flow continues — the user can finish
+        // their audio capture and have it transcribed by the AI pipeline
+        // after upload. A visible error explains why captions are missing.
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Failed to load Whisper model. Live captions unavailable; recording will still be saved.';
         setState((s) => ({
           ...s,
           modelLoading: false,
-          error: 'Failed to load Whisper model. Check your connection for the initial download (~40 MB).',
+          isConnected: true,
+          error: `Live captions unavailable: ${message}`,
         }));
         return;
       }
