@@ -7,3 +7,4 @@ export * from "./features";
 export * from "./dtw";
 export * from "./segmenter";
 export * from "./wordRecognizer";
+export * from "./vlmRecognizer";

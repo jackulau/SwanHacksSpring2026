@@ -24,6 +24,15 @@ interface SignLanguageDetectorProps {
     /** Closest candidate when DTW gated the segment. UI surfaces this so the
      *  user knows the camera saw something even when no caption was emitted. */
     lastReject?: { topLabel: string; distance: number; reason: string } | null;
+    /** Last result from the Gemini Vision pipeline. Surfaced as the canonical
+     *  prediction since it's open-vocabulary and far more accurate than DTW. */
+    vlm?: {
+      pending: boolean;
+      lastWord: string | null;
+      lastRaw: string;
+      lastLatencyMs: number | null;
+      lastError: string | null;
+    };
   };
 }
 
@@ -153,6 +162,54 @@ export function SignLanguageDetector({
               {lastWord}
             </span>
           </p>
+        )}
+        {wordRecognizer?.vlm && (
+          <div className="pt-2 border-t border-[var(--color-border)] space-y-1">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-[var(--color-text-muted)]">
+              <span>Gemini Vision</span>
+              <span
+                className={
+                  wordRecognizer.vlm.pending
+                    ? "text-[var(--color-primary-strong)] font-mono"
+                    : wordRecognizer.vlm.lastError
+                      ? "text-[var(--color-record)] font-mono"
+                      : "text-[var(--color-text-muted)] font-mono"
+                }
+              >
+                {wordRecognizer.vlm.pending
+                  ? "thinking…"
+                  : wordRecognizer.vlm.lastError
+                    ? "error"
+                    : wordRecognizer.vlm.lastLatencyMs !== null
+                      ? `${wordRecognizer.vlm.lastLatencyMs}ms`
+                      : "idle"}
+              </span>
+            </div>
+            {wordRecognizer.vlm.lastWord && (
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Predicted:{' '}
+                <span className="text-[var(--color-primary-strong)] font-medium">
+                  {wordRecognizer.vlm.lastWord}
+                </span>
+              </p>
+            )}
+            {!wordRecognizer.vlm.lastWord &&
+              wordRecognizer.vlm.lastRaw &&
+              !wordRecognizer.vlm.pending && (
+                <p className="text-[11px] text-[var(--color-text-subtle)]">
+                  Said:{' '}
+                  <span className="font-mono">{wordRecognizer.vlm.lastRaw}</span>
+                </p>
+              )}
+            {wordRecognizer.vlm.lastError && (
+              <p
+                className="text-[11px] text-[var(--color-record)] truncate"
+                title={wordRecognizer.vlm.lastError}
+              >
+                {wordRecognizer.vlm.lastError}
+              </p>
+            )}
+          </div>
         )}
         {wordRecognizer && (
           <div className="pt-2 border-t border-[var(--color-border)] space-y-1">

@@ -66,19 +66,34 @@ function RecordingInterface() {
   const [processing, setProcessing] = useState(false);
   const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
   const [pipelineError, setPipelineError] = useState('');
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Mirror videoRef into state so hooks that need to react when the element
+  // mounts (e.g. the VLM frame sampler in useWordSignRecognition) get a
+  // re-render. Plain refs don't trigger one.
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
+  const handleVideoMount = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    setVideoEl(el);
+  }, []);
   const recordRegionRef = useRef<HTMLDivElement>(null);
 
   const signLanguage = useSignLanguage((word) => {
     stt.addSignCaption(word);
   });
 
-  // Word-level recognizer (DTW against bundled WLASL + personalized
-  // templates). Fires per signed word; results are emitted as ASL captions
-  // alongside the letter buffer.
-  const wordSign = useWordSignRecognition((label) => {
-    stt.addSignCaption(label.toUpperCase());
-  });
+  // Word-level recognizer: runs MediaPipe-driven motion segmentation, scores
+  // each segment locally with DTW (fast, offline) AND ships sampled frames to
+  // Gemini Vision via the backend proxy (slower but open-vocab and far more
+  // accurate). DTW emits captions instantly so the user sees the system
+  // reacting; VLM captions follow ~1.5s later and are tagged so they read as
+  // the canonical answer rather than duplicates of the DTW guess.
+  const wordSign = useWordSignRecognition(
+    (label, _distance, source) => {
+      const text = label.toUpperCase();
+      stt.addSignCaption(source === "vlm" ? `${text} (VLM)` : text);
+    },
+    { videoElement: videoEl },
+  );
 
   // Both letter and word recognition consume the same MediaPipe landmark
   // stream — combine the callbacks so we only call setOnLandmarks once.
@@ -340,7 +355,7 @@ function RecordingInterface() {
         )}
 
         {/* Hidden video element used by MediaPipe init when sign is enabled. */}
-        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
+        <video ref={handleVideoMount} className="hidden" autoPlay playsInline muted />
 
         {/* Sign-language detector floats in the bottom-right corner. */}
         {signEnabled && (
@@ -362,6 +377,7 @@ function RecordingInterface() {
                 lastDistance: wordSign.lastDistance,
                 lastCandidates: wordSign.lastCandidates,
                 lastReject: wordSign.lastReject,
+                vlm: wordSign.vlm,
               }}
             />
           </div>
