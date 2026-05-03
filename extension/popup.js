@@ -146,7 +146,10 @@ syncBtn.addEventListener("click", async () => {
         setProgress(msg.pct, msg.text);
       }
       if (msg.type === "DONE") {
-        setProgress(100, `Synced! ${msg.result.created} new, ${msg.result.updated} updated`);
+        const r = msg.result;
+        const parts = [`${r.courses} courses`, `${r.created} new`, `${r.updated} updated`];
+        if (r.skipped) parts.push(`${r.skipped} skipped`);
+        setProgress(100, `Synced! ${parts.join(", ")}`);
         loadSyncStatus();
         syncBtn.disabled = false;
         setTimeout(hideProgress, 4000);

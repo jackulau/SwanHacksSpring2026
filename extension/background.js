@@ -49,6 +49,20 @@ async function pbGetAll(collection, filter) {
   return items;
 }
 
+function stripHtml(html) {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function login(email, password) {
   const pbUrl = await getPbUrl();
   const res = await fetch(
@@ -97,6 +111,7 @@ async function syncCanvasData(payload, onProgress) {
   const { userId } = auth;
   const totalSteps = payload.courses.length + payload.assignments.length;
   let completed = 0;
+  let skipped = 0;
 
   function report(text) {
     const pct = Math.round(30 + (completed / Math.max(totalSteps, 1)) * 65);
@@ -104,39 +119,45 @@ async function syncCanvasData(payload, onProgress) {
   }
 
   // Sync courses
+  report("Fetching existing courses...");
   const existingCourses = await pbGetAll("courses", `user = "${userId}"`);
   const colors = ["#2f5d4f", "#e07a5f", "#3d8b7a", "#d4a373", "#c1666b", "#5b8e7d", "#4a7c6f"];
   const courseMap = new Map();
-  let colorIdx = 0;
+  let colorIdx = existingCourses.length;
 
   for (let i = 0; i < payload.courses.length; i++) {
     const cc = payload.courses[i];
     report(`Syncing course ${i + 1}/${payload.courses.length}: ${cc.name}`);
 
     const existing = existingCourses.find(
-      (c) => c.code === cc.course_code && c.name === cc.name
+      (c) => c.code === cc.course_code || c.name === cc.name
     );
     if (existing) {
       courseMap.set(cc.id, existing.id);
     } else {
-      const created = await pbRequest(
-        "POST",
-        "/api/collections/courses/records",
-        {
-          user: userId,
-          name: cc.name,
-          code: cc.course_code,
-          color: colors[colorIdx % colors.length],
-          semester: "",
-        }
-      );
-      courseMap.set(cc.id, created.id);
-      colorIdx++;
+      try {
+        const created = await pbRequest(
+          "POST",
+          "/api/collections/courses/records",
+          {
+            user: userId,
+            name: cc.name,
+            code: cc.course_code || "",
+            color: colors[colorIdx % colors.length],
+            semester: cc.term?.name || "",
+          }
+        );
+        courseMap.set(cc.id, created.id);
+        colorIdx++;
+      } catch (e) {
+        skipped++;
+      }
     }
     completed++;
   }
 
   // Sync assignments
+  report("Fetching existing assignments...");
   const existingAssignments = await pbGetAll("assignments", `user = "${userId}"`);
   const existingByCanvasId = new Map(
     existingAssignments.map((a) => [a.canvas_id, a])
@@ -148,35 +169,40 @@ async function syncCanvasData(payload, onProgress) {
   for (let i = 0; i < payload.assignments.length; i++) {
     const ca = payload.assignments[i];
     const courseId = courseMap.get(ca.course_id);
-    if (!courseId) { completed++; continue; }
+    if (!courseId) { completed++; skipped++; continue; }
 
-    report(`Syncing assignment ${i + 1}/${payload.assignments.length}: ${ca.name}`);
+    report(`Syncing assignment ${i + 1}/${payload.assignments.length}: ${(ca.name || "").slice(0, 60)}`);
 
     const status = getAssignmentStatus(ca);
+    const desc = stripHtml(ca.description);
     const data = {
       user: userId,
       course: courseId,
       canvas_id: ca.id,
-      title: ca.name,
-      description: (ca.description || "").slice(0, 4999),
+      title: (ca.name || "Untitled").slice(0, 500),
+      description: desc.slice(0, 4999),
       due_at: ca.due_at || null,
       points_possible: ca.points_possible || 0,
       status,
       canvas_url: ca.html_url || "",
-      submission_types: JSON.stringify(ca.submission_types || []),
+      submission_types: ca.submission_types || [],
     };
 
-    const existing = existingByCanvasId.get(ca.id);
-    if (existing) {
-      await pbRequest(
-        "PATCH",
-        `/api/collections/assignments/records/${existing.id}`,
-        data
-      );
-      updatedCount++;
-    } else {
-      await pbRequest("POST", "/api/collections/assignments/records", data);
-      createdCount++;
+    try {
+      const existing = existingByCanvasId.get(ca.id);
+      if (existing) {
+        await pbRequest(
+          "PATCH",
+          `/api/collections/assignments/records/${existing.id}`,
+          data
+        );
+        updatedCount++;
+      } else {
+        await pbRequest("POST", "/api/collections/assignments/records", data);
+        createdCount++;
+      }
+    } catch (e) {
+      skipped++;
     }
     completed++;
   }
@@ -184,11 +210,11 @@ async function syncCanvasData(payload, onProgress) {
   const now = new Date().toISOString();
   await chrome.storage.local.set({
     lastSync: now,
-    lastSyncCourses: payload.courses.length,
-    lastSyncAssignments: payload.assignments.length,
+    lastSyncCourses: courseMap.size,
+    lastSyncAssignments: createdCount + updatedCount,
   });
 
-  return { created: createdCount, updated: updatedCount, courses: payload.courses.length };
+  return { created: createdCount, updated: updatedCount, courses: courseMap.size, skipped };
 }
 
 // Port-based sync with progress (used by popup)
@@ -209,7 +235,7 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-// Simple message-based handlers (used by content script floating button)
+// Simple message-based handlers
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "LOGIN") {
     login(msg.email, msg.password)
