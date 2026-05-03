@@ -882,10 +882,10 @@ function DataSection({ userId }: { userId: string }) {
 async function exportUserData(userId: string) {
   try {
     const [lectures, notes, flashcards, courses] = await Promise.all([
-      pb.collection("lectures").getFullList({ filter: `user = "${userId}"` }).catch(() => []),
-      pb.collection("notes").getFullList({ filter: `user = "${userId}"` }).catch(() => []),
-      pb.collection("flashcards").getFullList({ filter: `user = "${userId}"` }).catch(() => []),
-      pb.collection("courses").getFullList({ filter: `user = "${userId}"` }).catch(() => []),
+      pb.collection("lectures").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-lectures" }).catch(() => []),
+      pb.collection("notes").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-notes" }).catch(() => []),
+      pb.collection("flashcards").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-flashcards" }).catch(() => []),
+      pb.collection("courses").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-courses" }).catch(() => []),
     ]);
     const blob = new Blob(
       [

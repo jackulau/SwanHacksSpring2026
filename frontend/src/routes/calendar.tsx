@@ -146,11 +146,11 @@ function CalendarPage() {
     Promise.all([
       pb
         .collection("lectures")
-        .getFullList<Lecture>({ filter: `user = "${user.id}"` })
+        .getFullList<Lecture>({ filter: `user = "${user.id}"`, requestKey: "cal-lectures" })
         .catch(() => [] as Lecture[]),
       pb
         .collection("assignments")
-        .getFullList<Assignment>({ filter: `user = "${user.id}"` })
+        .getFullList<Assignment>({ filter: `user = "${user.id}"`, requestKey: "cal-assignments" })
         .catch(() => [] as Assignment[]),
     ]).then(([lec, asg]) => {
       if (cancelled) return;

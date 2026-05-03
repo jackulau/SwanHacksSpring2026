@@ -59,11 +59,11 @@ function CourseList({ userId }: { userId: string }) {
           const [assignments, lectures] = await Promise.all([
             pb
               .collection("assignments")
-              .getList(1, 1, { filter: `course = "${course.id}"`, sort: "-created" })
+              .getList(1, 1, { filter: `course = "${course.id}"`, requestKey: `asgn-${course.id}` })
               .catch(() => ({ totalItems: 0, items: [] as Array<{ created?: string }> })),
             pb
               .collection("lectures")
-              .getList(1, 1, { filter: `course = "${course.id}"`, sort: "-recorded_at" })
+              .getList(1, 1, { filter: `course = "${course.id}"`, requestKey: `lec-${course.id}` })
               .catch(() => ({ totalItems: 0, items: [] as Array<{ recorded_at?: string }> })),
           ]);
 
