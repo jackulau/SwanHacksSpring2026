@@ -2,20 +2,63 @@
 @import "@fontsource/atkinson-hyperlegible/400.css";
 @import "@fontsource/atkinson-hyperlegible/700.css";
 
+/* ── Design tokens (dark-only) ────────────────────────────────────────────── */
+
 @theme {
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-surface: #18181b;
-  --color-surface-raised: #27272a;
-  --color-border: #3f3f46;
-  --color-text: #fafafa;
-  --color-text-muted: #a1a1aa;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  /* Brand */
+  --color-primary: #818cf8;
+  --color-primary-hover: #6366f1;
+  --color-accent: #c4b5fd;
+
+  /* Surfaces — layered for depth */
+  --color-bg: #08080c;
+  --color-surface: #0f0f17;
+  --color-surface-raised: #161622;
+  --color-surface-elevated: #1d1d2c;
+  --color-border: #26263a;
+  --color-border-strong: #383852;
+
+  /* Text */
+  --color-text: #f5f5fa;
+  --color-text-muted: #9999b3;
+  --color-text-subtle: #6b6b85;
+
+  /* Status */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
 }
 
-/* ── Font classes ── */
+/* ── Body baseline ─────────────────────────────────────────────────────────
+ * Lock the app to a permanent dark canvas. The aurora gradient only renders
+ * inside hero surfaces (see `.vibe-aurora`), so the base canvas stays calm. */
+
+html,
+body,
+#root {
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+body {
+  /* Subtle radial glow behind everything to give the dark canvas depth */
+  background-image:
+    radial-gradient(
+      circle at 12% -10%,
+      rgba(99, 102, 241, 0.14) 0%,
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 90% 8%,
+      rgba(168, 85, 247, 0.1) 0%,
+      transparent 40%
+    );
+  background-attachment: fixed;
+}
+
+/* ── Font classes ──────────────────────────────────────────────────────── */
 
 .font-atkinson {
   font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
@@ -25,40 +68,193 @@
   font-family: "OpenDyslexic", "Comic Sans MS", cursive, sans-serif;
 }
 
-/* ── Theme overrides ── */
+/* ── High-contrast accessibility theme (dark only) ─────────────────────── */
 
 .theme-high-contrast {
+  --color-bg: #000000;
   --color-surface: #000000;
-  --color-surface-raised: #1a1a1a;
+  --color-surface-raised: #0a0a0a;
+  --color-surface-elevated: #141414;
   --color-border: #ffffff;
+  --color-border-strong: #ffffff;
   --color-text: #ffffff;
   --color-text-muted: #e0e0e0;
-  --color-primary: #818cf8;
-  --color-primary-hover: #6366f1;
+  --color-text-subtle: #cccccc;
+  --color-primary: #ffff00;
+  --color-primary-hover: #ffeb3b;
 }
 
-.theme-high-contrast {
-  @apply bg-black text-white;
+.theme-high-contrast,
+.theme-high-contrast body {
+  background: #000000 !important;
+  background-image: none !important;
+  color: #ffffff;
 }
 
-.theme-sepia {
-  --color-surface: #f5f0e8;
-  --color-surface-raised: #ede6d6;
-  --color-border: #c9b99a;
-  --color-text: #3b2e1a;
-  --color-text-muted: #7a6b52;
-  --color-primary: #8b5e3c;
-  --color-primary-hover: #6d4a2e;
+/* ── Vibe header background ────────────────────────────────────────────────
+ * Reserved for hero surfaces (greeting card, login left panel). Layered
+ * gradients with a subtle noise overlay create the "aurora" vibe without
+ * making the rest of the page noisy. */
+
+.vibe-aurora {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse 90% 80% at 15% 0%,
+      rgba(129, 140, 248, 0.45) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 80% 70% at 85% 30%,
+      rgba(217, 70, 239, 0.32) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 100% at 50% 100%,
+      rgba(56, 189, 248, 0.22) 0%,
+      transparent 65%
+    ),
+    linear-gradient(135deg, #1a1430 0%, #0f1029 60%, #0a0a18 100%);
 }
 
-.theme-sepia {
-  @apply bg-[#f5f0e8] text-[#3b2e1a];
+.vibe-aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 255, 255, 0.06) 0%,
+      transparent 0.5px
+    ),
+    radial-gradient(
+      circle at 60% 70%,
+      rgba(255, 255, 255, 0.04) 0%,
+      transparent 0.5px
+    );
+  background-size: 4px 4px, 6px 6px;
+  pointer-events: none;
+  opacity: 0.6;
 }
 
-/* ── Focus mode (scoped to [data-focus-zone] only) ─────────────────────────
- * Spotlight metaphor: dim everything else, light the focused passage like
- * it's under a desk lamp. Highlighted text gets forced to full white so it
- * really stands against the muted surroundings. */
+.vibe-aurora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 60%,
+      rgba(8, 8, 12, 0.35) 100%
+    );
+  pointer-events: none;
+}
+
+.theme-high-contrast .vibe-aurora,
+.theme-high-contrast .vibe-aurora::before,
+.theme-high-contrast .vibe-aurora::after {
+  background: #000 !important;
+  background-image: none !important;
+}
+
+/* ── Glass surfaces ───────────────────────────────────────────────────────
+ * Used for cards that sit on the aurora hero. Adds a frosted feel without
+ * killing legibility. */
+
+.glass {
+  background: rgba(22, 22, 34, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-strong {
+  background: rgba(15, 15, 23, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.theme-high-contrast .glass,
+.theme-high-contrast .glass-strong {
+  background: #000;
+  border-color: #fff;
+  backdrop-filter: none;
+}
+
+/* ── Soft shadow utility (used in dashboard cards) ─────────────────────── */
+
+.soft-shadow {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Skeleton shimmer (used by skeleton loading) ───────────────────────── */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(38, 38, 58, 0.55) 0%,
+    rgba(56, 56, 82, 0.55) 50%,
+    rgba(38, 38, 58, 0.55) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.reduce-motion .skeleton {
+  animation: none;
+}
+
+/* ── Streak chip pulse ─────────────────────────────────────────────────── */
+
+.streak-flame {
+  animation: streak-flicker 2.6s ease-in-out infinite;
+}
+
+@keyframes streak-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(-1deg);
+    filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.55));
+  }
+  50% {
+    transform: scale(1.06) rotate(2deg);
+    filter: drop-shadow(0 0 14px rgba(251, 146, 60, 0.85));
+  }
+}
+
+.reduce-motion .streak-flame {
+  animation: none;
+}
+
+/* ── Sidebar dropdown caret transition ─────────────────────────────────── */
+
+.caret-rotate {
+  transition: transform 0.18s ease-out;
+}
+
+.caret-rotate[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+/* ── Focus mode ──────────────────────────────────────────────────────────
+ * Spotlight metaphor — kept from the previous design but retuned for the
+ * deeper canvas. */
 
 .focus-highlight {
   background-color: rgba(99, 102, 241, 0.38);
@@ -114,28 +310,6 @@
   color: #000000 !important;
 }
 
-.theme-light .focus-highlight,
-.theme-sepia .focus-highlight {
-  background-color: rgba(99, 102, 241, 0.28);
-  background-image: linear-gradient(
-    180deg,
-    rgba(129, 140, 248, 0.2) 0%,
-    rgba(99, 102, 241, 0.32) 100%
-  );
-  outline-color: rgba(79, 70, 229, 0.85);
-  box-shadow:
-    0 0 24px 4px rgba(99, 102, 241, 0.25),
-    0 6px 22px -3px rgba(0, 0, 0, 0.18);
-  color: #1e1b4b !important;
-}
-.theme-light .focus-highlight *,
-.theme-sepia .focus-highlight * {
-  color: #1e1b4b !important;
-}
-
-/* Sentence overlay sits on top of the text, so its background tints the
- * letters behind it. We use a brighter color + a lifted glow to mimic a
- * physical highlighter pen. */
 .focus-sentence-overlay {
   background-color: rgba(129, 140, 248, 0.55);
   border-radius: 4px;
@@ -154,16 +328,7 @@
   mix-blend-mode: normal;
 }
 
-.theme-light .focus-sentence-overlay,
-.theme-sepia .focus-sentence-overlay {
-  background-color: rgba(99, 102, 241, 0.4);
-  box-shadow:
-    0 0 0 1.5px rgba(79, 70, 229, 0.7),
-    0 0 22px 4px rgba(99, 102, 241, 0.35);
-  mix-blend-mode: multiply;
-}
-
-/* ── Reading ruler ── */
+/* ── Reading ruler ─────────────────────────────────────────────────────── */
 
 .reading-ruler-bar {
   box-shadow:
@@ -173,17 +338,6 @@
   border-top: 1.5px solid rgba(255, 255, 255, 0.18);
   border-bottom: 1.5px solid rgba(255, 255, 255, 0.18);
   mix-blend-mode: screen;
-}
-
-.theme-light .reading-ruler-bar,
-.theme-sepia .reading-ruler-bar {
-  border-top-color: rgba(0, 0, 0, 0.18);
-  border-bottom-color: rgba(0, 0, 0, 0.18);
-  mix-blend-mode: multiply;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.05),
-    0 0 18px 4px rgba(0, 0, 0, 0.06),
-    0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 .ruler-tint-yellow {
@@ -220,7 +374,7 @@
   mix-blend-mode: normal;
 }
 
-/* ── Reduced motion ── */
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
 
 .reduce-motion,
 .reduce-motion * {
@@ -233,9 +387,13 @@
   [data-focus-zone].focus-zone-active *:not(.focus-highlight):not(.focus-highlight *) {
     transition: none !important;
   }
+  .streak-flame,
+  .skeleton {
+    animation: none !important;
+  }
 }
 
-/* ── Print: disable reading aids ── */
+/* ── Print: disable reading aids ───────────────────────────────────────── */
 
 @media print {
   .reading-ruler-bar,
@@ -252,7 +410,7 @@
   }
 }
 
-/* ── Perspective for card flips ── */
+/* ── Card flips ────────────────────────────────────────────────────────── */
 
 .perspective-1000 {
   perspective: 1000px;
@@ -262,23 +420,22 @@
   backface-visibility: hidden;
 }
 
-/* ── Responsive layout ──
- * `--mobile-nav-height` defaults to 0 and is overridden by <MobileNav /> on
- * mount. Pages can use `padding-bottom: var(--mobile-nav-height)` (or the
- * `.has-mobile-nav-padding` utility) so content isn't hidden behind the nav. */
+/* ── Responsive layout vars ────────────────────────────────────────────── */
 
 :root {
   --mobile-nav-height: 0px;
+  --audio-player-height: 0px;
 }
 
 .has-mobile-nav-padding {
   padding-bottom: var(--mobile-nav-height);
 }
 
-/* ── Scrollbar styling ── */
+/* ── Scrollbar styling ─────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -286,10 +443,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border-radius: 3px;
+  background: var(--color-border);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: var(--color-border-strong);
 }

@@ -47,10 +47,8 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
               label="Theme"
               value={preferences.theme}
               options={[
-                { value: 'dark', label: 'Dark' },
-                { value: 'light', label: 'Light' },
+                { value: 'dark', label: 'Dark (default)' },
                 { value: 'high-contrast', label: 'High Contrast' },
-                { value: 'sepia', label: 'Sepia' },
               ]}
               onChange={(v) => updatePreference('theme', v as typeof preferences.theme)}
             />
