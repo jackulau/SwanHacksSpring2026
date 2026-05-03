@@ -1,1 +1,465 @@
 @import "tailwindcss";
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
+
+/* ── Design tokens (Converge light) ───────────────────────────────────────── */
+
+@theme {
+  /* Brand — Converge deep green */
+  --color-primary: #2f5d4f;
+  --color-primary-hover: #3a7261;
+  --color-primary-soft: #e8f0eb;
+  --color-primary-strong: #2f5d4f;
+  --color-accent: #3a7261;
+  --color-record: #dc2626;
+
+  /* Surfaces — cream / white light theme */
+  --color-bg: #fbfbf9;
+  --color-sidebar: #2f5d4f;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f5f5f0;
+  --color-surface-elevated: #ffffff;
+  --color-input: #f0ede6;
+  --color-border: #e0ddd5;
+  --color-border-strong: #c5c2ba;
+
+  /* Header band */
+  --color-header: #2f5d4f;
+
+  /* Text — dark on light, all pass WCAG AA on cream bg */
+  --color-text: #1a1a1a;
+  --color-text-muted: #555555;
+  --color-text-subtle: #777777;
+
+  /* Status */
+  --color-success: #2f7a4f;
+  --color-warning: #b45309;
+  --color-error: #dc2626;
+  --color-info: #2563eb;
+}
+
+/* ── Body baseline ─────────────────────────────────────────────────────────
+ * Lock the app to a permanent dark canvas. The aurora gradient only renders
+ * inside hero surfaces (see `.vibe-aurora`), so the base canvas stays calm. */
+
+html,
+body,
+#root {
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+body {
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  background-image: none;
+}
+
+.font-brand {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+/* ── Global focus-visible ──────────────────────────────────────────────────
+ * Single declaration ensures every keyboard-reachable element has a visible
+ * focus ring (WCAG 2.4.7). Uses the green primary so it reads as part of the
+ * brand. Components may override locally for tighter offsets. */
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove default focus ring (we provide :focus-visible instead) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Font classes ──────────────────────────────────────────────────────── */
+
+.font-atkinson {
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+.font-opendyslexic {
+  font-family: "OpenDyslexic", "Comic Sans MS", cursive, sans-serif;
+}
+
+/* ── High-contrast accessibility theme (dark only) ─────────────────────── */
+
+.theme-high-contrast {
+  --color-bg: #000000;
+  --color-surface: #000000;
+  --color-surface-raised: #0a0a0a;
+  --color-surface-elevated: #141414;
+  --color-border: #ffffff;
+  --color-border-strong: #ffffff;
+  --color-text: #ffffff;
+  --color-text-muted: #e0e0e0;
+  --color-text-subtle: #cccccc;
+  --color-primary: #ffff00;
+  --color-primary-hover: #ffeb3b;
+}
+
+.theme-high-contrast,
+.theme-high-contrast body {
+  background: #000000 !important;
+  background-image: none !important;
+  color: #ffffff;
+}
+
+/* ── Vibe header background ────────────────────────────────────────────────
+ * Reserved for hero surfaces (greeting card, login left panel). Layered
+ * gradients with a subtle noise overlay create the "aurora" vibe without
+ * making the rest of the page noisy. */
+
+.vibe-aurora {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse 70% 110% at 8% 0%,
+      rgba(47, 93, 79, 0.08) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 90% at 95% 100%,
+      rgba(47, 93, 79, 0.05) 0%,
+      transparent 55%
+    ),
+    linear-gradient(135deg, #f5f5f0 0%, #fbfbf9 60%, #f0ede6 100%);
+}
+
+.vibe-aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: none;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.vibe-aurora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 60%,
+      rgba(251, 251, 249, 0.5) 100%
+    );
+  pointer-events: none;
+}
+
+.theme-high-contrast .vibe-aurora,
+.theme-high-contrast .vibe-aurora::before,
+.theme-high-contrast .vibe-aurora::after {
+  background: #000 !important;
+  background-image: none !important;
+}
+
+/* ── Glass surfaces ───────────────────────────────────────────────────────
+ * Used for cards that sit on the aurora hero. Adds a frosted feel without
+ * killing legibility. */
+
+.glass {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(47, 93, 79, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(47, 93, 79, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.theme-high-contrast .glass,
+.theme-high-contrast .glass-strong {
+  background: #000;
+  border-color: #fff;
+  backdrop-filter: none;
+}
+
+/* ── Soft shadow utility (used in dashboard cards) ─────────────────────── */
+
+.soft-shadow {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Skeleton shimmer (used by skeleton loading) ───────────────────────── */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(224, 221, 213, 0.5) 0%,
+    rgba(240, 237, 230, 0.7) 50%,
+    rgba(224, 221, 213, 0.5) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.reduce-motion .skeleton {
+  animation: none;
+}
+
+/* ── Streak chip ────────────────────────────────────────────────────────
+ * Static glow only. The infinite flicker animation was removed because it
+ * pulled focus from primary actions for ADHD users (audit 2026-05). To
+ * celebrate a streak increment, apply `.streak-flame.streak-just-bumped`
+ * for one cycle from JS, then remove the class. */
+
+.streak-flame {
+  filter: drop-shadow(0 0 6px rgba(251, 146, 60, 0.45));
+}
+
+.streak-flame.streak-just-bumped {
+  animation: streak-flicker 1.4s ease-out 1;
+}
+
+@keyframes streak-flicker {
+  0% {
+    transform: scale(1) rotate(-1deg);
+    filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.55));
+  }
+  40% {
+    transform: scale(1.08) rotate(2deg);
+    filter: drop-shadow(0 0 16px rgba(251, 146, 60, 0.95));
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    filter: drop-shadow(0 0 6px rgba(251, 146, 60, 0.45));
+  }
+}
+
+.reduce-motion .streak-flame.streak-just-bumped {
+  animation: none;
+}
+
+/* ── Sidebar dropdown caret transition ─────────────────────────────────── */
+
+.caret-rotate {
+  transition: transform 0.18s ease-out;
+}
+
+.caret-rotate[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+/* ── Focus mode ──────────────────────────────────────────────────────────
+ * Spotlight metaphor — kept from the previous design but retuned for the
+ * deeper canvas. */
+
+.focus-highlight {
+  background-color: rgba(47, 93, 79, 0.15);
+  background-image: linear-gradient(
+    180deg,
+    rgba(47, 93, 79, 0.1) 0%,
+    rgba(47, 93, 79, 0.2) 100%
+  );
+  border-radius: 6px;
+  padding: 2px 6px;
+  outline: 2px solid rgba(47, 93, 79, 0.7);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 1px rgba(47, 93, 79, 0.1),
+    0 0 28px 6px rgba(47, 93, 79, 0.15),
+    0 8px 28px -4px rgba(0, 0, 0, 0.1);
+  color: #1a1a1a !important;
+  transition:
+    background-color 0.18s,
+    outline-color 0.18s,
+    box-shadow 0.18s,
+    opacity 0.18s;
+}
+
+.focus-highlight * {
+  color: #1a1a1a !important;
+}
+
+[data-focus-zone].focus-zone-active *:not(.focus-highlight):not(.focus-highlight *) {
+  opacity: var(--focus-dim, 0.45);
+  filter: blur(0.2px);
+  transition:
+    opacity 0.2s,
+    filter 0.2s;
+}
+
+[data-focus-zone].focus-zone-active .focus-highlight,
+[data-focus-zone].focus-zone-active .focus-highlight * {
+  opacity: 1;
+  filter: none;
+}
+
+.theme-high-contrast .focus-highlight {
+  background: rgba(255, 255, 0, 0.55);
+  background-image: none;
+  outline: 3px solid #ffff00;
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 32px 8px rgba(255, 255, 0, 0.6);
+  color: #000000 !important;
+}
+.theme-high-contrast .focus-highlight * {
+  color: #000000 !important;
+}
+
+.focus-sentence-overlay {
+  background-color: rgba(47, 93, 79, 0.18);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1.5px rgba(47, 93, 79, 0.5),
+    0 0 24px 4px rgba(47, 93, 79, 0.15);
+  mix-blend-mode: multiply;
+  transition: opacity 0.12s;
+}
+
+.theme-high-contrast .focus-sentence-overlay {
+  background-color: rgba(255, 255, 0, 0.7);
+  box-shadow:
+    0 0 0 2px #000,
+    0 0 24px 6px rgba(255, 255, 0, 0.7);
+  mix-blend-mode: normal;
+}
+
+/* ── Reading ruler ─────────────────────────────────────────────────────── */
+
+.reading-ruler-bar {
+  box-shadow:
+    0 0 0 1px rgba(47, 93, 79, 0.15),
+    0 0 22px 4px rgba(47, 93, 79, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+  border-top: 1.5px solid rgba(47, 93, 79, 0.25);
+  border-bottom: 1.5px solid rgba(47, 93, 79, 0.25);
+  mix-blend-mode: multiply;
+}
+
+.ruler-tint-yellow {
+  background: rgba(253, 224, 71, 0.55);
+}
+.ruler-tint-peach {
+  background: rgba(252, 165, 165, 0.55);
+}
+.ruler-tint-blue {
+  background: rgba(147, 197, 253, 0.55);
+}
+.ruler-tint-lavender {
+  background: rgba(196, 181, 253, 0.6);
+}
+.ruler-tint-mint {
+  background: rgba(167, 243, 208, 0.6);
+}
+.ruler-tint-yellow,
+.ruler-tint-peach,
+.ruler-tint-blue,
+.ruler-tint-lavender,
+.ruler-tint-mint {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 26px 6px rgba(255, 255, 255, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.theme-high-contrast .reading-ruler-bar {
+  background: rgba(255, 255, 0, 0.65) !important;
+  border-color: #ffff00;
+  box-shadow:
+    0 0 0 2px #ffff00,
+    0 0 24px 6px rgba(255, 255, 0, 0.6);
+  mix-blend-mode: normal;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+
+.reduce-motion,
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-highlight,
+  [data-focus-zone].focus-zone-active *:not(.focus-highlight):not(.focus-highlight *) {
+    transition: none !important;
+  }
+  .streak-flame,
+  .skeleton {
+    animation: none !important;
+  }
+}
+
+/* ── Print: disable reading aids ───────────────────────────────────────── */
+
+@media print {
+  .reading-ruler-bar,
+  .reading-ruler-window-above,
+  .reading-ruler-window-below {
+    display: none !important;
+  }
+  [data-focus-zone].focus-zone-active *:not(.focus-highlight):not(.focus-highlight *) {
+    opacity: 1 !important;
+  }
+  .focus-highlight {
+    background: transparent !important;
+    outline: none !important;
+  }
+}
+
+/* ── Card flips ────────────────────────────────────────────────────────── */
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* ── Responsive layout vars ────────────────────────────────────────────── */
+
+:root {
+  --mobile-nav-height: 0px;
+  --audio-player-height: 0px;
+}
+
+.has-mobile-nav-padding {
+  padding-bottom: var(--mobile-nav-height);
+}
+
+/* ── Scrollbar styling ─────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}

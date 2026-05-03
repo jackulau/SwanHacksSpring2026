@@ -1,0 +1,5 @@
+
+> frontend@0.1.0 dev
+> vite --port 3000
+
+1:34:19 AM [vite] (client) Re-optimizing dependencies because lockfile has changed
