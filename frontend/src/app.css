@@ -463,3 +463,29 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-strong);
 }
+
+/* ── Workflow children fade-in (landing page) ─────────────────────────────
+ * Subtle entrance for the five workflow cards. Uses opacity only (not
+ * transform) so the hover lift transform doesn't fight with the keyframe's
+ * final state. Honors prefers-reduced-motion. */
+
+@keyframes workflow-card-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.workflow-card {
+  opacity: 0;
+  animation: workflow-card-enter 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-card {
+    opacity: 1;
+    animation: none;
+  }
+}

@@ -1,9 +1,7 @@
 /**
- * Converge wordmark glyph — three fan blades converging on a circle, matching
- * the icon used in the design mockups.
- *
- * Renders inline SVG so it inherits `currentColor` and scales cleanly with
- * any class-based size.
+ * Converge wordmark glyph — three curved swooshes wrapping around a triangle
+ * of inward-pointing arrows. Renders inline SVG so it inherits `currentColor`
+ * and scales cleanly with any class-based size.
  */
 
 interface ConvergeLogoProps {
@@ -20,23 +18,37 @@ export function ConvergeLogo({ className = "w-8 h-8" }: ConvergeLogoProps) {
       aria-hidden="true"
       role="img"
     >
-      {/* Outer ring */}
-      <circle
-        cx="32"
-        cy="32"
-        r="27"
+      {/* Three curved arc swooshes around the perimeter, rotated 120° apart. */}
+      <g
+        stroke="currentColor"
+        strokeWidth="4.2"
+        strokeLinecap="round"
+        fill="none"
+      >
+        <path d="M 34 7 A 25 25 0 0 1 56 38" />
+        <g transform="rotate(120 32 32)">
+          <path d="M 34 7 A 25 25 0 0 1 56 38" />
+        </g>
+        <g transform="rotate(240 32 32)">
+          <path d="M 34 7 A 25 25 0 0 1 56 38" />
+        </g>
+      </g>
+      {/* Three inward-pointing arrows converging on the center. */}
+      <g
         stroke="currentColor"
         strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         fill="none"
-      />
-      {/* Three converging blades — rotated copies of one path. */}
-      <g stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        <path d="M32 32 L32 12 L40 22" />
-        <path d="M32 32 L49 42 L36 44" />
-        <path d="M32 32 L15 42 L28 44" />
+      >
+        <path d="M 32 17 L 32 28 M 28 24 L 32 28 L 36 24" />
+        <g transform="rotate(120 32 32)">
+          <path d="M 32 17 L 32 28 M 28 24 L 32 28 L 36 24" />
+        </g>
+        <g transform="rotate(240 32 32)">
+          <path d="M 32 17 L 32 28 M 28 24 L 32 28 L 36 24" />
+        </g>
       </g>
-      {/* Center hub */}
-      <circle cx="32" cy="32" r="3" fill="currentColor" />
     </svg>
   );
 }
