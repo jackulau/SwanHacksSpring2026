@@ -7,36 +7,101 @@ import {
 } from './prompts';
 import type { NoteBlock, QuizQuestion } from './types';
 
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+// ── LLM provider config ────────────────────────────────────────────────────
+// Supports any OpenAI-compatible endpoint: Ollama (local, no key), OpenRouter,
+// Google Gemini, OpenAI, or a custom URL.
 
-async function callOpenAI(
+const LLM_CONFIG_KEY = 'converge_llm_config';
+
+export type LLMProvider = 'ollama' | 'openrouter' | 'google' | 'openai' | 'custom';
+
+export interface LLMConfig {
+  provider: LLMProvider;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+export const PROVIDER_PRESETS: Record<LLMProvider, { label: string; baseUrl: string; needsKey: boolean; defaultModel: string }> = {
+  ollama:      { label: 'Ollama (local)',  baseUrl: 'http://localhost:11434/v1', needsKey: false, defaultModel: 'llama3.2' },
+  openrouter:  { label: 'OpenRouter',      baseUrl: 'https://openrouter.ai/api/v1', needsKey: true, defaultModel: 'meta-llama/llama-3.1-8b-instruct:free' },
+  google:      { label: 'Google Gemini',   baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', needsKey: true, defaultModel: 'gemini-2.0-flash' },
+  openai:      { label: 'OpenAI',          baseUrl: 'https://api.openai.com/v1', needsKey: true, defaultModel: 'gpt-4o-mini' },
+  custom:      { label: 'Custom endpoint', baseUrl: '', needsKey: false, defaultModel: '' },
+};
+
+const DEFAULT_CONFIG: LLMConfig = {
+  provider: 'ollama',
+  baseUrl: PROVIDER_PRESETS.ollama.baseUrl,
+  apiKey: '',
+  model: PROVIDER_PRESETS.ollama.defaultModel,
+};
+
+export function getLLMConfig(): LLMConfig {
+  try {
+    const raw = localStorage.getItem(LLM_CONFIG_KEY);
+    if (!raw) return DEFAULT_CONFIG;
+    return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_CONFIG;
+  }
+}
+
+export function setLLMConfig(config: LLMConfig) {
+  localStorage.setItem(LLM_CONFIG_KEY, JSON.stringify(config));
+}
+
+export async function testLLMConnection(): Promise<{ ok: boolean; model: string; error?: string }> {
+  const cfg = getLLMConfig();
+  const base = cfg.baseUrl.replace(/\/+$/, '');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+
+  try {
+    const res = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [{ role: 'user', content: 'Say "ok" and nothing else.' }],
+        max_tokens: 4,
+      }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      return { ok: false, model: cfg.model, error: `${res.status}: ${txt.slice(0, 200)}` };
+    }
+    return { ok: true, model: cfg.model };
+  } catch (e) {
+    return { ok: false, model: cfg.model, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+async function callLLM(
   systemPrompt: string,
   userPrompt: string,
-  model = 'gpt-4o-mini',
 ): Promise<string> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!apiKey) throw new Error('VITE_OPENAI_API_KEY not set');
+  const cfg = getLLMConfig();
+  const base = cfg.baseUrl.replace(/\/+$/, '');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
 
-  const res = await fetch(OPENAI_API_URL, {
+  const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers,
     body: JSON.stringify({
-      model,
+      model: cfg.model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.3,
-      max_tokens: 4096,
     }),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`OpenAI API error (${res.status}): ${err}`);
+    throw new Error(`LLM error (${res.status}): ${err.slice(0, 300)}`);
   }
 
   const data = await res.json();
@@ -70,13 +135,13 @@ async function updateLectureStatus(lectureId: string, status: string, errorMessa
 
 export async function cleanTranscript(rawText: string): Promise<string> {
   return withRetry(() =>
-    callOpenAI(TRANSCRIPT_CLEANUP_SYSTEM, `Clean this transcript:\n\n${rawText}`),
+    callLLM(TRANSCRIPT_CLEANUP_SYSTEM, `Clean this transcript:\n\n${rawText}`),
   );
 }
 
 export async function generateNotes(transcript: string): Promise<NoteBlock[]> {
   const raw = await withRetry(() =>
-    callOpenAI(
+    callLLM(
       NOTE_GENERATION_SYSTEM,
       `Generate structured notes from this lecture transcript:\n\n${transcript}`,
     ),
@@ -93,7 +158,7 @@ interface RawFlashcard {
 
 export async function generateFlashcards(transcript: string): Promise<RawFlashcard[]> {
   const raw = await withRetry(() =>
-    callOpenAI(
+    callLLM(
       FLASHCARD_GENERATION_SYSTEM,
       `Generate flashcards from this lecture transcript:\n\n${transcript}`,
     ),
@@ -103,7 +168,7 @@ export async function generateFlashcards(transcript: string): Promise<RawFlashca
 
 export async function generateQuiz(transcript: string): Promise<QuizQuestion[]> {
   const raw = await withRetry(() =>
-    callOpenAI(
+    callLLM(
       QUIZ_GENERATION_SYSTEM,
       `Generate a quiz from this lecture transcript:\n\n${transcript}`,
     ),

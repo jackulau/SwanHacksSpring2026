@@ -19,6 +19,14 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { CanvasConnect } from "../components/canvas/CanvasConnect";
 import { useCanvasSync } from "../hooks/useCanvasSync";
 import { pb } from "../lib/pocketbase";
+import {
+  getLLMConfig,
+  setLLMConfig,
+  testLLMConnection,
+  PROVIDER_PRESETS,
+  type LLMProvider,
+  type LLMConfig,
+} from "../lib/ai-pipeline";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -386,14 +394,14 @@ function PreferencesSection({ userId }: { userId: string }) {
     <div>
       <Row
         label="Theme"
-        hint="Converge is dark-only. Choose the contrast that suits long study sessions."
+        hint="Choose the visual style that suits long study sessions."
       >
         <Select<Preferences["theme"]>
           ariaLabel="Theme"
           value={prefs.theme}
           onChange={(v) => update({ theme: v })}
           options={[
-            { value: "dark", label: "Aurora Dark" },
+            { value: "dark", label: "Converge Light" },
             { value: "high-contrast", label: "High Contrast" },
           ]}
         />
@@ -442,6 +450,114 @@ function PreferencesSection({ userId }: { userId: string }) {
           onImport={canvas.importData}
           onDisconnect={canvas.disconnect}
         />
+      </div>
+
+      <AIModelSection />
+    </div>
+  );
+}
+
+function AIModelSection() {
+  const [config, setConfig] = useState<LLMConfig>(getLLMConfig);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
+
+  function updateConfig(patch: Partial<LLMConfig>) {
+    const next = { ...config, ...patch };
+    setConfig(next);
+    setLLMConfig(next);
+    setTestResult(null);
+  }
+
+  function switchProvider(provider: LLMProvider) {
+    const preset = PROVIDER_PRESETS[provider];
+    updateConfig({
+      provider,
+      baseUrl: preset.baseUrl,
+      model: preset.defaultModel,
+      apiKey: provider === config.provider ? config.apiKey : '',
+    });
+  }
+
+  async function handleTest() {
+    setTesting(true);
+    setTestResult(null);
+    const result = await testLLMConnection();
+    setTestResult(result);
+    setTesting(false);
+  }
+
+  const preset = PROVIDER_PRESETS[config.provider];
+
+  return (
+    <div className="pt-8">
+      <h3 className="text-sm font-semibold text-[var(--color-text)] mb-1">AI model</h3>
+      <p className="text-xs text-[var(--color-text-muted)] mb-4">
+        Powers note generation, flashcards, and quizzes. Any OpenAI-compatible endpoint works.
+      </p>
+
+      <div className="space-y-4">
+        <Row label="Provider" hint="Ollama runs locally with no API key needed.">
+          <select
+            value={config.provider}
+            onChange={(e) => switchProvider(e.target.value as LLMProvider)}
+            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
+          >
+            {(Object.entries(PROVIDER_PRESETS) as [LLMProvider, typeof preset][]).map(([key, p]) => (
+              <option key={key} value={key}>{p.label}</option>
+            ))}
+          </select>
+        </Row>
+
+        {(config.provider === 'custom' || config.baseUrl !== preset.baseUrl) && (
+          <Row label="Base URL" hint="OpenAI-compatible /v1 endpoint.">
+            <input
+              type="url"
+              value={config.baseUrl}
+              onChange={(e) => updateConfig({ baseUrl: e.target.value })}
+              placeholder="http://localhost:11434/v1"
+              className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
+            />
+          </Row>
+        )}
+
+        {preset.needsKey && (
+          <Row label="API key" hint="Stored in your browser only.">
+            <input
+              type="password"
+              value={config.apiKey}
+              onChange={(e) => updateConfig({ apiKey: e.target.value })}
+              placeholder="sk-..."
+              className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm font-mono text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
+            />
+          </Row>
+        )}
+
+        <Row label="Model" hint="Exact model ID your provider expects.">
+          <input
+            type="text"
+            value={config.model}
+            onChange={(e) => updateConfig({ model: e.target.value })}
+            placeholder={preset.defaultModel || 'model-name'}
+            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm font-mono text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
+          />
+        </Row>
+
+        <div className="flex items-center gap-3 pt-1">
+          <button
+            type="button"
+            onClick={handleTest}
+            disabled={testing || !config.model}
+            className="text-sm font-medium text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)] px-3 py-1.5 rounded-md border border-[var(--color-border)] transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+          >
+            {testing ? 'Testing…' : 'Test connection'}
+          </button>
+          {testResult && (
+            <span className={`text-xs ${testResult.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
+              {testResult.ok ? `Connected — ${config.model}` : testResult.error}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
