@@ -21,7 +21,6 @@ import { ReadingRuler } from "../accessibility/ReadingRuler";
 import { FocusMode } from "../accessibility/FocusMode";
 import { A11yPanel } from "../accessibility/A11yPanel";
 import { AudioPlayer } from "./AudioPlayer";
-import { MobileNav } from "./MobileNav";
 import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
 import { ConvergeLogo } from "./ConvergeLogo";
 import { RecentNotesDropdown } from "../dashboard/RecentNotesDropdown";
@@ -33,7 +32,6 @@ import {
   Settings,
   Accessibility,
   BookOpen,
-  Bell,
   Search,
   ListTodo,
   Glasses,
@@ -45,7 +43,6 @@ interface NavItem {
   to: string;
   icon: typeof Home;
   label: string;
-  badge?: number | "99+";
 }
 
 /**
@@ -79,10 +76,6 @@ export function AppShell({ children }: AppShellProps) {
   // Recent lectures for the sidebar Notes dropdown.
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
   const [recentLoading, setRecentLoading] = useState<boolean>(true);
-  // Unread notification count — mocked to 99+ until the notifications backend
-  // exists; once it does this can swap in a `pb.collection('notifications')`
-  // count call here.
-  const [notifBadge] = useState<number | "99+">("99+");
 
   useReadingAidsShortcuts();
 
@@ -149,15 +142,6 @@ export function AppShell({ children }: AppShellProps) {
         <nav className="flex-1 px-2 overflow-y-auto pb-4">
           <NavGroup items={TOP_NAV} pathname={location.pathname} />
 
-          {/* Notifications — exposed at top group with its badge */}
-          <NavRow
-            to="/notifications"
-            icon={Bell}
-            label="Notifications"
-            active={location.pathname.startsWith("/notifications")}
-            badge={notifBadge}
-          />
-
           {/* Notes dropdown — caret-only toggle, label routes to /courses */}
           <div className="my-1">
             <RecentNotesDropdown
@@ -219,7 +203,6 @@ export function AppShell({ children }: AppShellProps) {
       <FocusMode />
       <A11yPanel isOpen={a11yOpen} onClose={() => setA11yOpen(false)} />
       <AudioPlayer />
-      <MobileNav />
 
       {/* Floating accessibility button */}
       <button
@@ -276,10 +259,9 @@ interface NavRowProps {
   icon: typeof Home;
   label: string;
   active: boolean;
-  badge?: number | "99+";
 }
 
-function NavRow({ to, icon: Icon, label, active, badge }: NavRowProps) {
+function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
   return (
     <Link
       to={to as string}
@@ -297,11 +279,6 @@ function NavRow({ to, icon: Icon, label, active, badge }: NavRowProps) {
       )}
       <Icon className="w-[18px] h-[18px] shrink-0" />
       <span className="flex-1">{label}</span>
-      {badge !== undefined && (
-        <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)]">
-          {badge}
-        </span>
-      )}
     </Link>
   );
 }

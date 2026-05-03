@@ -15,7 +15,6 @@ import { useCanvasSync } from "../hooks/useCanvasSync";
 import {
   Accessibility,
   User,
-  Bell,
   Shield,
   Palette,
   ChevronRight,
@@ -258,21 +257,9 @@ function SettingsIndex({ userId }: SettingsIndexProps) {
                 description="Fonts, focus mode, reading rulers, text-to-speech"
               />
               <PrefRow
-                icon={Bell}
-                title="Notifications"
-                description="Study reminders, due-date pings, break alerts"
-                comingSoon
-              />
-              <PrefRow
                 icon={User}
                 title="Account"
                 description="Change email or password"
-                comingSoon
-              />
-              <PrefRow
-                icon={Palette}
-                title="Color preferences"
-                description="Adjust accent saturation and chart palette"
                 comingSoon
               />
             </div>

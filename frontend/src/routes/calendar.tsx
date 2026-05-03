@@ -1,15 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "../components/layout/AppShell";
+import { useAuth } from "../lib/auth";
+import { pb } from "../lib/pocketbase";
+import type { Lecture, Assignment } from "../lib/types";
 import {
   Plus,
   Calendar as CalendarIcon,
   CalendarDays,
   CalendarRange,
-  Columns,
-  Filter,
-  Share2,
-  Printer,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -18,7 +17,7 @@ import {
   CalendarCheck,
   Check,
   X,
-  Repeat,
+  ExternalLink,
 } from "lucide-react";
 
 export const Route = createFileRoute("/calendar")({
@@ -30,6 +29,7 @@ export const Route = createFileRoute("/calendar")({
 });
 
 type ViewMode = "day" | "schoolWeek" | "week" | "month";
+type EventKind = "lecture" | "assignment" | "user";
 
 type CalendarEvent = {
   id: string;
@@ -38,13 +38,16 @@ type CalendarEvent = {
   date: string;
   startMinutes: number;
   endMinutes: number;
-  color: string;
-  recurring?: boolean;
+  kind: EventKind;
+  href?: string;
+  externalHref?: string;
 };
 
 const HOUR_HEIGHT = 56;
 const DAY_START_HOUR = 8;
 const DAY_END_HOUR = 20;
+const LECTURE_DEFAULT_DURATION_MIN = 60;
+const ASSIGNMENT_BLOCK_DURATION_MIN = 30;
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -52,6 +55,27 @@ const MONTHS = [
 ];
 const DOW_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
 const DOW_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+const KIND_STYLE: Record<EventKind, { bg: string; bar: string; text: string; sub: string }> = {
+  lecture: {
+    bg: "bg-[var(--color-primary-soft)] hover:bg-[color-mix(in_oklab,var(--color-primary-soft)_85%,white)]",
+    bar: "bg-[var(--color-primary)]",
+    text: "text-white",
+    sub: "text-[var(--color-text-muted)]",
+  },
+  assignment: {
+    bg: "bg-amber-500/15 hover:bg-amber-500/25",
+    bar: "bg-amber-400",
+    text: "text-amber-50",
+    sub: "text-amber-200/80",
+  },
+  user: {
+    bg: "bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface-elevated)]",
+    bar: "bg-white/40",
+    text: "text-white",
+    sub: "text-[var(--color-text-muted)]",
+  },
+};
 
 function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -79,46 +103,96 @@ function fmtTime(minutes: number): string {
   return m === 0 ? `${hour12} ${period}` : `${hour12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-const COLOR_CLASSES: Record<string, { bg: string; bar: string; text: string; sub: string }> = {
-  indigo: { bg: "bg-indigo-500/15 hover:bg-indigo-500/25", bar: "bg-indigo-400", text: "text-indigo-100", sub: "text-indigo-300/80" },
-  emerald: { bg: "bg-emerald-500/15 hover:bg-emerald-500/25", bar: "bg-emerald-400", text: "text-emerald-100", sub: "text-emerald-300/80" },
-  rose: { bg: "bg-rose-500/15 hover:bg-rose-500/25", bar: "bg-rose-400", text: "text-rose-100", sub: "text-rose-300/80" },
-  amber: { bg: "bg-amber-500/15 hover:bg-amber-500/25", bar: "bg-amber-400", text: "text-amber-100", sub: "text-amber-300/80" },
-  sky: { bg: "bg-sky-500/15 hover:bg-sky-500/25", bar: "bg-sky-400", text: "text-sky-100", sub: "text-sky-300/80" },
-  violet: { bg: "bg-violet-500/15 hover:bg-violet-500/25", bar: "bg-violet-400", text: "text-violet-100", sub: "text-violet-300/80" },
-};
-
-function seedEvents(anchor: Date): CalendarEvent[] {
-  const monday = startOfWeek(anchor, 1);
-  const day = (offset: number) => isoDate(addDays(monday, offset));
-  return [
-    { id: "1", title: "CS 301 Lecture", subtitle: "Prof. Kim · Room 204", date: day(0), startMinutes: 10 * 60, endMinutes: 11 * 60 + 15, color: "indigo", recurring: true },
-    { id: "2", title: "Champ and Lauren 1:1", subtitle: "Myers, Lauren", date: day(0), startMinutes: 16 * 60, endMinutes: 16 * 60 + 30, color: "violet", recurring: true },
-    { id: "3", title: "Study Group", subtitle: "Library, 3rd floor", date: day(1), startMinutes: 14 * 60, endMinutes: 15 * 60 + 30, color: "emerald" },
-    { id: "4", title: "Office Hours", subtitle: "Dr. Patel", date: day(2), startMinutes: 11 * 60, endMinutes: 12 * 60, color: "sky" },
-    { id: "5", title: "Project Standup", date: day(2), startMinutes: 13 * 60, endMinutes: 13 * 60 + 30, color: "amber", recurring: true },
-    { id: "6", title: "Calc II Quiz", subtitle: "Bring scantron", date: day(3), startMinutes: 9 * 60, endMinutes: 10 * 60, color: "rose" },
-    { id: "7", title: "Capstone Sync", date: day(4), startMinutes: 15 * 60, endMinutes: 16 * 60, color: "indigo" },
-  ];
+function dateToEvent(date: Date, durationMin: number, base: Omit<CalendarEvent, "date" | "startMinutes" | "endMinutes">): CalendarEvent {
+  const start = date.getHours() * 60 + date.getMinutes();
+  return {
+    ...base,
+    date: isoDate(date),
+    startMinutes: start,
+    endMinutes: start + durationMin,
+  };
 }
 
 function CalendarPage() {
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate({ to: "/login" });
+  }, [authLoading, user, navigate]);
+
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
+
   const [anchor, setAnchor] = useState<Date>(today);
   const [view, setView] = useState<ViewMode>("schoolWeek");
   const [miniMonth, setMiniMonth] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1));
-  const [events, setEvents] = useState<CalendarEvent[]>(() => seedEvents(today));
-  const [selectedCalendars, setSelectedCalendars] = useState({
-    main: true,
-    school: true,
-    personal: true,
-  });
+  const [remoteEvents, setRemoteEvents] = useState<CalendarEvent[]>([]);
+  const [userEvents, setUserEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState<{ date: string; startMinutes: number } | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
+
+  useEffect(() => {
+    if (!user) {
+      setRemoteEvents([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      pb
+        .collection("lectures")
+        .getFullList<Lecture>({ filter: `user = "${user.id}"` })
+        .catch(() => [] as Lecture[]),
+      pb
+        .collection("assignments")
+        .getFullList<Assignment>({ filter: `user = "${user.id}"` })
+        .catch(() => [] as Assignment[]),
+    ]).then(([lec, asg]) => {
+      if (cancelled) return;
+      const events: CalendarEvent[] = [];
+      for (const l of lec) {
+        const when = l.recorded_at || l.created;
+        if (!when) continue;
+        const d = new Date(when);
+        if (Number.isNaN(d.valueOf())) continue;
+        const dur = l.duration_secs ? Math.max(15, Math.round(l.duration_secs / 60)) : LECTURE_DEFAULT_DURATION_MIN;
+        events.push(
+          dateToEvent(d, dur, {
+            id: `lec-${l.id}`,
+            title: l.title || "Untitled lecture",
+            kind: "lecture",
+            href: `/lectures/${l.id}`,
+          }),
+        );
+      }
+      for (const a of asg) {
+        if (!a.due_at) continue;
+        const d = new Date(a.due_at);
+        if (Number.isNaN(d.valueOf())) continue;
+        events.push(
+          dateToEvent(d, ASSIGNMENT_BLOCK_DURATION_MIN, {
+            id: `asg-${a.id}`,
+            title: a.title,
+            subtitle: a.points_possible ? `${a.points_possible} pts` : undefined,
+            kind: "assignment",
+            externalHref: a.canvas_url,
+          }),
+        );
+      }
+      setRemoteEvents(events);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const events = useMemo(() => [...remoteEvents, ...userEvents], [remoteEvents, userEvents]);
 
   const visibleDays = useMemo(() => {
     if (view === "day") return [anchor];
@@ -145,7 +219,7 @@ function CalendarPage() {
     return `${MONTHS[first.getMonth()]} ${first.getDate()} – ${MONTHS[last.getMonth()]} ${last.getDate()}, ${last.getFullYear()}`;
   }, [view, anchor, visibleDays]);
 
-  const navigate = (dir: -1 | 1) => {
+  const navigateRange = (dir: -1 | 1) => {
     if (view === "day") setAnchor(addDays(anchor, dir));
     else if (view === "month") {
       const nd = new Date(anchor);
@@ -170,59 +244,52 @@ function CalendarPage() {
       setCreating(null);
       return;
     }
-    setEvents([
-      ...events,
+    setUserEvents((prev) => [
+      ...prev,
       {
-        id: Math.random().toString(36).slice(2),
+        id: `usr-${Date.now()}`,
         title: draftTitle.trim(),
         date: creating.date,
         startMinutes: creating.startMinutes,
         endMinutes: creating.startMinutes + 60,
-        color: "indigo",
+        kind: "user",
       },
     ]);
     setCreating(null);
     setDraftTitle("");
   };
 
+  const openEvent = (e: CalendarEvent) => {
+    if (e.href) navigate({ to: e.href });
+    else if (e.externalHref) window.open(e.externalHref, "_blank", "noopener,noreferrer");
+  };
+
+  if (authLoading || !user) return null;
+
   return (
-    <div className="flex flex-col h-full bg-zinc-950 text-zinc-100">
-      <div className="flex items-center gap-1 px-4 h-12 border-b border-zinc-800 bg-zinc-900/40 shrink-0 overflow-x-auto">
+    <div className="flex flex-col h-full bg-[var(--color-bg)] text-[var(--color-text)]">
+      {/* Top toolbar */}
+      <div className="flex items-center gap-1 px-4 h-12 border-b border-[var(--color-border)] bg-[var(--color-surface-raised)] shrink-0 overflow-x-auto">
         <button
-          onClick={() => handleSlotClick(isoDate(anchor), 9)}
-          className="flex items-center gap-2 px-3 h-8 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors shrink-0"
+          onClick={() => handleSlotClick(isoDate(anchor), Math.max(DAY_START_HOUR, new Date().getHours()))}
+          className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black text-sm font-medium transition-colors shrink-0"
         >
           <Plus className="w-4 h-4" />
           New event
           <ChevronDown className="w-3.5 h-3.5 opacity-70" />
         </button>
 
-        <div className="w-px h-5 bg-zinc-800 mx-1" />
+        <div className="w-px h-5 bg-[var(--color-border)] mx-1" />
 
         <ToolbarToggle icon={CalendarIcon} label="Day" active={view === "day"} onClick={() => setView("day")} />
         <ToolbarToggle icon={CalendarRange} label="School week" active={view === "schoolWeek"} onClick={() => setView("schoolWeek")} />
         <ToolbarToggle icon={CalendarDays} label="Week" active={view === "week"} onClick={() => setView("week")} />
         <ToolbarToggle icon={CalendarRange} label="Month" active={view === "month"} onClick={() => setView("month")} />
-        <ToolbarToggle icon={Columns} label="Split view" active={false} onClick={() => {}} disabled />
-
-        <div className="w-px h-5 bg-zinc-800 mx-1" />
-
-        <button className="flex items-center gap-2 px-3 h-8 rounded-md bg-zinc-800/60 hover:bg-zinc-800 text-zinc-200 text-sm transition-colors shrink-0">
-          <Filter className="w-3.5 h-3.5" />
-          Filter applied
-          <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-        </button>
-
-        <div className="w-px h-5 bg-zinc-800 mx-1" />
-
-        <ToolbarButton icon={Share2} label="Share" />
-        <ToolbarButton icon={Printer} label="Print" />
-
-        <div className="ml-auto" />
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <aside className="w-64 border-r border-zinc-800 flex flex-col shrink-0 overflow-y-auto">
+        {/* Left sidebar */}
+        <aside className="w-64 border-r border-[var(--color-border)] flex flex-col shrink-0 overflow-y-auto">
           <MiniMonth
             month={miniMonth}
             selected={anchor}
@@ -233,62 +300,42 @@ function CalendarPage() {
           />
 
           <nav className="px-3 py-2 space-y-0.5">
-            <SidebarLink icon={CalendarPlus} label="Add calendar" />
-            <SidebarLink icon={CalendarCheck} label="Go to my booking page" />
+            <SidebarLink icon={CalendarPlus} label="Add calendar" disabled />
+            <SidebarLink icon={CalendarCheck} label="Booking page" disabled />
           </nav>
 
-          <div className="px-3 mt-4">
-            <button className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 uppercase tracking-wide w-full">
-              <ChevronDown className="w-3.5 h-3.5" />
+          <div className="px-3 mt-4 pb-6">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-text-subtle)] uppercase tracking-wide px-2 py-1.5">
               My calendars
-            </button>
-            <div className="mt-2 space-y-0.5">
-              <CalendarToggle
-                color="indigo"
-                label="Calendar"
-                checked={selectedCalendars.main}
-                onChange={(v) => setSelectedCalendars({ ...selectedCalendars, main: v })}
-              />
-              <CalendarToggle
-                color="emerald"
-                label="School"
-                checked={selectedCalendars.school}
-                onChange={(v) => setSelectedCalendars({ ...selectedCalendars, school: v })}
-              />
-              <CalendarToggle
-                color="rose"
-                label="Personal"
-                checked={selectedCalendars.personal}
-                onChange={(v) => setSelectedCalendars({ ...selectedCalendars, personal: v })}
-              />
-              <button className="w-full text-left px-2 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-                Show all
-              </button>
+            </div>
+            <div className="space-y-0.5">
+              <CalendarLegendRow color="var(--color-primary)" label="Lectures" count={remoteEvents.filter((e) => e.kind === "lecture").length} />
+              <CalendarLegendRow color="rgb(251 191 36)" label="Assignments" count={remoteEvents.filter((e) => e.kind === "assignment").length} />
+              <CalendarLegendRow color="rgb(255 255 255 / 0.4)" label="Personal" count={userEvents.length} />
             </div>
           </div>
         </aside>
 
+        {/* Main grid area */}
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex items-center gap-2 px-4 h-12 border-b border-zinc-800 shrink-0">
+          <div className="flex items-center gap-2 px-4 h-12 border-b border-[var(--color-border)] shrink-0">
             <button
               onClick={goToday}
-              className="flex items-center gap-1.5 px-2.5 h-7 rounded-md bg-zinc-800/60 hover:bg-zinc-800 text-zinc-200 text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-2.5 h-7 rounded-md bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text)] text-xs font-medium transition-colors"
             >
               <CalendarIcon className="w-3.5 h-3.5" />
               Today
             </button>
-            <button onClick={() => navigate(-1)} className="w-7 h-7 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white grid place-items-center">
+            <button onClick={() => navigateRange(-1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-white grid place-items-center" aria-label="Previous">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={() => navigate(1)} className="w-7 h-7 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white grid place-items-center">
+            <button onClick={() => navigateRange(1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-white grid place-items-center" aria-label="Next">
               <ChevronRight className="w-4 h-4" />
             </button>
-            <h1 className="text-base font-semibold text-zinc-100 ml-1">{rangeLabel}</h1>
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
+            <h1 className="text-base font-semibold text-[var(--color-text)] ml-1">{rangeLabel}</h1>
 
-            <div className="ml-auto flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-zinc-800/60 text-xs text-zinc-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              In office
+            <div className="ml-auto text-xs text-[var(--color-text-subtle)]">
+              {loading ? "Syncing…" : `${remoteEvents.length + userEvents.length} events`}
             </div>
           </div>
 
@@ -301,6 +348,7 @@ function CalendarPage() {
                 setAnchor(d);
                 setView("day");
               }}
+              onOpenEvent={openEvent}
             />
           ) : (
             <WeekGrid
@@ -313,20 +361,12 @@ function CalendarPage() {
               onCommit={commitEvent}
               onCancel={() => setCreating(null)}
               onSlotClick={handleSlotClick}
+              onOpenEvent={openEvent}
             />
           )}
         </div>
       </div>
     </div>
-  );
-}
-
-function ToolbarButton({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string }>; label: string }) {
-  return (
-    <button className="flex items-center gap-1.5 px-2.5 h-8 rounded-md hover:bg-zinc-800 text-zinc-300 text-sm transition-colors shrink-0">
-      <Icon className="w-3.5 h-3.5" />
-      {label}
-    </button>
   );
 }
 
@@ -345,10 +385,10 @@ function ToolbarToggle({
       disabled={disabled}
       className={`flex items-center gap-1.5 px-2.5 h-8 rounded-md text-sm transition-colors shrink-0 ${
         active
-          ? "bg-zinc-800 text-white ring-1 ring-zinc-700"
+          ? "bg-[var(--color-surface-elevated)] text-white ring-1 ring-[var(--color-border-strong)]"
           : disabled
-          ? "text-zinc-600 cursor-not-allowed"
-          : "hover:bg-zinc-800 text-zinc-300"
+          ? "text-[var(--color-text-subtle)] cursor-not-allowed"
+          : "hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-white"
       }`}
     >
       <Icon className="w-3.5 h-3.5" />
@@ -357,37 +397,27 @@ function ToolbarToggle({
   );
 }
 
-function SidebarLink({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string }>; label: string }) {
+function SidebarLink({ icon: Icon, label, disabled }: { icon: React.ComponentType<{ className?: string }>; label: string; disabled?: boolean }) {
   return (
-    <button className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
-      <Icon className="w-4 h-4 text-zinc-400" />
+    <button
+      disabled={disabled}
+      className={`flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-sm transition-colors ${
+        disabled ? "text-[var(--color-text-subtle)] cursor-not-allowed" : "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+      }`}
+    >
+      <Icon className="w-4 h-4 text-[var(--color-text-muted)]" />
       {label}
     </button>
   );
 }
 
-function CalendarToggle({
-  color, label, checked, onChange,
-}: {
-  color: keyof typeof COLOR_CLASSES;
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
+function CalendarLegendRow({ color, label, count }: { color: string; label: string; count: number }) {
   return (
-    <button
-      onClick={() => onChange(!checked)}
-      className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-    >
-      <span
-        className={`w-4 h-4 rounded grid place-items-center transition-colors ${
-          checked ? COLOR_CLASSES[color].bar : "border border-zinc-600"
-        }`}
-      >
-        {checked && <Check className="w-3 h-3 text-zinc-900" strokeWidth={3} />}
-      </span>
-      {label}
-    </button>
+    <div className="flex items-center gap-2.5 w-full px-2 py-1.5 text-sm text-[var(--color-text)]">
+      <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: color }} />
+      <span className="flex-1">{label}</span>
+      <span className="text-xs text-[var(--color-text-subtle)] tabular-nums">{count}</span>
+    </div>
   );
 }
 
@@ -407,22 +437,19 @@ function MiniMonth({
   const monthLabel = `${MONTHS[month.getMonth()]} ${month.getFullYear()}`;
 
   return (
-    <div className="px-3 pt-3 pb-2">
+    <div className="px-3 pt-3 pb-2 border-b border-[var(--color-border)]">
       <div className="flex items-center justify-between px-1 mb-2">
-        <button className="flex items-center gap-1 text-sm font-semibold text-zinc-100 hover:text-white">
-          <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
-          {monthLabel}
-        </button>
+        <span className="text-sm font-semibold text-[var(--color-text)]">{monthLabel}</span>
         <div className="flex items-center">
-          <button onClick={onPrev} className="w-6 h-6 rounded hover:bg-zinc-800 text-zinc-400 grid place-items-center">
+          <button onClick={onPrev} className="w-6 h-6 rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] grid place-items-center" aria-label="Previous month">
             <ChevronUp className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onNext} className="w-6 h-6 rounded hover:bg-zinc-800 text-zinc-400 grid place-items-center">
+          <button onClick={onNext} className="w-6 h-6 rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] grid place-items-center" aria-label="Next month">
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 text-[10px] text-zinc-500 mb-1">
+      <div className="grid grid-cols-7 text-[10px] text-[var(--color-text-subtle)] mb-1">
         {DOW_SHORT.map((d, i) => (
           <div key={i} className="text-center">{d}</div>
         ))}
@@ -438,12 +465,12 @@ function MiniMonth({
               onClick={() => onPick(d)}
               className={`h-7 text-xs rounded-full transition-colors ${
                 isSelected
-                  ? "bg-indigo-600 text-white font-semibold"
+                  ? "bg-[var(--color-primary)] text-black font-semibold"
                   : isToday
-                  ? "bg-zinc-800 text-white"
+                  ? "bg-[var(--color-primary-soft)] text-white"
                   : inMonth
-                  ? "text-zinc-300 hover:bg-zinc-800"
-                  : "text-zinc-600 hover:bg-zinc-800/50"
+                  ? "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+                  : "text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-raised)]/60"
               }`}
             >
               {d.getDate()}
@@ -456,7 +483,7 @@ function MiniMonth({
 }
 
 function WeekGrid({
-  days, today, events, creating, draftTitle, setDraftTitle, onCommit, onCancel, onSlotClick,
+  days, today, events, creating, draftTitle, setDraftTitle, onCommit, onCancel, onSlotClick, onOpenEvent,
 }: {
   days: Date[];
   today: Date;
@@ -467,6 +494,7 @@ function WeekGrid({
   onCommit: () => void;
   onCancel: () => void;
   onSlotClick: (date: string, hour: number) => void;
+  onOpenEvent: (e: CalendarEvent) => void;
 }) {
   const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => DAY_START_HOUR + i);
   const dayKeys = days.map(isoDate);
@@ -481,18 +509,18 @@ function WeekGrid({
     <div className="flex-1 overflow-auto">
       <div className="min-w-fit">
         <div
-          className="grid sticky top-0 z-20 bg-zinc-950 border-b border-zinc-800"
+          className="grid sticky top-0 z-20 bg-[var(--color-bg)] border-b border-[var(--color-border)]"
           style={{ gridTemplateColumns: `64px repeat(${days.length}, minmax(160px, 1fr))` }}
         >
           <div />
           {days.map((d) => {
             const isToday = isoDate(d) === isoDate(today);
             return (
-              <div key={d.toISOString()} className="px-3 py-2 border-l border-zinc-800">
-                <div className={`text-2xl font-light ${isToday ? "text-indigo-400" : "text-zinc-200"}`}>
+              <div key={d.toISOString()} className="px-3 py-2 border-l border-[var(--color-border)]">
+                <div className={`text-2xl font-light ${isToday ? "text-[var(--color-primary-strong)]" : "text-[var(--color-text)]"}`}>
                   {d.getDate()}
                 </div>
-                <div className={`text-xs ${isToday ? "text-indigo-400" : "text-zinc-500"}`}>
+                <div className={`text-xs ${isToday ? "text-[var(--color-primary-strong)]" : "text-[var(--color-text-subtle)]"}`}>
                   {DOW_FULL[d.getDay()]}
                 </div>
               </div>
@@ -502,14 +530,12 @@ function WeekGrid({
 
         <div
           className="grid relative"
-          style={{
-            gridTemplateColumns: `64px repeat(${days.length}, minmax(160px, 1fr))`,
-          }}
+          style={{ gridTemplateColumns: `64px repeat(${days.length}, minmax(160px, 1fr))` }}
         >
-          <div className="border-r border-zinc-800">
+          <div className="border-r border-[var(--color-border)]">
             {hours.map((h) => (
               <div key={h} className="relative" style={{ height: HOUR_HEIGHT }}>
-                <span className="absolute -top-2 right-2 text-[10px] text-zinc-500 uppercase tracking-wide">
+                <span className="absolute -top-2 right-2 text-[10px] text-[var(--color-text-subtle)] uppercase tracking-wide">
                   {fmtTime(h * 60)}
                 </span>
               </div>
@@ -520,18 +546,19 @@ function WeekGrid({
             const key = isoDate(d);
             const isToday = isoDate(d) === isoDate(today);
             return (
-              <div key={key} className="relative border-l border-zinc-800">
+              <div key={key} className="relative border-l border-[var(--color-border)]">
                 {hours.map((h) => (
                   <button
                     key={h}
                     onClick={() => onSlotClick(key, h)}
-                    className="block w-full border-b border-zinc-800/60 hover:bg-zinc-900/40 transition-colors"
+                    className="block w-full border-b border-[var(--color-border)]/60 hover:bg-[var(--color-surface-raised)]/40 transition-colors"
                     style={{ height: HOUR_HEIGHT }}
+                    aria-label={`Create event ${key} ${fmtTime(h * 60)}`}
                   />
                 ))}
                 {isToday && <NowLine />}
                 {eventsByDay[key]?.map((e) => (
-                  <EventBlock key={e.id} event={e} />
+                  <EventBlock key={e.id} event={e} onOpen={() => onOpenEvent(e)} />
                 ))}
                 {creating && creating.date === key && (
                   <DraftEventBlock
@@ -560,35 +587,36 @@ function NowLine() {
   return (
     <div className="absolute left-0 right-0 z-10 pointer-events-none" style={{ top }}>
       <div className="flex items-center">
-        <div className="w-2 h-2 rounded-full bg-rose-500 -ml-1" />
-        <div className="flex-1 h-px bg-rose-500" />
+        <div className="w-2 h-2 rounded-full bg-[var(--color-primary-strong)] -ml-1" />
+        <div className="flex-1 h-px bg-[var(--color-primary-strong)]" />
       </div>
     </div>
   );
 }
 
-function EventBlock({ event }: { event: CalendarEvent }) {
+function EventBlock({ event, onOpen }: { event: CalendarEvent; onOpen: () => void }) {
   const offset = event.startMinutes - DAY_START_HOUR * 60;
   const top = (offset / 60) * HOUR_HEIGHT;
   const height = ((event.endMinutes - event.startMinutes) / 60) * HOUR_HEIGHT;
-  const c = COLOR_CLASSES[event.color] ?? COLOR_CLASSES.indigo;
+  const c = KIND_STYLE[event.kind];
 
   return (
-    <div
-      className={`absolute left-1 right-1 rounded-md overflow-hidden ${c.bg} cursor-pointer transition-colors group`}
+    <button
+      onClick={onOpen}
+      className={`absolute left-1 right-1 rounded-md overflow-hidden text-left ${c.bg} cursor-pointer transition-colors group focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]`}
       style={{ top, height: Math.max(height, 22) }}
     >
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${c.bar}`} />
+      <span className={`absolute left-0 top-0 bottom-0 w-1 ${c.bar}`} />
       <div className="pl-2.5 pr-2 py-1">
         <div className={`text-xs font-medium ${c.text} truncate flex items-center gap-1`}>
           {event.title}
-          {event.recurring && <Repeat className="w-3 h-3 opacity-60 shrink-0" />}
+          {event.externalHref && <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />}
         </div>
         {event.subtitle && (
           <div className={`text-[10px] ${c.sub} truncate`}>{event.subtitle}</div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -607,10 +635,10 @@ function DraftEventBlock({
 
   return (
     <div
-      className="absolute left-1 right-1 rounded-md overflow-hidden bg-indigo-500/25 ring-2 ring-indigo-400 z-20"
+      className="absolute left-1 right-1 rounded-md overflow-hidden bg-[var(--color-primary-soft)] ring-2 ring-[var(--color-primary)] z-20"
       style={{ top, height }}
     >
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-400" />
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-primary)]" />
       <div className="pl-2.5 pr-1 py-1 flex items-center gap-1">
         <input
           autoFocus
@@ -620,13 +648,13 @@ function DraftEventBlock({
             if (e.key === "Enter") onCommit();
             if (e.key === "Escape") onCancel();
           }}
-          placeholder="Add title"
-          className="flex-1 bg-transparent text-xs text-white placeholder:text-indigo-200/60 focus:outline-none min-w-0"
+          placeholder="Event name"
+          className="flex-1 bg-transparent text-xs text-white placeholder:text-[var(--color-text-muted)] focus:outline-none min-w-0"
         />
-        <button onClick={onCommit} className="w-5 h-5 rounded grid place-items-center hover:bg-indigo-400/40 text-white">
+        <button onClick={onCommit} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-white" aria-label="Save">
           <Check className="w-3 h-3" />
         </button>
-        <button onClick={onCancel} className="w-5 h-5 rounded grid place-items-center hover:bg-indigo-400/40 text-white">
+        <button onClick={onCancel} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-white" aria-label="Cancel">
           <X className="w-3 h-3" />
         </button>
       </div>
@@ -635,12 +663,13 @@ function DraftEventBlock({
 }
 
 function MonthView({
-  month, today, events, onPickDay,
+  month, today, events, onPickDay, onOpenEvent,
 }: {
   month: Date;
   today: Date;
   events: CalendarEvent[];
   onPickDay: (d: Date) => void;
+  onOpenEvent: (e: CalendarEvent) => void;
 }) {
   const firstOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
   const startGrid = startOfWeek(firstOfMonth, 0);
@@ -653,12 +682,12 @@ function MonthView({
 
   return (
     <div className="flex-1 overflow-auto p-2">
-      <div className="grid grid-cols-7 text-xs text-zinc-500 border-b border-zinc-800 pb-1.5 mb-1">
+      <div className="grid grid-cols-7 text-xs text-[var(--color-text-subtle)] border-b border-[var(--color-border)] pb-1.5 mb-1">
         {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d) => (
           <div key={d} className="px-2">{d}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 grid-rows-6 gap-px bg-zinc-800 border border-zinc-800 rounded-lg overflow-hidden h-[calc(100%-2rem)] min-h-[600px]">
+      <div className="grid grid-cols-7 grid-rows-6 gap-px bg-[var(--color-border)] border border-[var(--color-border)] rounded-lg overflow-hidden h-[calc(100%-2rem)] min-h-[600px]">
         {cells.map((d) => {
           const inMonth = d.getMonth() === month.getMonth();
           const isToday = isoDate(d) === isoDate(today);
@@ -668,34 +697,38 @@ function MonthView({
               key={d.toISOString()}
               onClick={() => onPickDay(d)}
               className={`text-left p-1.5 transition-colors ${
-                inMonth ? "bg-zinc-950 hover:bg-zinc-900" : "bg-zinc-950/50 hover:bg-zinc-900/50"
+                inMonth ? "bg-[var(--color-bg)] hover:bg-[var(--color-surface-raised)]" : "bg-[var(--color-bg)]/50 hover:bg-[var(--color-surface-raised)]/50"
               }`}
             >
               <div
                 className={`text-xs mb-1 ${
                   isToday
-                    ? "inline-grid place-items-center w-5 h-5 rounded-full bg-indigo-600 text-white font-semibold"
+                    ? "inline-grid place-items-center w-5 h-5 rounded-full bg-[var(--color-primary)] text-black font-semibold"
                     : inMonth
-                    ? "text-zinc-300"
-                    : "text-zinc-600"
+                    ? "text-[var(--color-text)]"
+                    : "text-[var(--color-text-subtle)]"
                 }`}
               >
                 {d.getDate()}
               </div>
               <div className="space-y-0.5">
                 {dayEvents.slice(0, 3).map((e) => {
-                  const c = COLOR_CLASSES[e.color] ?? COLOR_CLASSES.indigo;
+                  const c = KIND_STYLE[e.kind];
                   return (
-                    <div
+                    <span
                       key={e.id}
-                      className={`text-[10px] px-1.5 py-0.5 rounded truncate ${c.bg} ${c.text}`}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        onOpenEvent(e);
+                      }}
+                      className={`block text-[10px] px-1.5 py-0.5 rounded truncate ${c.bg} ${c.text}`}
                     >
                       {e.title}
-                    </div>
+                    </span>
                   );
                 })}
                 {dayEvents.length > 3 && (
-                  <div className="text-[10px] text-zinc-500 px-1.5">+{dayEvents.length - 3} more</div>
+                  <div className="text-[10px] text-[var(--color-text-subtle)] px-1.5">+{dayEvents.length - 3} more</div>
                 )}
               </div>
             </button>
