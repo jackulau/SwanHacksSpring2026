@@ -53,6 +53,15 @@ export function setLLMConfig(config: LLMConfig) {
 
 export async function testLLMConnection(): Promise<{ ok: boolean; model: string; error?: string }> {
   const cfg = getLLMConfig();
+  const preset = PROVIDER_PRESETS[cfg.provider];
+
+  if (preset.needsKey && !cfg.apiKey) {
+    return { ok: false, model: cfg.model, error: `${preset.label} requires an API key.` };
+  }
+  if (!cfg.baseUrl) {
+    return { ok: false, model: cfg.model, error: 'No endpoint URL configured.' };
+  }
+
   const base = cfg.baseUrl.replace(/\/+$/, '');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
@@ -73,7 +82,11 @@ export async function testLLMConnection(): Promise<{ ok: boolean; model: string;
     }
     return { ok: true, model: cfg.model };
   } catch (e) {
-    return { ok: false, model: cfg.model, error: e instanceof Error ? e.message : String(e) };
+    const msg = e instanceof Error ? e.message : String(e);
+    if (cfg.provider === 'ollama') {
+      return { ok: false, model: cfg.model, error: `Cannot reach Ollama at ${base}. Is it running? (ollama serve)` };
+    }
+    return { ok: false, model: cfg.model, error: msg };
   }
 }
 
@@ -82,22 +95,44 @@ async function callLLM(
   userPrompt: string,
 ): Promise<string> {
   const cfg = getLLMConfig();
+  const preset = PROVIDER_PRESETS[cfg.provider];
+
+  if (preset.needsKey && !cfg.apiKey) {
+    throw new Error(
+      `${preset.label} requires an API key. Go to Settings → AI Model to add one.`,
+    );
+  }
+
+  if (!cfg.baseUrl) {
+    throw new Error('No LLM endpoint configured. Go to Settings → AI Model.');
+  }
+
   const base = cfg.baseUrl.replace(/\/+$/, '');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
 
-  const res = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: cfg.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.3,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+      }),
+    });
+  } catch (e) {
+    if (cfg.provider === 'ollama') {
+      throw new Error(
+        'Cannot reach Ollama at ' + base + '. Is it running? (ollama serve)',
+      );
+    }
+    throw new Error(`Cannot reach ${preset.label}: ${e instanceof Error ? e.message : e}`);
+  }
 
   if (!res.ok) {
     const err = await res.text();
