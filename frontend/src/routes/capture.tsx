@@ -361,6 +361,7 @@ function RecordingInterface() {
                 lastWord: wordSign.lastWord,
                 lastDistance: wordSign.lastDistance,
                 lastCandidates: wordSign.lastCandidates,
+                lastReject: wordSign.lastReject,
               }}
             />
           </div>

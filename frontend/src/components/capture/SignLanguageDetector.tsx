@@ -21,6 +21,9 @@ interface SignLanguageDetectorProps {
     lastWord: string | null;
     lastDistance: number | null;
     lastCandidates: { label: string; distance: number }[];
+    /** Closest candidate when DTW gated the segment. UI surfaces this so the
+     *  user knows the camera saw something even when no caption was emitted. */
+    lastReject?: { topLabel: string; distance: number; reason: string } | null;
   };
 }
 
@@ -189,6 +192,20 @@ export function SignLanguageDetector({
                     {wordRecognizer.lastDistance.toFixed(2)}
                   </span>
                 )}
+              </p>
+            )}
+            {wordRecognizer.lastReject && (
+              <p
+                className="text-[11px] text-[var(--color-text-subtle)]"
+                title={wordRecognizer.lastReject.reason}
+              >
+                Near miss:{' '}
+                <span className="font-mono">
+                  {wordRecognizer.lastReject.topLabel}
+                </span>{' '}
+                <span className="font-mono">
+                  ({wordRecognizer.lastReject.distance.toFixed(2)})
+                </span>
               </p>
             )}
             {wordRecognizer.lastCandidates.length > 0 && (
