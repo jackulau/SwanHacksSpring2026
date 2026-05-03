@@ -6,6 +6,7 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { ModeTabs } from "./capture";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
+import { transcribeAudioFile } from "../hooks/useLocalWhisper";
 
 export const Route = createFileRoute("/capture/upload")({
   component: UploadPage,
@@ -44,30 +45,10 @@ function UploadPage() {
 
       setPipelineStage('transcribing');
 
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey) {
-        setPipelineStage('error');
-        setPipelineError('VITE_OPENAI_API_KEY not set');
-        return;
+      const transcript = await transcribeAudioFile(file);
+      if (!transcript.trim()) {
+        throw new Error('No speech detected in audio file.');
       }
-
-      const whisperForm = new FormData();
-      whisperForm.append('file', file);
-      whisperForm.append('model', 'whisper-1');
-      whisperForm.append('language', 'en');
-
-      const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: whisperForm,
-      });
-
-      if (!whisperRes.ok) {
-        throw new Error(`Whisper API error: ${whisperRes.status}`);
-      }
-
-      const whisperData = await whisperRes.json();
-      const transcript = whisperData.text;
 
       setPipelineStage('cleaning');
       const result = await runPipeline(lecture.id, transcript);

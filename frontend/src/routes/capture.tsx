@@ -9,7 +9,7 @@ import { LiveCaptions } from "../components/capture/LiveCaptions";
 import { SignLanguageDetector } from "../components/capture/SignLanguageDetector";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
-import { useDeepgramSTT } from "../hooks/useDeepgramSTT";
+import { useLocalWhisper } from "../hooks/useLocalWhisper";
 import { useMediaPipeHands } from "../hooks/useMediaPipeHands";
 import { useSignLanguage } from "../hooks/useSignLanguage";
 import { useWordSignRecognition } from "../hooks/useWordSignRecognition";
@@ -59,7 +59,7 @@ function formatDuration(secs: number) {
  */
 function RecordingInterface() {
   const [audio, audioControls] = useAudioRecorder();
-  const stt = useDeepgramSTT();
+  const stt = useLocalWhisper();
   const mediapipe = useMediaPipeHands();
   const [signEnabled, setSignEnabled] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -195,8 +195,10 @@ function RecordingInterface() {
   const isRecording = audio.isRecording;
   const sttStatus = isRecording
     ? stt.isConnected
-      ? 'Live captions on'
-      : 'Connecting to captions…'
+      ? 'Whisper transcribing'
+      : stt.modelLoading
+        ? `Loading model… ${stt.modelProgress}%`
+        : 'Starting Whisper…'
     : 'Press record to begin';
 
   return (
