@@ -62,6 +62,7 @@ function RecordingInterface() {
   const stt = useLocalWhisper();
   const mediapipe = useMediaPipeHands();
   const [signEnabled, setSignEnabled] = useState(false);
+  const [signError, setSignError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
   const [pipelineError, setPipelineError] = useState('');
@@ -112,28 +113,44 @@ function RecordingInterface() {
     if (signEnabled) {
       mediapipe.stop();
       setSignEnabled(false);
-    } else {
-      if (videoRef.current) {
-        if (!mediapipe.isLoaded) {
-          await mediapipe.initialize(videoRef.current);
-        }
-        mediapipe.setOnLandmarks(handleLandmarks);
-        mediapipe.start();
-
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: 640, height: 480 },
-          });
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        } catch {
-          // camera denied
-        }
-      }
-      setSignEnabled(true);
+      setSignError(null);
+      return;
     }
-  }, [signEnabled, mediapipe, signLanguage]);
+
+    if (!videoRef.current) return;
+
+    // Clear any prior error before retrying.
+    setSignError(null);
+
+    // Acquire the camera FIRST. If permission is denied or no device is
+    // available, surface an error and bail before mounting the detector — the
+    // previous behavior swallowed the error and left the user staring at a
+    // black video pane with aria-pressed=true.
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 640, height: 480 },
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch {
+      // Surface the failure so the user can retry; keep aria-pressed=false by
+      // leaving signEnabled as-is. (Browser already logs the underlying
+      // NotAllowedError / NotFoundError to the console.)
+      setSignError(
+        "We couldn't access your camera. Check browser permissions and try again.",
+      );
+      setSignEnabled(false);
+      return;
+    }
+
+    if (!mediapipe.isLoaded) {
+      await mediapipe.initialize(videoRef.current);
+    }
+    mediapipe.setOnLandmarks(handleLandmarks);
+    mediapipe.start();
+    setSignEnabled(true);
+  }, [signEnabled, mediapipe, handleLandmarks]);
 
   // Use a ref to guard against duplicate pipeline runs. A naive `processing`
   // state guard fails because (a) React StrictMode mounts the effect twice in
@@ -259,15 +276,32 @@ function RecordingInterface() {
               </div>
 
               {!isRecording && (
-                <button
-                  type="button"
-                  onClick={handleToggleSign}
-                  aria-pressed={signEnabled}
-                  className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-xs font-medium border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-                >
-                  <Hand className="w-3.5 h-3.5" aria-hidden="true" />
-                  {signEnabled ? 'Sign language: on' : 'Enable sign language'}
-                </button>
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleToggleSign}
+                    aria-pressed={signEnabled}
+                    className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-xs font-medium border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                  >
+                    <Hand className="w-3.5 h-3.5" aria-hidden="true" />
+                    {signEnabled ? 'Sign language: on' : 'Enable sign language'}
+                  </button>
+                  {signError && (
+                    <div
+                      role="alert"
+                      className="flex items-center gap-2 text-xs text-[var(--color-record)] max-w-md text-center"
+                    >
+                      <span>{signError}</span>
+                      <button
+                        type="button"
+                        onClick={handleToggleSign}
+                        className="underline underline-offset-2 hover:text-[var(--color-text)] transition-colors"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

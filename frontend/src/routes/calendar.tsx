@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
-import type { Lecture, Assignment } from "../lib/types";
+import type { Lecture, Assignment, CalendarEventRecord } from "../lib/types";
 import {
   Plus,
   Calendar as CalendarIcon,
@@ -18,6 +18,7 @@ import {
   Check,
   X,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/calendar")({
@@ -33,6 +34,8 @@ type EventKind = "lecture" | "assignment" | "user";
 
 type CalendarEvent = {
   id: string;
+  /** PocketBase record id for user-created events (kind === "user"). */
+  recordId?: string;
   title: string;
   subtitle?: string;
   date: string;
@@ -113,6 +116,46 @@ function dateToEvent(date: Date, durationMin: number, base: Omit<CalendarEvent, 
   };
 }
 
+/** Convert ISO date (yyyy-mm-dd) + minute-of-day into an ISO timestamp. */
+function localDateTimeToIso(date: string, minutes: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const hr = Math.floor(minutes / 60);
+  const min = minutes % 60;
+  const local = new Date(y, (m || 1) - 1, d || 1, hr, min, 0, 0);
+  return local.toISOString();
+}
+
+/** Format a minute-of-day as "HH:MM" for <input type="time"> values. */
+function minutesToTimeInput(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Parse a "HH:MM" <input type="time"> value into minutes-of-day. */
+function timeInputToMinutes(value: string): number {
+  const [h, m] = value.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/** Convert a CalendarEventRecord (PB) into a CalendarEvent (local). */
+function recordToEvent(rec: CalendarEventRecord): CalendarEvent | null {
+  const start = new Date(rec.start_at);
+  const end = new Date(rec.end_at);
+  if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf())) return null;
+  const startMinutes = start.getHours() * 60 + start.getMinutes();
+  const endMinutes = end.getHours() * 60 + end.getMinutes();
+  return {
+    id: `usr-${rec.id}`,
+    recordId: rec.id,
+    title: rec.title,
+    date: isoDate(start),
+    startMinutes,
+    endMinutes: endMinutes > startMinutes ? endMinutes : startMinutes + 60,
+    kind: "user",
+  };
+}
+
 function CalendarPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -135,6 +178,12 @@ function CalendarPage() {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState<{ date: string; startMinutes: number } | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
+  const [editing, setEditing] = useState<CalendarEvent | null>(null);
+  const [visibleKinds, setVisibleKinds] = useState<Record<EventKind, boolean>>({
+    lecture: true,
+    assignment: true,
+    user: true,
+  });
 
   useEffect(() => {
     if (!user) {
@@ -192,7 +241,42 @@ function CalendarPage() {
     };
   }, [user]);
 
-  const events = useMemo(() => [...remoteEvents, ...userEvents], [remoteEvents, userEvents]);
+  // Load user-created events from PocketBase. Failures fall back to empty list
+  // — the UI still works locally, the user just won't see persisted events.
+  useEffect(() => {
+    if (!user) {
+      setUserEvents([]);
+      return;
+    }
+    let cancelled = false;
+    pb.collection("calendar_events")
+      .getFullList<CalendarEventRecord>({
+        filter: `user = "${user.id}"`,
+        requestKey: "cal-user-events",
+      })
+      .then((records) => {
+        if (cancelled) return;
+        const mapped: CalendarEvent[] = [];
+        for (const r of records) {
+          const ev = recordToEvent(r);
+          if (ev) mapped.push(ev);
+        }
+        setUserEvents(mapped);
+      })
+      .catch(() => {
+        // Collection may not exist yet (pre-migration). Fall back to empty.
+        if (!cancelled) setUserEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const events = useMemo(
+    () =>
+      [...remoteEvents, ...userEvents].filter((e) => visibleKinds[e.kind]),
+    [remoteEvents, userEvents, visibleKinds],
+  );
 
   const visibleDays = useMemo(() => {
     if (view === "day") return [anchor];
@@ -234,34 +318,101 @@ function CalendarPage() {
     setMiniMonth(new Date(today.getFullYear(), today.getMonth(), 1));
   };
 
+  /**
+   * Render the draft input visibly regardless of current view bounds.
+   *
+   * The toolbar "+ New event" button anchors to today / now, but the user can
+   * be looking at school-week (no weekend columns) or be past DAY_END_HOUR.
+   * Clamp the day to the first visible day in the current grid, and clamp
+   * the hour into [DAY_START_HOUR, DAY_END_HOUR - 1] so the input always lands
+   * in view.
+   */
   const handleSlotClick = (date: string, hour: number) => {
-    setCreating({ date, startMinutes: hour * 60 });
+    const visibleKeys = visibleDays.map(isoDate);
+    const clampedDate = visibleKeys.includes(date) ? date : visibleKeys[0] ?? date;
+    const clampedHour = Math.min(
+      Math.max(hour, DAY_START_HOUR),
+      DAY_END_HOUR - 1,
+    );
+    setCreating({ date: clampedDate, startMinutes: clampedHour * 60 });
     setDraftTitle("");
   };
 
-  const commitEvent = () => {
-    if (!creating || !draftTitle.trim()) {
+  const commitEvent = async () => {
+    if (!creating || !draftTitle.trim() || !user) {
       setCreating(null);
       return;
     }
-    setUserEvents((prev) => [
-      ...prev,
-      {
-        id: `usr-${Date.now()}`,
-        title: draftTitle.trim(),
-        date: creating.date,
-        startMinutes: creating.startMinutes,
-        endMinutes: creating.startMinutes + 60,
-        kind: "user",
-      },
-    ]);
+    const title = draftTitle.trim();
+    const startMinutes = creating.startMinutes;
+    const endMinutes = startMinutes + 60;
+    const date = creating.date;
     setCreating(null);
     setDraftTitle("");
+
+    try {
+      const rec = await pb.collection("calendar_events").create<CalendarEventRecord>({
+        user: user.id,
+        title,
+        start_at: localDateTimeToIso(date, startMinutes),
+        end_at: localDateTimeToIso(date, endMinutes),
+        notes: "",
+        color: "",
+        external_href: "",
+      });
+      const ev = recordToEvent(rec);
+      if (ev) setUserEvents((prev) => [...prev, ev]);
+    } catch {
+      // PB write failed (collection missing, offline, etc.) — fall back to a
+      // local-only event so the UX doesn't lose the user's input.
+      setUserEvents((prev) => [
+        ...prev,
+        {
+          id: `usr-${Date.now()}`,
+          title,
+          date,
+          startMinutes,
+          endMinutes,
+          kind: "user",
+        },
+      ]);
+    }
   };
 
   const openEvent = (e: CalendarEvent) => {
     if (e.href) navigate({ to: e.href });
     else if (e.externalHref) window.open(e.externalHref, "_blank", "noopener,noreferrer");
+    else if (e.kind === "user") setEditing(e);
+  };
+
+  const saveEditedEvent = async (updated: CalendarEvent) => {
+    setUserEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    setEditing(null);
+    if (!updated.recordId) return;
+    try {
+      await pb.collection("calendar_events").update(updated.recordId, {
+        title: updated.title,
+        start_at: localDateTimeToIso(updated.date, updated.startMinutes),
+        end_at: localDateTimeToIso(updated.date, updated.endMinutes),
+      });
+    } catch {
+      // Persistence failure — local state already updated. No retry queue.
+    }
+  };
+
+  const deleteEditedEvent = async (target: CalendarEvent) => {
+    setUserEvents((prev) => prev.filter((e) => e.id !== target.id));
+    setEditing(null);
+    if (!target.recordId) return;
+    try {
+      await pb.collection("calendar_events").delete(target.recordId);
+    } catch {
+      // Persistence failure — local state already removed.
+    }
+  };
+
+  const toggleKind = (kind: EventKind) => {
+    setVisibleKinds((prev) => ({ ...prev, [kind]: !prev[kind] }));
   };
 
   if (authLoading || !user) return null;
@@ -271,7 +422,7 @@ function CalendarPage() {
       {/* Top toolbar */}
       <div className="flex items-center gap-1 px-4 h-12 border-b border-[var(--color-border)] bg-[var(--color-surface-raised)] shrink-0 overflow-x-auto">
         <button
-          onClick={() => handleSlotClick(isoDate(anchor), Math.max(DAY_START_HOUR, new Date().getHours()))}
+          onClick={() => handleSlotClick(isoDate(anchor), new Date().getHours())}
           className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-sm font-medium transition-colors shrink-0"
         >
           <Plus className="w-4 h-4" />
@@ -309,9 +460,27 @@ function CalendarPage() {
               My calendars
             </div>
             <div className="space-y-0.5">
-              <CalendarLegendRow color="var(--color-primary)" label="Lectures" count={remoteEvents.filter((e) => e.kind === "lecture").length} />
-              <CalendarLegendRow color="rgb(251 191 36)" label="Assignments" count={remoteEvents.filter((e) => e.kind === "assignment").length} />
-              <CalendarLegendRow color="rgb(255 255 255 / 0.4)" label="Personal" count={userEvents.length} />
+              <CalendarLegendRow
+                color="var(--color-primary)"
+                label="Lectures"
+                count={remoteEvents.filter((e) => e.kind === "lecture").length}
+                visible={visibleKinds.lecture}
+                onToggle={() => toggleKind("lecture")}
+              />
+              <CalendarLegendRow
+                color="rgb(251 191 36)"
+                label="Assignments"
+                count={remoteEvents.filter((e) => e.kind === "assignment").length}
+                visible={visibleKinds.assignment}
+                onToggle={() => toggleKind("assignment")}
+              />
+              <CalendarLegendRow
+                color="rgb(255 255 255 / 0.4)"
+                label="Personal"
+                count={userEvents.length}
+                visible={visibleKinds.user}
+                onToggle={() => toggleKind("user")}
+              />
             </div>
           </div>
         </aside>
@@ -366,6 +535,15 @@ function CalendarPage() {
           )}
         </div>
       </div>
+
+      {editing && (
+        <EditEventModal
+          event={editing}
+          onClose={() => setEditing(null)}
+          onSave={saveEditedEvent}
+          onDelete={deleteEditedEvent}
+        />
+      )}
     </div>
   );
 }
@@ -411,12 +589,159 @@ function SidebarLink({ icon: Icon, label, disabled }: { icon: React.ComponentTyp
   );
 }
 
-function CalendarLegendRow({ color, label, count }: { color: string; label: string; count: number }) {
+function CalendarLegendRow({
+  color,
+  label,
+  count,
+  visible,
+  onToggle,
+}: {
+  color: string;
+  label: string;
+  count: number;
+  visible: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <div className="flex items-center gap-2.5 w-full px-2 py-1.5 text-sm text-[var(--color-text)]">
-      <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: color }} />
-      <span className="flex-1">{label}</span>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={visible}
+      className={`flex items-center gap-2.5 w-full px-2 py-1.5 text-sm rounded-md hover:bg-[var(--color-surface-raised)] transition-colors ${
+        visible ? "text-[var(--color-text)]" : "text-[var(--color-text-subtle)]"
+      }`}
+    >
+      <span
+        className={`w-3 h-3 rounded-sm shrink-0 transition-opacity ${visible ? "opacity-100" : "opacity-30"}`}
+        style={{ background: color }}
+      />
+      <span className={`flex-1 text-left ${visible ? "" : "line-through"}`}>{label}</span>
       <span className="text-xs text-[var(--color-text-subtle)] tabular-nums">{count}</span>
+    </button>
+  );
+}
+
+function EditEventModal({
+  event,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  event: CalendarEvent;
+  onClose: () => void;
+  onSave: (updated: CalendarEvent) => void;
+  onDelete: (target: CalendarEvent) => void;
+}) {
+  const [title, setTitle] = useState(event.title);
+  const [date, setDate] = useState(event.date);
+  const [startTime, setStartTime] = useState(minutesToTimeInput(event.startMinutes));
+  const [endTime, setEndTime] = useState(minutesToTimeInput(event.endMinutes));
+
+  const handleSave = () => {
+    if (!title.trim()) return;
+    const startMinutes = timeInputToMinutes(startTime);
+    const endRaw = timeInputToMinutes(endTime);
+    const endMinutes = endRaw > startMinutes ? endRaw : startMinutes + 60;
+    onSave({
+      ...event,
+      title: title.trim(),
+      date,
+      startMinutes,
+      endMinutes,
+    });
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Edit event"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-[var(--color-text)]">Edit event</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="w-7 h-7 grid place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)]"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <label className="block">
+            <span className="block text-xs text-[var(--color-text-muted)] mb-1">Title</span>
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-2 py-1.5 rounded-md bg-[var(--color-input)] text-sm text-[var(--color-text)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)]"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-xs text-[var(--color-text-muted)] mb-1">Date</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-2 py-1.5 rounded-md bg-[var(--color-input)] text-sm text-[var(--color-text)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)]"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span className="block text-xs text-[var(--color-text-muted)] mb-1">Start</span>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full px-2 py-1.5 rounded-md bg-[var(--color-input)] text-sm text-[var(--color-text)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-xs text-[var(--color-text-muted)] mb-1">End</span>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="w-full px-2 py-1.5 rounded-md bg-[var(--color-input)] text-sm text-[var(--color-text)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => onDelete(event)}
+            className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-medium text-[var(--color-record)] hover:bg-[var(--color-record)]/10 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 h-8 rounded-md text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-xs font-medium transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

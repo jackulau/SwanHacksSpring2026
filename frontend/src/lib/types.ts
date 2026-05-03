@@ -359,3 +359,13 @@ export interface Assignment extends RecordModel {
   canvas_url: string;
   submission_types: string[];
 }
+
+export interface CalendarEventRecord extends RecordModel {
+  user: string;
+  title: string;
+  start_at: string;
+  end_at: string;
+  notes: string;
+  color: string;
+  external_href: string;
+}

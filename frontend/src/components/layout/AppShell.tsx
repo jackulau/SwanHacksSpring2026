@@ -89,7 +89,7 @@ export function AppShell({ children }: AppShellProps) {
     pb.collection("lectures")
       .getList<Lecture>(1, 6, {
         filter: `user = "${user.id}"`,
-        sort: "-updated",
+        sort: "-recorded_at",
       })
       .then((res) => {
         if (cancelled) return;

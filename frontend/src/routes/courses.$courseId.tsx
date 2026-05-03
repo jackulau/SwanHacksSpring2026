@@ -44,7 +44,7 @@ function CourseDetailPage() {
           const filter = lecs.map((l) => `lecture = "${l.id}"`).join(" || ");
           const ns = await pb
             .collection("notes")
-            .getFullList<Note>({ filter, sort: "-updated" })
+            .getFullList<Note>({ filter, sort: "-id" })
             .catch(() => []);
           if (cancelled) return;
           const titleById = new Map(lecs.map((l) => [l.id, l.title]));

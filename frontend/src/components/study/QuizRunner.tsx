@@ -132,6 +132,23 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
     const totalPossible = questions.reduce((s, q) => s + q.points, 0);
     const pct = totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0;
 
+    // Group correctness by concept_tag for a per-concept breakdown.
+    const conceptStats = questions.reduce<
+      Record<string, { correct: number; total: number }>
+    >((acc, q, idx) => {
+      const tag = (q.concept_tag || '').trim() || 'Uncategorized';
+      const bucket = acc[tag] ?? { correct: 0, total: 0 };
+      const isCorrect = results[idx]?.correct ?? false;
+      acc[tag] = {
+        correct: bucket.correct + (isCorrect ? 1 : 0),
+        total: bucket.total + 1,
+      };
+      return acc;
+    }, {});
+    const conceptRows = Object.entries(conceptStats).sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+
     return (
       <div className="space-y-8">
         <div className="text-center py-12">
@@ -142,6 +159,37 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
             {totalEarned} of {totalPossible} points
           </p>
         </div>
+
+        {conceptRows.length > 0 && (
+          <section aria-label="Score by concept" className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              By concept
+            </h3>
+            <dl className="divide-y divide-[var(--color-border)]">
+              {conceptRows.map(([tag, { correct, total }]) => (
+                <div
+                  key={tag}
+                  className="flex items-baseline justify-between gap-4 py-2 text-sm"
+                >
+                  <dt className="text-[var(--color-text)] truncate">{tag}</dt>
+                  <dd className="shrink-0 tabular-nums text-[var(--color-text-muted)]">
+                    <span
+                      className={
+                        correct === total
+                          ? 'text-[var(--color-primary)] font-medium'
+                          : ''
+                      }
+                    >
+                      {correct}
+                    </span>
+                    {' / '}
+                    {total}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
 
         <ul className="space-y-2">
           {questions.map((q, idx) => {

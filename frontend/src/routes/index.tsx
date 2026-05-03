@@ -599,7 +599,7 @@ function Dashboard({ userId, email }: DashboardProps) {
         .collection("lectures")
         .getFullList<Lecture>({
           filter: `user = "${userId}"`,
-          sort: "-updated",
+          sort: "-recorded_at",
         })
         .catch(() => [] as Lecture[]),
       pb

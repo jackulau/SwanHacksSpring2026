@@ -81,7 +81,7 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
             Drop an audio file
           </p>
           <p className="text-[var(--color-text-muted)] text-sm mt-2">
-            or click to browse — mp3, m4a, wav, webm, ogg, flac up to {MAX_SIZE_MB}MB
+            or click to browse — mp3, mp4, m4a, wav, webm, ogg, flac up to {MAX_SIZE_MB}MB
           </p>
           <input
             ref={inputRef}

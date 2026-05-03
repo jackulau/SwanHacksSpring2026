@@ -7,6 +7,11 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+// Permissive but RFC-aligned check — validates the basic local@domain.tld shape.
+// Server still authoritatively validates; this exists to surface format errors
+// before the request hits the backend.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function LoginPage() {
   const { user, login, signup, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +37,11 @@ function LoginPage() {
     if (!email) {
       emailRef.current?.focus();
       setError("Enter your email address.");
+      return;
+    }
+    if (!EMAIL_REGEX.test(email.trim())) {
+      emailRef.current?.focus();
+      setError("Enter a valid email address.");
       return;
     }
     if (!password || password.length < 8) {

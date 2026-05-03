@@ -1,10 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, FileText, NotebookPen } from "lucide-react";
+import {
+  Sparkles,
+  FileText,
+  NotebookPen,
+  Brain,
+  FileQuestion,
+  Play,
+} from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
 import { Skeleton } from "../components/layout/Skeleton";
+import { EmptyState } from "../components/layout/EmptyState";
 import { TranscriptViewer } from "../components/workspace/TranscriptViewer";
 import { NoteEditor } from "../components/workspace/NoteEditor";
 import { useAudioPlayer } from "../lib/audioPlayer";
@@ -15,13 +23,15 @@ import type {
   Note,
   NoteBlock,
   Course,
+  Flashcard,
+  Quiz,
 } from "../lib/types";
 
 export const Route = createFileRoute("/lectures/$lectureId")({
   component: LectureDetailPage,
 });
 
-type View = "transcript" | "notes";
+type View = "transcript" | "notes" | "flashcards" | "quiz";
 
 function LectureDetailPage() {
   const { user, loading: authLoading } = useAuth();
@@ -34,6 +44,12 @@ function LectureDetailPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [notes, setNotes] = useState<Note | null>(null);
+  // Tracks whether the GET completed (success OR truly empty result). We only
+  // allow `create` to fire after this is true — otherwise a failed GET would
+  // silently spawn duplicate rows on every save (P0 #3).
+  const [notesLoaded, setNotesLoaded] = useState(false);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
@@ -71,7 +87,10 @@ function LectureDetailPage() {
             .collection("transcripts")
             .getFullList<Transcript>({
               filter: `lecture = "${lectureId}"`,
-              sort: "-created",
+              // `-created` 400s when autodate fields aren't backfilled on
+              // seeded rows (P0 #1). `-id` is monotonic in PocketBase and
+              // works regardless of the autodate state.
+              sort: "-id",
             });
           if (!cancelled && transcripts.length > 0) {
             setTranscript(transcripts[0]);
@@ -85,13 +104,43 @@ function LectureDetailPage() {
             .collection("notes")
             .getFullList<Note>({
               filter: `lecture = "${lectureId}"`,
-              sort: "-created",
+              sort: "-id",
             });
-          if (!cancelled && notesList.length > 0) {
-            setNotes(notesList[0]);
+          if (!cancelled) {
+            if (notesList.length > 0) {
+              setNotes(notesList[0]);
+            }
+            // Mark "GET succeeded" so the save handler knows it's safe to
+            // create a row when none exists. If the GET threw above, we leave
+            // notesLoaded=false and the save handler will refuse to create.
+            setNotesLoaded(true);
           }
         } catch {
-          /* no notes */
+          /* no notes — leave notesLoaded=false to prevent dup creates */
+        }
+
+        try {
+          const cards = await pb
+            .collection("flashcards")
+            .getList<Flashcard>(1, 100, {
+              filter: `lecture = "${lectureId}"`,
+            });
+          if (!cancelled) setFlashcards(cards.items);
+        } catch {
+          /* no flashcards */
+        }
+
+        try {
+          const quizzes = await pb
+            .collection("quizzes")
+            .getList<Quiz>(1, 1, {
+              filter: `lecture = "${lectureId}"`,
+            });
+          if (!cancelled && quizzes.items.length > 0) {
+            setQuiz(quizzes.items[0]);
+          }
+        } catch {
+          /* no quiz */
         }
       } catch {
         /* lecture not found */
@@ -155,22 +204,28 @@ function LectureDetailPage() {
     const summary = next;
     try {
       if (notes) {
+        // Existing record — switch to update from the very first save after
+        // create so we never spawn duplicate rows.
         const updated = await pb
           .collection("notes")
           .update<Note>(notes.id, { summary });
         setNotes(updated);
-      } else {
-        const created = await pb.collection("notes").create<Note>({
-          lecture: lecture.id,
-          user: user.id,
-          title: lecture.title,
-          content: [],
-          content_type: "manual",
-          key_concepts: [],
-          summary,
-        });
-        setNotes(created);
+        return;
       }
+      // No record in state. Only safe to create if the initial GET actually
+      // succeeded and was truly empty — otherwise we'd be racing the load and
+      // could create one row per keystroke (the P0 #3 duplicate-row bug).
+      if (!notesLoaded) return;
+      const created = await pb.collection("notes").create<Note>({
+        lecture: lecture.id,
+        user: user.id,
+        title: lecture.title,
+        content: [],
+        content_type: "manual",
+        key_concepts: [],
+        summary,
+      });
+      setNotes(created);
     } catch {
       /* swallow — surfaced by next read */
     }
@@ -220,6 +275,12 @@ function LectureDetailPage() {
   const blocks = (notes?.content as NoteBlock[]) || [];
   const segments = transcript?.segments;
   const speakers = transcript?.speakers;
+
+  // Cards whose `next_review` is now-or-earlier are "due" for SM-2 review.
+  const nowIso = new Date().toISOString();
+  const dueCount = flashcards.filter(
+    (c) => !c.next_review || c.next_review <= nowIso,
+  ).length;
 
   const primaryAction = (
     <button
@@ -274,7 +335,7 @@ function LectureDetailPage() {
           </nav>
         )}
 
-        {/* View toggle — transcript vs notes, never both fighting for screen. */}
+        {/* View toggle — Transcript / Notes / Flashcards / Quiz. */}
         <div
           role="tablist"
           aria-label="Lecture content"
@@ -294,6 +355,20 @@ function LectureDetailPage() {
             active={view === "notes"}
             onSelect={() => setView("notes")}
           />
+          <ViewTab
+            id="flashcards"
+            label="Flashcards"
+            icon={Brain}
+            active={view === "flashcards"}
+            onSelect={() => setView("flashcards")}
+          />
+          <ViewTab
+            id="quiz"
+            label="Quiz"
+            icon={FileQuestion}
+            active={view === "quiz"}
+            onSelect={() => setView("quiz")}
+          />
         </div>
 
         {/* The reading surface itself — one calm column. */}
@@ -303,7 +378,7 @@ function LectureDetailPage() {
           aria-labelledby={`tab-${view}`}
           tabIndex={-1}
         >
-          {view === "transcript" ? (
+          {view === "transcript" && (
             <TranscriptViewer
               cleanText={transcript?.clean_text || ""}
               rawText={transcript?.raw_text || ""}
@@ -312,12 +387,33 @@ function LectureDetailPage() {
               onSeek={audioUrl ? handleSeek : undefined}
               currentTime={currentTime}
             />
-          ) : (
+          )}
+          {view === "notes" && (
             <NoteEditor
               blocks={blocks}
               title={notes?.title}
               personalNotes={notes?.summary}
               onPersonalNotesChange={handlePersonalNotesChange}
+            />
+          )}
+          {view === "flashcards" && (
+            <FlashcardsTab
+              total={flashcards.length}
+              due={dueCount}
+              lectureId={lecture.id}
+              // The /study/flashcards route doesn't (yet) validate a `lecture`
+              // search param, so we just send the user to the global review
+              // queue. Lecture-scoped filtering can be added by extending the
+              // study route's validateSearch + getDueCards filter.
+              onStart={() => navigate({ to: "/study/flashcards" })}
+            />
+          )}
+          {view === "quiz" && (
+            <QuizTab
+              quiz={quiz}
+              onStart={(quizId) =>
+                navigate({ to: "/study/quiz/$quizId", params: { quizId } })
+              }
             />
           )}
         </main>
@@ -353,5 +449,105 @@ function ViewTab({ id, label, icon: Icon, active, onSelect }: ViewTabProps) {
       <Icon className="w-4 h-4" aria-hidden="true" />
       {label}
     </button>
+  );
+}
+
+interface FlashcardsTabProps {
+  total: number;
+  due: number;
+  lectureId: string;
+  onStart: () => void;
+}
+
+function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
+  if (total === 0) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <EmptyState
+          icon={Brain}
+          title="No flashcards yet"
+          description="Generate a study set from this lecture to create flashcards."
+          size="md"
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-6">
+        <div className="flex items-center gap-6 mb-6">
+          <div>
+            <p className="text-3xl font-semibold text-[var(--color-text)] tabular-nums">
+              {total}
+            </p>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              {total === 1 ? "card" : "cards"} in deck
+            </p>
+          </div>
+          <div className="h-10 w-px bg-[var(--color-border)]" aria-hidden="true" />
+          <div>
+            <p className="text-3xl font-semibold text-[var(--color-text)] tabular-nums">
+              {due}
+            </p>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              due now
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={due === 0}
+          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+        >
+          <Play className="w-4 h-4" aria-hidden="true" />
+          {due === 0 ? "Nothing due" : "Start review"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface QuizTabProps {
+  quiz: Quiz | null;
+  onStart: (quizId: string) => void;
+}
+
+function QuizTab({ quiz, onStart }: QuizTabProps) {
+  if (!quiz) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <EmptyState
+          icon={FileQuestion}
+          title="No quiz yet"
+          description="Generate a study set from this lecture to create a quiz."
+          size="md"
+        />
+      </div>
+    );
+  }
+  const questionCount = Array.isArray(quiz.questions)
+    ? quiz.questions.length
+    : 0;
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-6">
+        <p className="text-base font-medium text-[var(--color-text)] mb-1">
+          {quiz.title}
+        </p>
+        <p className="text-sm text-[var(--color-text-muted)] mb-6">
+          {questionCount} {questionCount === 1 ? "question" : "questions"}
+          {quiz.total_points ? ` · ${quiz.total_points} pts` : ""}
+        </p>
+        <button
+          type="button"
+          onClick={() => onStart(quiz.id)}
+          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+        >
+          <Play className="w-4 h-4" aria-hidden="true" />
+          Take quiz
+        </button>
+      </div>
+    </div>
   );
 }
