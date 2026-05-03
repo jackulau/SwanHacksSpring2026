@@ -15,6 +15,19 @@ if [ -f backend/.env ]; then
   set +a
 fi
 
+# Best-effort Ollama health check. The lecture-pipeline LLM calls go to
+# http://localhost:11434/v1 by default; failing fast with a clear hint here
+# beats a confusing UI error after the user records their first lecture.
+OLLAMA_URL="${OLLAMA_HOST:-http://localhost:11434}"
+if ! curl -fsS -m 2 "$OLLAMA_URL/api/version" >/dev/null 2>&1; then
+  echo
+  echo "WARNING: Ollama is not reachable at $OLLAMA_URL."
+  echo "  - Lecture transcript cleanup, notes, flashcards, and quiz generation will fail."
+  echo "  - Install: https://ollama.com/download   then start: ollama serve"
+  echo "  - Or run ./setup.sh for a full prerequisite check."
+  echo
+fi
+
 echo "Starting PocketBase on :8090..."
 (cd backend && ./pocketbase serve) &
 
