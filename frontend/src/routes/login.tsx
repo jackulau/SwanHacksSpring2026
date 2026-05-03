@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/auth";
-import { GraduationCap, ArrowLeft } from "lucide-react";
+import { ConvergeLogo } from "../components/layout/ConvergeLogo";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -10,11 +10,15 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { user, login, signup, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && user) navigate({ to: "/" });
@@ -23,6 +27,19 @@ function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    // Manual focus-on-first-invalid (HTML validation also runs).
+    if (!email) {
+      emailRef.current?.focus();
+      setError("Enter your email address.");
+      return;
+    }
+    if (!password || password.length < 8) {
+      passwordRef.current?.focus();
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (isSignup) {
@@ -35,130 +52,139 @@ function LoginPage() {
       const msg =
         err instanceof Error ? err.message : "Authentication failed";
       setError(msg);
+      // Focus the email field on auth failure so the user can correct.
+      emailRef.current?.focus();
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 flex-col justify-between p-12">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="w-7 h-7 text-white" />
-          <span className="text-xl font-bold text-white">HackStack</span>
-        </div>
-        <div>
-          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-            Turn any lecture into study material
-          </h2>
-          <p className="text-indigo-200 text-lg leading-relaxed">
-            Record, transcribe, and generate flashcards, notes, and quizzes —
-            all powered by AI. Built accessibility-first.
-          </p>
-        </div>
-        <div className="flex gap-6 text-sm text-indigo-200">
-          <div>
-            <p className="text-2xl font-bold text-white">10+</p>
-            <p>Accessibility features</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-white">4</p>
-            <p>Quiz types</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-white">SM-2</p>
-            <p>Spaced repetition</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-[var(--color-bg)] text-white flex items-center justify-center px-4 py-16">
+      <main className="w-full max-w-sm">
+        <div className="flex flex-col items-center mb-8">
           <Link
             to="/"
-            className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors mb-8"
+            aria-label="Converge home"
+            className="flex items-center gap-2 text-white"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back
+            <ConvergeLogo className="w-7 h-7" />
+            <span className="text-lg font-semibold tracking-tight">
+              Converge
+            </span>
           </Link>
+        </div>
 
-          <div className="flex items-center gap-2 mb-2 lg:hidden">
-            <GraduationCap className="w-6 h-6 text-indigo-400" />
-            <span className="text-lg font-bold">HackStack</span>
-          </div>
-
-          <h1 className="text-2xl font-bold mb-1">
-            {isSignup ? "Create account" : "Welcome back"}
+        <div className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-lg shadow-lg shadow-black/40 p-8">
+          <h1 className="text-xl font-semibold tracking-tight">
+            {isSignup ? "Create your account" : "Sign in"}
           </h1>
-          <p className="text-zinc-500 text-sm mb-8">
+          <p className="text-sm text-[var(--color-text-muted)] mt-2 mb-8">
             {isSignup
-              ? "Sign up to start studying smarter"
-              : "Sign in to your account"}
+              ? "Start studying smarter in under a minute."
+              : "Welcome back to Converge."}
           </p>
 
           {error && (
-            <div className="bg-red-900/30 border border-red-800 rounded-xl p-3 mb-5 text-red-300 text-sm">
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="bg-red-500/10 border border-red-500/40 rounded-md px-3 py-2 mb-6 text-red-300 text-sm"
+            >
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              <label
+                htmlFor="email"
+                className="block text-xs font-medium text-[var(--color-text-muted)] mb-2"
+              >
                 Email
               </label>
               <input
+                id="email"
+                ref={emailRef}
+                name="email"
                 type="email"
-                placeholder="you@university.edu"
+                autoComplete="email"
+                inputMode="email"
+                required
+                aria-invalid={!!error}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-white placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
               />
             </div>
+
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              <label
+                htmlFor="password"
+                className="block text-xs font-medium text-[var(--color-text-muted)] mb-2"
+              >
                 Password
               </label>
               <input
+                id="password"
+                ref={passwordRef}
+                name="password"
                 type="password"
-                placeholder="Min 8 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isSignup ? "new-password" : "current-password"}
                 required
                 minLength={8}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                aria-invalid={!!error}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-white placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
               />
             </div>
+
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold text-sm py-2 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting
-                ? "..."
+                ? isSignup
+                  ? "Creating account…"
+                  : "Signing in…"
                 : isSignup
                   ? "Create account"
                   : "Sign in"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-zinc-500 text-sm">
-            {isSignup ? "Already have an account?" : "No account?"}{" "}
+          <div
+            className="flex items-center gap-3 my-6"
+            aria-hidden="true"
+          >
+            <div className="h-px flex-1 bg-[var(--color-border)]" />
+            <span className="text-xs uppercase tracking-wider text-[var(--color-text-subtle)]">
+              or
+            </span>
+            <div className="h-px flex-1 bg-[var(--color-border)]" />
+          </div>
+
+          <p className="text-center text-sm text-[var(--color-text-muted)]">
+            {isSignup ? "Already have an account?" : "New to Converge?"}{" "}
             <button
+              type="button"
               onClick={() => {
                 setIsSignup(!isSignup);
                 setError("");
               }}
-              className="text-indigo-400 hover:text-indigo-300 font-medium"
+              className="text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)] font-medium underline-offset-2 hover:underline"
             >
-              {isSignup ? "Sign in" : "Sign up"}
+              {isSignup ? "Sign in" : "Create an account"}
             </button>
           </p>
         </div>
-      </div>
+
+        <p className="text-center text-xs text-[var(--color-text-subtle)] mt-6">
+          By continuing, you agree to our Terms and Privacy Policy.
+        </p>
+      </main>
     </div>
   );
 }

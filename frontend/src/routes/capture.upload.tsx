@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { FileUpload } from "../components/capture/FileUpload";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
+import { PageHeader } from "../components/layout/PageHeader";
+import { ModeTabs } from "./capture";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
 
@@ -11,6 +13,10 @@ export const Route = createFileRoute("/capture/upload")({
 
 type PipelineStage = 'transcribing' | 'cleaning' | 'notes' | 'flashcards' | 'quiz' | 'done' | 'error';
 
+/**
+ * Upload route — twin of `/capture`. Drag-and-drop dropzone, then inline
+ * processing status. No nested cards; the dropzone *is* the surface.
+ */
 function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -80,18 +86,28 @@ function UploadPage() {
   }, []);
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-zinc-100 mb-6">Upload Audio</h1>
+    <>
+      <PageHeader
+        title="Upload"
+        subtitle="Drop in an audio file to transcribe and generate study materials."
+        actions={<ModeTabs current="upload" />}
+      />
 
-      {pipelineStage && (
-        <div className="mb-6">
-          <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
-        </div>
-      )}
+      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-2xl mx-auto">
+        {pipelineStage && (
+          <div className="mb-8">
+            <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
+          </div>
+        )}
 
-      {!pipelineStage && (
-        <FileUpload onUpload={handleUpload} isUploading={isUploading} progress={progress} />
-      )}
-    </div>
+        {!pipelineStage && (
+          <FileUpload
+            onUpload={handleUpload}
+            isUploading={isUploading}
+            progress={progress}
+          />
+        )}
+      </div>
+    </>
   );
 }

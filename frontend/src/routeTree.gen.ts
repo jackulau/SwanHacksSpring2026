@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrashRouteImport } from './routes/trash'
 import { Route as StudyRouteImport } from './routes/study'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as CaptureRouteImport } from './routes/capture'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudyPlannerRouteImport } from './routes/study.planner'
 import { Route as StudyFlashcardsRouteImport } from './routes/study.flashcards'
@@ -23,6 +25,11 @@ import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as CaptureUploadRouteImport } from './routes/capture.upload'
 import { Route as StudyQuizQuizIdRouteImport } from './routes/study.quiz.$quizId'
 
+const TrashRoute = TrashRouteImport.update({
+  id: '/trash',
+  path: '/trash',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudyRoute = StudyRouteImport.update({
   id: '/study',
   path: '/study',
@@ -46,6 +53,11 @@ const CoursesRoute = CoursesRouteImport.update({
 const CaptureRoute = CaptureRouteImport.update({
   id: '/capture',
   path: '/capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -91,11 +103,13 @@ const StudyQuizQuizIdRoute = StudyQuizQuizIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
+  '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -106,11 +120,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
+  '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -122,11 +138,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
+  '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -139,11 +157,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/calendar'
     | '/capture'
     | '/courses'
     | '/login'
     | '/settings'
     | '/study'
+    | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
@@ -154,11 +174,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/calendar'
     | '/capture'
     | '/courses'
     | '/login'
     | '/settings'
     | '/study'
+    | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
@@ -169,11 +191,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/calendar'
     | '/capture'
     | '/courses'
     | '/login'
     | '/settings'
     | '/study'
+    | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
@@ -185,16 +209,25 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalendarRoute: typeof CalendarRoute
   CaptureRoute: typeof CaptureRouteWithChildren
   CoursesRoute: typeof CoursesRouteWithChildren
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   StudyRoute: typeof StudyRouteWithChildren
+  TrashRoute: typeof TrashRoute
   LecturesLectureIdRoute: typeof LecturesLectureIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trash': {
+      id: '/trash'
+      path: '/trash'
+      fullPath: '/trash'
+      preLoaderRoute: typeof TrashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/study': {
       id: '/study'
       path: '/study'
@@ -228,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/capture'
       fullPath: '/capture'
       preLoaderRoute: typeof CaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -339,11 +379,13 @@ const StudyRouteWithChildren = StudyRoute._addFileChildren(StudyRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalendarRoute: CalendarRoute,
   CaptureRoute: CaptureRouteWithChildren,
   CoursesRoute: CoursesRouteWithChildren,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRouteWithChildren,
   StudyRoute: StudyRouteWithChildren,
+  TrashRoute: TrashRoute,
   LecturesLectureIdRoute: LecturesLectureIdRoute,
 }
 export const routeTree = rootRouteImport

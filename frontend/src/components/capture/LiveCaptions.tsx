@@ -7,13 +7,21 @@ interface LiveCaptionsProps {
   fontSize?: number;
   showSpeakerLabels?: boolean;
   showConfidence?: boolean;
+  /** Compact, in-flow rendering. No card chrome — just text. */
+  placeholder?: string;
 }
 
+/**
+ * Continuous, typographic transcription view. Reads as a single paragraph
+ * (Otter-style) rather than a stack of bubbles. Final segments are bright,
+ * interim segments fade muted so the eye knows what's settled.
+ */
 export function LiveCaptions({
   captions,
-  fontSize = 18,
+  fontSize = 22,
   showSpeakerLabels = true,
   showConfidence = false,
+  placeholder = 'Captions will appear here as you speak.',
 }: LiveCaptionsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -23,45 +31,65 @@ export function LiveCaptions({
     }
   }, [captions]);
 
+  // Group consecutive segments by speaker for paragraph-like flow.
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900/50 p-4 space-y-2"
+      className="overflow-y-auto leading-relaxed font-serif tracking-tight text-balance"
       role="log"
       aria-label="Live captions"
       aria-live="polite"
+      aria-atomic="false"
+      style={{ fontSize, maxHeight: '60vh' }}
     >
-      {captions.length === 0 && (
-        <p className="text-zinc-500 text-center py-8">
-          Captions will appear here...
+      {captions.length === 0 ? (
+        <p className="text-[var(--color-text-subtle)] italic" style={{ fontSize: fontSize - 4 }}>
+          {placeholder}
+        </p>
+      ) : (
+        <p className="text-white">
+          {captions.map((segment, i) => {
+            const isSign = segment.source === 'sign';
+            const prev = captions[i - 1];
+            const speakerChanged =
+              showSpeakerLabels &&
+              segment.speaker &&
+              segment.speaker !== prev?.speaker;
+
+            return (
+              <span key={i}>
+                {speakerChanged && (
+                  <span className="block mt-4 text-xs uppercase tracking-wider text-[var(--color-primary-strong)] font-sans font-medium">
+                    {segment.speaker}
+                  </span>
+                )}
+                {isSign && (
+                  <Hand
+                    className="inline-block w-4 h-4 mr-1 text-[var(--color-primary-strong)] -translate-y-0.5"
+                    aria-hidden="true"
+                  />
+                )}
+                <span
+                  className={
+                    isSign
+                      ? 'italic text-[var(--color-primary-strong)]'
+                      : segment.isFinal
+                        ? 'text-white'
+                        : 'text-[var(--color-text-muted)]'
+                  }
+                  style={{
+                    opacity: showConfidence
+                      ? 0.5 + segment.confidence * 0.5
+                      : undefined,
+                  }}
+                >
+                  {segment.text}
+                </span>{' '}
+              </span>
+            );
+          })}
         </p>
       )}
-      {captions.map((segment, i) => (
-        <div
-          key={i}
-          className={`${
-            segment.isFinal ? 'text-zinc-100' : 'text-zinc-400'
-          }`}
-          style={{
-            fontSize,
-            opacity: showConfidence
-              ? 0.5 + segment.confidence * 0.5
-              : 1,
-          }}
-        >
-          {segment.source === 'sign' && (
-            <Hand className="inline-block w-4 h-4 mr-1 text-indigo-400" />
-          )}
-          {showSpeakerLabels && segment.speaker && (
-            <span className="text-indigo-400 font-medium mr-2">
-              {segment.speaker}:
-            </span>
-          )}
-          <span className={segment.source === 'sign' ? 'italic text-indigo-300' : ''}>
-            {segment.text}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }
