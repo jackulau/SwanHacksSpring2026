@@ -9,8 +9,24 @@ import {
 import { pb } from "./pocketbase";
 import { useAuth } from "./auth";
 
+export type ReadingRulerMode = "off" | "bar" | "window";
+export type ReadingRulerTint =
+  | "none"
+  | "yellow"
+  | "peach"
+  | "blue"
+  | "lavender"
+  | "mint";
+export type FocusModeScope = "off" | "paragraph" | "sentence";
+
 export interface Preferences {
-  theme: "dark" | "light" | "high-contrast" | "sepia";
+  /**
+   * The app is locked to a dark canvas. `dark` is the default look; the
+   * `high-contrast` variant is an accessibility override that keeps the dark
+   * palette but with maximum contrast (white text on pure black). Light and
+   * sepia were removed when the app went dark-only.
+   */
+  theme: "dark" | "high-contrast";
   font: "system" | "opendyslexic" | "atkinson";
   fontSize: number;
   lineSpacing: number;
@@ -21,6 +37,12 @@ export interface Preferences {
   cardsPerSession: number;
   pomodoroLength: number;
   breakReminders: boolean;
+  readingRuler: ReadingRulerMode;
+  readingRulerHeight: number;
+  readingRulerTint: ReadingRulerTint;
+  readingRulerOpacity: number;
+  focusMode: FocusModeScope;
+  focusModeDim: number;
 }
 
 const defaults: Preferences = {
@@ -35,6 +57,12 @@ const defaults: Preferences = {
   cardsPerSession: 20,
   pomodoroLength: 25,
   breakReminders: true,
+  readingRuler: "off",
+  readingRulerHeight: 32,
+  readingRulerTint: "yellow",
+  readingRulerOpacity: 60,
+  focusMode: "off",
+  focusModeDim: 35,
 };
 
 interface PreferencesContextValue {
@@ -49,7 +77,17 @@ const STORAGE_KEY = "hackstack-preferences";
 function loadFromStorage(): Preferences {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...defaults, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<Preferences> & {
+        theme?: string;
+      };
+      // Migrate users who previously had `light` or `sepia` selected — the
+      // app is dark-only now, so coerce any legacy theme back to `dark`
+      // (or to `high-contrast` if they had that, which is still supported).
+      const validTheme: Preferences["theme"] =
+        parsed.theme === "high-contrast" ? "high-contrast" : "dark";
+      return { ...defaults, ...parsed, theme: validTheme };
+    }
   } catch {
     // ignore
   }
@@ -59,12 +97,12 @@ function loadFromStorage(): Preferences {
 function applyToDOM(prefs: Preferences) {
   const root = document.documentElement;
 
-  // Theme class
+  // Theme class — only `high-contrast` adds a class; `dark` is the baseline.
+  // Keep `theme-sepia` in the remove list so anyone migrating off the old
+  // sepia preference doesn't end up with a stuck class on the html element.
   root.classList.remove("theme-high-contrast", "theme-sepia");
   if (prefs.theme === "high-contrast") {
     root.classList.add("theme-high-contrast");
-  } else if (prefs.theme === "sepia") {
-    root.classList.add("theme-sepia");
   }
 
   // Font class
@@ -87,6 +125,14 @@ function applyToDOM(prefs: Preferences) {
   } else {
     root.classList.remove("reduce-motion");
   }
+
+  // Reading-aid CSS vars
+  root.style.setProperty("--reading-ruler-height", `${prefs.readingRulerHeight}px`);
+  root.style.setProperty("--reading-ruler-dim", `${prefs.readingRulerOpacity / 100}`);
+  root.style.setProperty("--focus-dim", `${prefs.focusModeDim / 100}`);
+  root.dataset.readingRuler = prefs.readingRuler;
+  root.dataset.readingRulerTint = prefs.readingRulerTint;
+  root.dataset.focusMode = prefs.focusMode;
 }
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {

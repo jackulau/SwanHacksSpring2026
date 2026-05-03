@@ -1,14 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { A11yPanel } from "../components/accessibility/A11yPanel";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/settings/accessibility")({
-  component: AccessibilityPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/settings" });
+  },
 });
-
-function AccessibilityPage() {
-  return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <A11yPanel isOpen={true} onClose={() => {}} />
-    </div>
-  );
-}

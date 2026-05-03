@@ -3,9 +3,10 @@ import { useEffect, useState, useCallback } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
+import { PageHeader } from "../components/layout/PageHeader";
 import { QuizRunner } from "../components/study/QuizRunner";
 import { pb } from "../lib/pocketbase";
-import type { Quiz, QuizQuestion, QuizAnswer } from "../lib/types";
+import type { Quiz, QuizQuestion } from "../lib/types";
 
 export const Route = createFileRoute("/study/quiz/$quizId")({
   component: QuizPage,
@@ -64,8 +65,9 @@ function QuizPage() {
   if (authLoading || !user || loading) {
     return (
       <AppShell>
+        <PageHeader title="Quiz" />
         <div className="p-6">
-          <p className="text-zinc-500">Loading...</p>
+          <p className="text-[var(--color-text-muted)]">Loading...</p>
         </div>
       </AppShell>
     );
@@ -74,14 +76,15 @@ function QuizPage() {
   if (error || !quiz) {
     return (
       <AppShell>
+        <PageHeader title="Quiz" />
         <div className="p-6 max-w-3xl mx-auto">
           <button
             onClick={() => navigate({ to: "/study" })}
-            className="flex items-center gap-1 text-zinc-400 hover:text-zinc-200 mb-4"
+            className="flex items-center gap-1 text-[var(--color-text-muted)] hover:text-white mb-4"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Study
           </button>
-          <p className="text-zinc-400">{error || "Quiz not found"}</p>
+          <p className="text-[var(--color-text-muted)]">{error || "Quiz not found"}</p>
         </div>
       </AppShell>
     );
@@ -89,14 +92,14 @@ function QuizPage() {
 
   return (
     <AppShell>
+      <PageHeader title={quiz.title} eyebrow="Quiz" />
       <div className="p-6 max-w-3xl mx-auto">
         <button
           onClick={() => navigate({ to: "/study" })}
-          className="flex items-center gap-1 text-zinc-400 hover:text-zinc-200 mb-4"
+          className="flex items-center gap-1 text-[var(--color-text-muted)] hover:text-white mb-4"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Study
         </button>
-        <h1 className="text-2xl font-bold text-zinc-100 mb-6">{quiz.title}</h1>
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}
           onComplete={handleComplete}

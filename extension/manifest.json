@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "HackStack Canvas Sync",
+  "name": "Converge Canvas Sync",
   "version": "1.0.0",
-  "description": "Sync Canvas LMS courses and assignments to HackStack",
+  "description": "Sync Canvas LMS courses and assignments to Converge using your existing Canvas login",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://*.instructure.com/*",

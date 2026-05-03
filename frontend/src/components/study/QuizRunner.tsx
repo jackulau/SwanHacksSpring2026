@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { useStudySession } from '../../hooks/useStudySession';
 import type { QuizQuestion } from '../../lib/types';
 
 interface QuizRunnerProps {
   questions: QuizQuestion[];
   onComplete: (answers: QuizAnswer[]) => void;
+  lectureId?: string;
 }
 
 interface QuizAnswer {
@@ -14,13 +16,47 @@ interface QuizAnswer {
   pointsEarned: number;
 }
 
-export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
+export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number | boolean | string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState<QuizAnswer[]>([]);
 
   const question = questions[currentIdx];
+
+  const { start, finish } = useStudySession();
+  const sessionIdRef = useRef<string | null>(null);
+  const finishedRef = useRef(false);
+
+  // Start a quiz session on mount (once questions are available).
+  useEffect(() => {
+    if (questions.length === 0) return;
+    if (sessionIdRef.current) return;
+
+    let cancelled = false;
+    start({ session_type: 'quiz', lecture: lectureId })
+      .then((id) => {
+        if (cancelled) return;
+        sessionIdRef.current = id;
+      })
+      .catch(() => {
+        // Errors are already logged in the hook.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [questions.length, lectureId, start]);
+
+  // Finish the session on unmount if it wasn't submitted.
+  useEffect(() => {
+    return () => {
+      const id = sessionIdRef.current;
+      if (!id || finishedRef.current) return;
+      finishedRef.current = true;
+      void finish(id);
+    };
+  }, [finish]);
 
   const handleAnswer = useCallback(
     (value: number | boolean | string) => {
@@ -59,8 +95,22 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
 
     setResults(quizAnswers);
     setSubmitted(true);
+
+    const sessionId = sessionIdRef.current;
+    if (sessionId && !finishedRef.current) {
+      finishedRef.current = true;
+      const correctAnswers = quizAnswers.reduce(
+        (count, answer) => count + (answer.correct ? 1 : 0),
+        0,
+      );
+      void finish(sessionId, {
+        cards_reviewed: questions.length,
+        cards_correct: correctAnswers,
+      });
+    }
+
     onComplete(quizAnswers);
-  }, [questions, answers, onComplete]);
+  }, [questions, answers, onComplete, finish]);
 
   if (submitted) {
     const totalEarned = results.reduce((s, r) => s + r.pointsEarned, 0);
@@ -70,8 +120,8 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
-          <p className="text-4xl font-bold text-zinc-100 mb-2">{pct}%</p>
-          <p className="text-zinc-400">
+          <p className="text-4xl font-bold text-white mb-2">{pct}%</p>
+          <p className="text-[var(--color-text-muted)]">
             {totalEarned}/{totalPossible} points
           </p>
         </div>
@@ -82,22 +132,22 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
             return (
               <div
                 key={q.id}
-                className={`border rounded-lg p-4 ${
+                className={`border rounded-2xl p-4 ${
                   result.correct
-                    ? 'border-green-700 bg-green-900/20'
-                    : 'border-red-700 bg-red-900/20'
+                    ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary-soft)]/40'
+                    : 'border-[var(--color-record)]/40 bg-red-900/20'
                 }`}
               >
                 <div className="flex items-start gap-2">
                   {result.correct ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-[var(--color-primary-strong)] mt-0.5 shrink-0" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                    <XCircle className="w-5 h-5 text-[var(--color-record)] mt-0.5 shrink-0" />
                   )}
                   <div>
-                    <p className="text-zinc-100 font-medium">{q.question}</p>
+                    <p className="text-white font-medium">{q.question}</p>
                     {q.explanation && (
-                      <p className="text-zinc-400 text-sm mt-2">{q.explanation}</p>
+                      <p className="text-[var(--color-text-muted)] text-sm mt-2">{q.explanation}</p>
                     )}
                   </div>
                 </div>
@@ -111,22 +161,22 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between text-sm text-zinc-400">
+      <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)]">
         <span>
           Question {currentIdx + 1} of {questions.length}
         </span>
         <span className="capitalize">{question.difficulty}</span>
       </div>
 
-      <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-[var(--color-input)] rounded-full overflow-hidden">
         <div
-          className="h-full bg-indigo-500 transition-all duration-300"
+          className="h-full bg-[var(--color-primary)] transition-all duration-300"
           style={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }}
         />
       </div>
 
-      <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-        <p className="text-lg text-zinc-100 mb-6">{question.question}</p>
+      <div className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-2xl p-6 soft-shadow">
+        <p className="text-lg text-white mb-6">{question.question}</p>
 
         {question.type === 'multiple_choice' && (
           <div className="space-y-3">
@@ -134,10 +184,10 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
               <button
                 key={idx}
                 onClick={() => handleAnswer(idx)}
-                className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                className={`w-full text-left p-4 rounded-xl border transition-colors ${
                   answers[question.id] === idx
-                    ? 'border-indigo-500 bg-indigo-500/20 text-zinc-100'
-                    : 'border-zinc-700 hover:border-zinc-500 text-zinc-300'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-white'
+                    : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] bg-black'
                 }`}
               >
                 {opt}
@@ -152,10 +202,10 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
               <button
                 key={String(val)}
                 onClick={() => handleAnswer(val)}
-                className={`flex-1 p-4 rounded-lg border transition-colors font-medium ${
+                className={`flex-1 p-4 rounded-xl border transition-colors font-medium ${
                   answers[question.id] === val
-                    ? 'border-indigo-500 bg-indigo-500/20 text-zinc-100'
-                    : 'border-zinc-700 hover:border-zinc-500 text-zinc-300'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-white'
+                    : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] bg-black'
                 }`}
               >
                 {val ? 'True' : 'False'}
@@ -172,7 +222,7 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
             placeholder={
               question.type === 'fill_blank' ? 'Fill in the blank...' : 'Type your answer...'
             }
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)]"
           />
         )}
       </div>
@@ -181,7 +231,7 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
         <button
           onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
           disabled={currentIdx === 0}
-          className="flex items-center gap-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 text-[var(--color-text-muted)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronLeft className="w-4 h-4" /> Previous
         </button>
@@ -189,14 +239,14 @@ export function QuizRunner({ questions, onComplete }: QuizRunnerProps) {
         {currentIdx === questions.length - 1 ? (
           <button
             onClick={handleSubmit}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2 rounded-lg transition-colors"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold px-6 py-2 rounded-full transition-colors"
           >
             Submit Quiz
           </button>
         ) : (
           <button
             onClick={() => setCurrentIdx((i) => Math.min(questions.length - 1, i + 1))}
-            className="flex items-center gap-1 text-zinc-400 hover:text-zinc-200"
+            className="flex items-center gap-1 text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)]"
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>

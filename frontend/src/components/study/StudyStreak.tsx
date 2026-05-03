@@ -7,13 +7,13 @@ interface StudyStreakProps {
 
 export function StudyStreak({ streak, todayCompleted }: StudyStreakProps) {
   return (
-    <div className="flex items-center gap-3 bg-zinc-800/50 border border-zinc-700 rounded-xl p-4">
-      <div className={`p-2 rounded-full ${streak > 0 ? 'bg-orange-500/20' : 'bg-zinc-700/50'}`}>
-        <Flame className={`w-6 h-6 ${streak > 0 ? 'text-orange-400' : 'text-zinc-500'}`} />
+    <div className="flex items-center gap-3">
+      <div className={`p-2 rounded-full ${streak > 0 ? 'bg-orange-500/20' : 'bg-[var(--color-input)]'}`}>
+        <Flame className={`w-6 h-6 ${streak > 0 ? 'text-orange-400' : 'text-[var(--color-text-subtle)]'}`} />
       </div>
       <div>
-        <p className="text-2xl font-bold text-zinc-100">{streak} day{streak !== 1 ? 's' : ''}</p>
-        <p className="text-sm text-zinc-400">
+        <p className="text-2xl font-bold text-white">{streak} day{streak !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-[var(--color-text-muted)]">
           {todayCompleted ? 'Keep it going!' : 'Study today to continue your streak'}
         </p>
       </div>

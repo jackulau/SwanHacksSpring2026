@@ -2,20 +2,61 @@
 @import "@fontsource/atkinson-hyperlegible/400.css";
 @import "@fontsource/atkinson-hyperlegible/700.css";
 
+/* ── Design tokens (dark-only) ────────────────────────────────────────────── */
+
 @theme {
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-surface: #18181b;
-  --color-surface-raised: #27272a;
-  --color-border: #3f3f46;
-  --color-text: #fafafa;
-  --color-text-muted: #a1a1aa;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  /* Brand — Converge green */
+  --color-primary: #5fbf78;          /* sage green from mockup active states */
+  --color-primary-hover: #6dd089;
+  --color-primary-soft: #2a4a35;     /* deep green tint for selected backgrounds */
+  --color-primary-strong: #4ade80;   /* punchier green for badges / "Start Notes" text */
+  --color-accent: #6dd089;
+  --color-record: #f87171;           /* red used by record CTA */
+
+  /* Surfaces — true black sidebar/cards on a dark-grey page */
+  --color-bg: #1c1c1c;               /* page background (the canvas behind cards) */
+  --color-sidebar: #000000;          /* sidebar */
+  --color-surface: #000000;          /* cards */
+  --color-surface-raised: #141414;   /* slightly raised panels */
+  --color-surface-elevated: #1f1f1f; /* dropdowns, popovers */
+  --color-input: #2a2a2a;            /* input fields, search */
+  --color-border: #2a2a2a;
+  --color-border-strong: #3a3a3a;
+
+  /* Header band */
+  --color-header: #2f2f2f;
+
+  /* Text */
+  --color-text: #ffffff;
+  --color-text-muted: #b8b8b8;
+  --color-text-subtle: #7a7a7a;
+
+  /* Status */
+  --color-success: #5fbf78;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
 }
 
-/* ── Font classes ── */
+/* ── Body baseline ─────────────────────────────────────────────────────────
+ * Lock the app to a permanent dark canvas. The aurora gradient only renders
+ * inside hero surfaces (see `.vibe-aurora`), so the base canvas stays calm. */
+
+html,
+body,
+#root {
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+body {
+  /* Quiet dark grey canvas — keeps cards (true black) reading as the
+   * elevated surface, matching the mockup's depth language. */
+  background-image: none;
+}
+
+/* ── Font classes ──────────────────────────────────────────────────────── */
 
 .font-atkinson {
   font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
@@ -25,55 +66,310 @@
   font-family: "OpenDyslexic", "Comic Sans MS", cursive, sans-serif;
 }
 
-/* ── Theme overrides ── */
+/* ── High-contrast accessibility theme (dark only) ─────────────────────── */
 
 .theme-high-contrast {
+  --color-bg: #000000;
   --color-surface: #000000;
-  --color-surface-raised: #1a1a1a;
+  --color-surface-raised: #0a0a0a;
+  --color-surface-elevated: #141414;
   --color-border: #ffffff;
+  --color-border-strong: #ffffff;
   --color-text: #ffffff;
   --color-text-muted: #e0e0e0;
-  --color-primary: #818cf8;
-  --color-primary-hover: #6366f1;
+  --color-text-subtle: #cccccc;
+  --color-primary: #ffff00;
+  --color-primary-hover: #ffeb3b;
 }
 
-.theme-high-contrast {
-  @apply bg-black text-white;
+.theme-high-contrast,
+.theme-high-contrast body {
+  background: #000000 !important;
+  background-image: none !important;
+  color: #ffffff;
 }
 
-.theme-sepia {
-  --color-surface: #f5f0e8;
-  --color-surface-raised: #ede6d6;
-  --color-border: #c9b99a;
-  --color-text: #3b2e1a;
-  --color-text-muted: #7a6b52;
-  --color-primary: #8b5e3c;
-  --color-primary-hover: #6d4a2e;
+/* ── Vibe header background ────────────────────────────────────────────────
+ * Reserved for hero surfaces (greeting card, login left panel). Layered
+ * gradients with a subtle noise overlay create the "aurora" vibe without
+ * making the rest of the page noisy. */
+
+.vibe-aurora {
+  position: relative;
+  overflow: hidden;
+  /* Grey "header band" base, with a subtle Converge-green glow that gives
+   * the strip atmosphere without competing with content. */
+  background:
+    radial-gradient(
+      ellipse 70% 110% at 8% 0%,
+      rgba(95, 191, 120, 0.18) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 90% at 95% 100%,
+      rgba(95, 191, 120, 0.12) 0%,
+      transparent 55%
+    ),
+    linear-gradient(135deg, #353535 0%, #2c2c2c 60%, #232323 100%);
 }
 
-.theme-sepia {
-  @apply bg-[#f5f0e8] text-[#3b2e1a];
+.vibe-aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 255, 255, 0.06) 0%,
+      transparent 0.5px
+    ),
+    radial-gradient(
+      circle at 60% 70%,
+      rgba(255, 255, 255, 0.04) 0%,
+      transparent 0.5px
+    );
+  background-size: 4px 4px, 6px 6px;
+  pointer-events: none;
+  opacity: 0.6;
 }
 
-/* ── Focus mode ── */
+.vibe-aurora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 60%,
+      rgba(8, 8, 12, 0.35) 100%
+    );
+  pointer-events: none;
+}
+
+.theme-high-contrast .vibe-aurora,
+.theme-high-contrast .vibe-aurora::before,
+.theme-high-contrast .vibe-aurora::after {
+  background: #000 !important;
+  background-image: none !important;
+}
+
+/* ── Glass surfaces ───────────────────────────────────────────────────────
+ * Used for cards that sit on the aurora hero. Adds a frosted feel without
+ * killing legibility. */
+
+.glass {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-strong {
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.theme-high-contrast .glass,
+.theme-high-contrast .glass-strong {
+  background: #000;
+  border-color: #fff;
+  backdrop-filter: none;
+}
+
+/* ── Soft shadow utility (used in dashboard cards) ─────────────────────── */
+
+.soft-shadow {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Skeleton shimmer (used by skeleton loading) ───────────────────────── */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(38, 38, 58, 0.55) 0%,
+    rgba(56, 56, 82, 0.55) 50%,
+    rgba(38, 38, 58, 0.55) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.reduce-motion .skeleton {
+  animation: none;
+}
+
+/* ── Streak chip pulse ─────────────────────────────────────────────────── */
+
+.streak-flame {
+  animation: streak-flicker 2.6s ease-in-out infinite;
+}
+
+@keyframes streak-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(-1deg);
+    filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.55));
+  }
+  50% {
+    transform: scale(1.06) rotate(2deg);
+    filter: drop-shadow(0 0 14px rgba(251, 146, 60, 0.85));
+  }
+}
+
+.reduce-motion .streak-flame {
+  animation: none;
+}
+
+/* ── Sidebar dropdown caret transition ─────────────────────────────────── */
+
+.caret-rotate {
+  transition: transform 0.18s ease-out;
+}
+
+.caret-rotate[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+/* ── Focus mode ──────────────────────────────────────────────────────────
+ * Spotlight metaphor — kept from the previous design but retuned for the
+ * deeper canvas. */
 
 .focus-highlight {
-  background-color: rgba(99, 102, 241, 0.08);
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  background-color: rgba(99, 102, 241, 0.38);
+  background-image: linear-gradient(
+    180deg,
+    rgba(129, 140, 248, 0.28) 0%,
+    rgba(99, 102, 241, 0.42) 100%
+  );
+  border-radius: 6px;
+  padding: 2px 6px;
+  outline: 2px solid rgba(165, 180, 252, 0.95);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 28px 6px rgba(99, 102, 241, 0.45),
+    0 8px 28px -4px rgba(0, 0, 0, 0.35);
+  color: #ffffff !important;
+  transition:
+    background-color 0.18s,
+    outline-color 0.18s,
+    box-shadow 0.18s,
+    opacity 0.18s;
 }
 
-body:has(.focus-highlight) *:not(.focus-highlight):not(.focus-highlight *) {
-  opacity: 0.4;
-  transition: opacity 0.2s;
+.focus-highlight * {
+  color: #ffffff !important;
 }
 
-body:has(.focus-highlight) .focus-highlight,
-body:has(.focus-highlight) .focus-highlight * {
+[data-focus-zone].focus-zone-active *:not(.focus-highlight):not(.focus-highlight *) {
+  opacity: var(--focus-dim, 0.45);
+  filter: blur(0.2px);
+  transition:
+    opacity 0.2s,
+    filter 0.2s;
+}
+
+[data-focus-zone].focus-zone-active .focus-highlight,
+[data-focus-zone].focus-zone-active .focus-highlight * {
   opacity: 1;
+  filter: none;
 }
 
-/* ── Reduced motion ── */
+.theme-high-contrast .focus-highlight {
+  background: rgba(255, 255, 0, 0.55);
+  background-image: none;
+  outline: 3px solid #ffff00;
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 32px 8px rgba(255, 255, 0, 0.6);
+  color: #000000 !important;
+}
+.theme-high-contrast .focus-highlight * {
+  color: #000000 !important;
+}
+
+.focus-sentence-overlay {
+  background-color: rgba(129, 140, 248, 0.55);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1.5px rgba(199, 210, 254, 0.95),
+    0 0 24px 4px rgba(99, 102, 241, 0.55);
+  mix-blend-mode: screen;
+  transition: opacity 0.12s;
+}
+
+.theme-high-contrast .focus-sentence-overlay {
+  background-color: rgba(255, 255, 0, 0.7);
+  box-shadow:
+    0 0 0 2px #000,
+    0 0 24px 6px rgba(255, 255, 0, 0.7);
+  mix-blend-mode: normal;
+}
+
+/* ── Reading ruler ─────────────────────────────────────────────────────── */
+
+.reading-ruler-bar {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 22px 4px rgba(255, 255, 255, 0.06),
+    0 4px 16px rgba(0, 0, 0, 0.28);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.18);
+  mix-blend-mode: screen;
+}
+
+.ruler-tint-yellow {
+  background: rgba(253, 224, 71, 0.55);
+}
+.ruler-tint-peach {
+  background: rgba(252, 165, 165, 0.55);
+}
+.ruler-tint-blue {
+  background: rgba(147, 197, 253, 0.55);
+}
+.ruler-tint-lavender {
+  background: rgba(196, 181, 253, 0.6);
+}
+.ruler-tint-mint {
+  background: rgba(167, 243, 208, 0.6);
+}
+.ruler-tint-yellow,
+.ruler-tint-peach,
+.ruler-tint-blue,
+.ruler-tint-lavender,
+.ruler-tint-mint {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 26px 6px rgba(255, 255, 255, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.theme-high-contrast .reading-ruler-bar {
+  background: rgba(255, 255, 0, 0.65) !important;
+  border-color: #ffff00;
+  box-shadow:
+    0 0 0 2px #ffff00,
+    0 0 24px 6px rgba(255, 255, 0, 0.6);
+  mix-blend-mode: normal;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
 
 .reduce-motion,
 .reduce-motion * {
@@ -81,7 +377,35 @@ body:has(.focus-highlight) .focus-highlight * {
   transition-duration: 0.01ms !important;
 }
 
-/* ── Perspective for card flips ── */
+@media (prefers-reduced-motion: reduce) {
+  .focus-highlight,
+  [data-focus-zone].focus-zone-active *:not(.focus-highlight):not(.focus-highlight *) {
+    transition: none !important;
+  }
+  .streak-flame,
+  .skeleton {
+    animation: none !important;
+  }
+}
+
+/* ── Print: disable reading aids ───────────────────────────────────────── */
+
+@media print {
+  .reading-ruler-bar,
+  .reading-ruler-window-above,
+  .reading-ruler-window-below {
+    display: none !important;
+  }
+  [data-focus-zone].focus-zone-active *:not(.focus-highlight):not(.focus-highlight *) {
+    opacity: 1 !important;
+  }
+  .focus-highlight {
+    background: transparent !important;
+    outline: none !important;
+  }
+}
+
+/* ── Card flips ────────────────────────────────────────────────────────── */
 
 .perspective-1000 {
   perspective: 1000px;
@@ -91,18 +415,22 @@ body:has(.focus-highlight) .focus-highlight * {
   backface-visibility: hidden;
 }
 
-/* ── Responsive sidebar ── */
+/* ── Responsive layout vars ────────────────────────────────────────────── */
 
-@media (max-width: 768px) {
-  .sidebar-desktop {
-    display: none;
-  }
+:root {
+  --mobile-nav-height: 0px;
+  --audio-player-height: 0px;
 }
 
-/* ── Scrollbar styling ── */
+.has-mobile-nav-padding {
+  padding-bottom: var(--mobile-nav-height);
+}
+
+/* ── Scrollbar styling ─────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -110,10 +438,10 @@ body:has(.focus-highlight) .focus-highlight * {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border-radius: 3px;
+  background: var(--color-border);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: var(--color-border-strong);
 }

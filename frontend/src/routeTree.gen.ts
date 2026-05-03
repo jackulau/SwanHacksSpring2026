@@ -9,8 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrashRouteImport } from './routes/trash'
 import { Route as StudyRouteImport } from './routes/study'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as CaptureRouteImport } from './routes/capture'
@@ -24,6 +26,11 @@ import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as CaptureUploadRouteImport } from './routes/capture.upload'
 import { Route as StudyQuizQuizIdRouteImport } from './routes/study.quiz.$quizId'
 
+const TrashRoute = TrashRouteImport.update({
+  id: '/trash',
+  path: '/trash',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudyRoute = StudyRouteImport.update({
   id: '/study',
   path: '/study',
@@ -32,6 +39,11 @@ const StudyRoute = StudyRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -101,8 +113,10 @@ export interface FileRoutesByFullPath {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
+  '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -117,8 +131,10 @@ export interface FileRoutesByTo {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
+  '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -134,8 +150,10 @@ export interface FileRoutesById {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
+  '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -152,8 +170,10 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/login'
+    | '/notifications'
     | '/settings'
     | '/study'
+    | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
@@ -168,8 +188,10 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/login'
+    | '/notifications'
     | '/settings'
     | '/study'
+    | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
@@ -184,8 +206,10 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/login'
+    | '/notifications'
     | '/settings'
     | '/study'
+    | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
@@ -201,13 +225,22 @@ export interface RootRouteChildren {
   CaptureRoute: typeof CaptureRouteWithChildren
   CoursesRoute: typeof CoursesRouteWithChildren
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   StudyRoute: typeof StudyRouteWithChildren
+  TrashRoute: typeof TrashRoute
   LecturesLectureIdRoute: typeof LecturesLectureIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trash': {
+      id: '/trash'
+      path: '/trash'
+      fullPath: '/trash'
+      preLoaderRoute: typeof TrashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/study': {
       id: '/study'
       path: '/study'
@@ -220,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -363,8 +403,10 @@ const rootRouteChildren: RootRouteChildren = {
   CaptureRoute: CaptureRouteWithChildren,
   CoursesRoute: CoursesRouteWithChildren,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRouteWithChildren,
   StudyRoute: StudyRouteWithChildren,
+  TrashRoute: TrashRoute,
   LecturesLectureIdRoute: LecturesLectureIdRoute,
 }
 export const routeTree = rootRouteImport

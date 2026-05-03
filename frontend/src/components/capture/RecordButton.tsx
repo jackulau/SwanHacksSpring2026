@@ -21,11 +21,11 @@ export function RecordButton({
     return (
       <button
         onClick={onStart}
-        className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-3 rounded-full transition-colors"
+        className="flex items-center gap-2 bg-[var(--color-record)] hover:opacity-90 text-black font-semibold px-6 py-3 rounded-full transition-colors"
         aria-label="Start recording"
       >
         <Mic className="w-5 h-5" />
-        Start Recording
+        Start recording
       </button>
     );
   }
@@ -34,14 +34,14 @@ export function RecordButton({
     <div className="flex items-center gap-3">
       <button
         onClick={isPaused ? onResume : onPause}
-        className="flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-3 rounded-full transition-colors"
+        className="flex items-center gap-2 bg-black border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-white px-4 py-3 rounded-full transition-colors"
         aria-label={isPaused ? 'Resume recording' : 'Pause recording'}
       >
         {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
       </button>
       <button
         onClick={onStop}
-        className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-3 rounded-full transition-colors"
+        className="flex items-center gap-2 bg-[var(--color-record)] hover:opacity-90 text-black font-semibold px-6 py-3 rounded-full transition-colors"
         aria-label="Stop recording"
       >
         <Square className="w-4 h-4" />

@@ -1,4 +1,5 @@
-import { X, Volume2, Type, Eye, Monitor, Brain } from 'lucide-react';
+import { useEffect } from 'react';
+import { X, Volume2, Type, Eye, Brain, BookOpen } from 'lucide-react';
 import { usePreferences } from '../../lib/preferences';
 
 interface A11yPanelProps {
@@ -8,9 +9,24 @@ interface A11yPanelProps {
 
 export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
   const { prefs: preferences, update } = usePreferences();
-  const updatePreference = <K extends keyof typeof preferences>(key: K, value: (typeof preferences)[K]) => {
-    update({ [key]: value } as any);
+  const updatePreference = <K extends keyof typeof preferences>(
+    key: K,
+    value: (typeof preferences)[K],
+  ) => {
+    update({ [key]: value } as Partial<typeof preferences>);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -31,10 +47,8 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
               label="Theme"
               value={preferences.theme}
               options={[
-                { value: 'dark', label: 'Dark' },
-                { value: 'light', label: 'Light' },
+                { value: 'dark', label: 'Dark (default)' },
                 { value: 'high-contrast', label: 'High Contrast' },
-                { value: 'sepia', label: 'Sepia' },
               ]}
               onChange={(v) => updatePreference('theme', v as typeof preferences.theme)}
             />
@@ -82,6 +96,79 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
               ]}
               onChange={(v) => updatePreference('readingLevel', v as typeof preferences.readingLevel)}
             />
+          </Section>
+
+          <Section icon={<BookOpen className="w-4 h-4" />} title="Reading Aids">
+            <SelectOption
+              label="Reading Ruler (Alt+R)"
+              value={preferences.readingRuler}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'bar', label: 'Bar' },
+                { value: 'window', label: 'Window' },
+              ]}
+              onChange={(v) => updatePreference('readingRuler', v as typeof preferences.readingRuler)}
+            />
+            {preferences.readingRuler !== 'off' && (
+              <>
+                <SliderOption
+                  label="Ruler Height"
+                  value={preferences.readingRulerHeight}
+                  min={16}
+                  max={80}
+                  step={2}
+                  unit="px"
+                  onChange={(v) => updatePreference('readingRulerHeight', v)}
+                />
+                <SelectOption
+                  label="Ruler Tint"
+                  value={preferences.readingRulerTint}
+                  options={[
+                    { value: 'none', label: 'None' },
+                    { value: 'yellow', label: 'Yellow' },
+                    { value: 'peach', label: 'Peach' },
+                    { value: 'blue', label: 'Blue' },
+                    { value: 'lavender', label: 'Lavender' },
+                    { value: 'mint', label: 'Mint' },
+                  ]}
+                  onChange={(v) =>
+                    updatePreference('readingRulerTint', v as typeof preferences.readingRulerTint)
+                  }
+                />
+                {preferences.readingRuler === 'window' && (
+                  <SliderOption
+                    label="Dim Opacity"
+                    value={preferences.readingRulerOpacity}
+                    min={0}
+                    max={90}
+                    step={5}
+                    unit="%"
+                    onChange={(v) => updatePreference('readingRulerOpacity', v)}
+                  />
+                )}
+              </>
+            )}
+            <SelectOption
+              label="Focus Mode (Alt+F)"
+              value={preferences.focusMode}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'paragraph', label: 'Paragraph' },
+                { value: 'sentence', label: 'Sentence' },
+              ]}
+              onChange={(v) => updatePreference('focusMode', v as typeof preferences.focusMode)}
+            />
+            {preferences.focusMode !== 'off' && (
+              <SliderOption
+                label="Surrounding Text Dim"
+                value={preferences.focusModeDim}
+                min={30}
+                max={95}
+                step={5}
+                unit="%"
+                onChange={(v) => updatePreference('focusModeDim', v)}
+              />
+            )}
           </Section>
 
           <Section icon={<Volume2 className="w-4 h-4" />} title="Text-to-Speech">
@@ -145,7 +232,7 @@ function Section({
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-indigo-400">{icon}</span>
+        <span className="text-[var(--color-primary-strong)]">{icon}</span>
         <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">{title}</h3>
       </div>
       <div className="space-y-4">{children}</div>
@@ -170,7 +257,7 @@ function SelectOption({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
+        className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]/60"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -215,7 +302,7 @@ function SliderOption({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-indigo-500"
+        className="w-full accent-[var(--color-primary)]"
       />
     </div>
   );
@@ -236,7 +323,7 @@ function ToggleOption({
       <button
         onClick={() => onChange(!checked)}
         className={`w-11 h-6 rounded-full transition-colors relative ${
-          checked ? 'bg-indigo-600' : 'bg-zinc-700'
+          checked ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'
         }`}
         role="switch"
         aria-checked={checked}

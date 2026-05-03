@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { FileUpload } from "../components/capture/FileUpload";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
+import { PageHeader } from "../components/layout/PageHeader";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
 
@@ -80,18 +81,22 @@ function UploadPage() {
   }, []);
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-zinc-100 mb-6">Upload Audio</h1>
+    <>
+      <PageHeader title="Upload Lecture" subtitle="Drop in an audio file to transcribe and generate study materials" />
 
-      {pipelineStage && (
-        <div className="mb-6">
-          <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
-        </div>
-      )}
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
+        {pipelineStage && (
+          <div className="mb-6">
+            <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
+          </div>
+        )}
 
-      {!pipelineStage && (
-        <FileUpload onUpload={handleUpload} isUploading={isUploading} progress={progress} />
-      )}
-    </div>
+        {!pipelineStage && (
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5">
+            <FileUpload onUpload={handleUpload} isUploading={isUploading} progress={progress} />
+          </div>
+        )}
+      </div>
+    </>
   );
 }
