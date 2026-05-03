@@ -11,6 +11,17 @@ interface SignLanguageDetectorProps {
   confidence: number;
   lastWord: string;
   onToggle: () => void;
+  // DTW word recognizer status (optional — backwards compatible).
+  wordRecognizer?: {
+    isReady: boolean;
+    loadError: string | null;
+    templateCount: number;
+    segmenterState: "idle" | "active" | "cooldown";
+    activeFrames: number;
+    lastWord: string | null;
+    lastDistance: number | null;
+    lastCandidates: { label: string; distance: number }[];
+  };
 }
 
 /**
@@ -28,6 +39,7 @@ export function SignLanguageDetector({
   confidence,
   lastWord,
   onToggle,
+  wordRecognizer,
 }: SignLanguageDetectorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -138,6 +150,58 @@ export function SignLanguageDetector({
               {lastWord}
             </span>
           </p>
+        )}
+        {wordRecognizer && (
+          <div className="pt-2 border-t border-[var(--color-border)] space-y-1">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-[var(--color-text-muted)]">
+              <span>DTW words</span>
+              <span>
+                {wordRecognizer.isReady
+                  ? `${wordRecognizer.templateCount} templates`
+                  : wordRecognizer.loadError
+                    ? "load failed"
+                    : "loading…"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[var(--color-text-muted)]">Segmenter</span>
+              <span
+                className={
+                  wordRecognizer.segmenterState === "active"
+                    ? "text-[var(--color-primary-strong)] font-mono"
+                    : "text-[var(--color-text-muted)] font-mono"
+                }
+              >
+                {wordRecognizer.segmenterState}
+                {wordRecognizer.segmenterState === "active"
+                  ? ` ${wordRecognizer.activeFrames}fr`
+                  : ""}
+              </span>
+            </div>
+            {wordRecognizer.lastWord && (
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Last sign:{' '}
+                <span className="text-[var(--color-primary-strong)] font-medium">
+                  {wordRecognizer.lastWord}
+                </span>
+                {wordRecognizer.lastDistance !== null && (
+                  <span className="text-[var(--color-text-subtle)] font-mono ml-1">
+                    {wordRecognizer.lastDistance.toFixed(2)}
+                  </span>
+                )}
+              </p>
+            )}
+            {wordRecognizer.lastCandidates.length > 0 && (
+              <ul className="text-[11px] font-mono text-[var(--color-text-subtle)] leading-tight">
+                {wordRecognizer.lastCandidates.slice(0, 3).map((c) => (
+                  <li key={c.label} className="flex justify-between">
+                    <span>{c.label}</span>
+                    <span>{c.distance.toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
     </aside>

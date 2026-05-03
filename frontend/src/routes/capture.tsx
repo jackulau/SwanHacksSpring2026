@@ -12,6 +12,7 @@ import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useDeepgramSTT } from "../hooks/useDeepgramSTT";
 import { useMediaPipeHands } from "../hooks/useMediaPipeHands";
 import { useSignLanguage } from "../hooks/useSignLanguage";
+import { useWordSignRecognition } from "../hooks/useWordSignRecognition";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
 
@@ -71,6 +72,23 @@ function RecordingInterface() {
     stt.addSignCaption(word);
   });
 
+  // Word-level recognizer (DTW against bundled WLASL + personalized
+  // templates). Fires per signed word; results are emitted as ASL captions
+  // alongside the letter buffer.
+  const wordSign = useWordSignRecognition((label) => {
+    stt.addSignCaption(label.toUpperCase());
+  });
+
+  // Both letter and word recognition consume the same MediaPipe landmark
+  // stream — combine the callbacks so we only call setOnLandmarks once.
+  const handleLandmarks = useCallback(
+    (handData: Parameters<typeof signLanguage.processLandmarks>[0]) => {
+      signLanguage.processLandmarks(handData);
+      wordSign.processLandmarks(handData);
+    },
+    [signLanguage, wordSign],
+  );
+
   const handleStart = useCallback(async () => {
     await audioControls.start();
     const stream = audioControls.getStream();
@@ -86,8 +104,9 @@ function RecordingInterface() {
     stt.disconnect();
     if (signEnabled) {
       mediapipe.stop();
+      wordSign.reset();
     }
-  }, [audioControls, stt, signEnabled, mediapipe]);
+  }, [audioControls, stt, signEnabled, mediapipe, wordSign]);
 
   const handleToggleSign = useCallback(async () => {
     if (signEnabled) {
@@ -98,7 +117,7 @@ function RecordingInterface() {
         if (!mediapipe.isLoaded) {
           await mediapipe.initialize(videoRef.current);
         }
-        mediapipe.setOnLandmarks(signLanguage.processLandmarks);
+        mediapipe.setOnLandmarks(handleLandmarks);
         mediapipe.start();
 
         try {
@@ -279,6 +298,16 @@ function RecordingInterface() {
               confidence={signLanguage.confidence}
               lastWord={signLanguage.lastWord}
               onToggle={handleToggleSign}
+              wordRecognizer={{
+                isReady: wordSign.isReady,
+                loadError: wordSign.loadError,
+                templateCount: wordSign.templateCount,
+                segmenterState: wordSign.segmenterState,
+                activeFrames: wordSign.activeFrames,
+                lastWord: wordSign.lastWord,
+                lastDistance: wordSign.lastDistance,
+                lastCandidates: wordSign.lastCandidates,
+              }}
             />
           </div>
         )}
