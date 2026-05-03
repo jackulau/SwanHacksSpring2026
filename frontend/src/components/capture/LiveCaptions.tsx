@@ -26,13 +26,13 @@ export function LiveCaptions({
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900/50 p-4 space-y-2"
+      className="flex-1 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5 space-y-2"
       role="log"
       aria-label="Live captions"
       aria-live="polite"
     >
       {captions.length === 0 && (
-        <p className="text-zinc-500 text-center py-8">
+        <p className="text-[var(--color-text-muted)] text-center py-8">
           Captions will appear here...
         </p>
       )}
@@ -40,7 +40,7 @@ export function LiveCaptions({
         <div
           key={i}
           className={`${
-            segment.isFinal ? 'text-zinc-100' : 'text-zinc-400'
+            segment.isFinal ? 'text-white' : 'text-[var(--color-text-muted)]'
           }`}
           style={{
             fontSize,
@@ -50,14 +50,14 @@ export function LiveCaptions({
           }}
         >
           {segment.source === 'sign' && (
-            <Hand className="inline-block w-4 h-4 mr-1 text-indigo-400" />
+            <Hand className="inline-block w-4 h-4 mr-1 text-[var(--color-primary-strong)]" />
           )}
           {showSpeakerLabels && segment.speaker && (
-            <span className="text-indigo-400 font-medium mr-2">
+            <span className="text-[var(--color-primary-strong)] font-medium mr-2">
               {segment.speaker}:
             </span>
           )}
-          <span className={segment.source === 'sign' ? 'italic text-indigo-300' : ''}>
+          <span className={segment.source === 'sign' ? 'italic text-[var(--color-primary-strong)]' : ''}>
             {segment.text}
           </span>
         </div>

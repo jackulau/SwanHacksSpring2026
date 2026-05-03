@@ -13,10 +13,10 @@ interface FlashcardDeckProps {
 }
 
 const RATINGS: { key: QualityRating; label: string; color: string; shortcut: string }[] = [
-  { key: 'again', label: 'Again', color: 'bg-red-600 hover:bg-red-500', shortcut: '1' },
-  { key: 'hard', label: 'Hard', color: 'bg-orange-600 hover:bg-orange-500', shortcut: '2' },
-  { key: 'good', label: 'Good', color: 'bg-green-600 hover:bg-green-500', shortcut: '3' },
-  { key: 'easy', label: 'Easy', color: 'bg-blue-600 hover:bg-blue-500', shortcut: '4' },
+  { key: 'again', label: 'Again', color: 'bg-[var(--color-record)] hover:bg-red-500 text-white', shortcut: '1' },
+  { key: 'hard', label: 'Hard', color: 'bg-orange-600 hover:bg-orange-500 text-white', shortcut: '2' },
+  { key: 'good', label: 'Good', color: 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black', shortcut: '3' },
+  { key: 'easy', label: 'Easy', color: 'bg-[var(--color-primary-strong)] hover:bg-[var(--color-primary-hover)] text-black', shortcut: '4' },
 ];
 
 export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: FlashcardDeckProps) {
@@ -114,8 +114,8 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
   if (!currentCard) {
     return (
       <div className="text-center py-12">
-        <p className="text-2xl font-bold text-zinc-100 mb-2">Session Complete</p>
-        <p className="text-zinc-400">
+        <p className="text-2xl font-bold text-white mb-2">Session Complete</p>
+        <p className="text-[var(--color-text-muted)]">
           Reviewed {reviewed} cards — {correct}/{reviewed} correct
         </p>
       </div>
@@ -126,7 +126,7 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between text-sm text-zinc-400">
+      <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)]">
         <span>
           Card {currentIndex + 1} of {cards.length}
         </span>
@@ -135,9 +135,9 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
         </span>
       </div>
 
-      <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-[var(--color-input)] rounded-full overflow-hidden">
         <div
-          className="h-full bg-indigo-500 transition-all duration-300"
+          className="h-full bg-[var(--color-primary)] transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -150,12 +150,12 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
       />
 
       {isFlipped && (
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center gap-3 flex-wrap">
           {RATINGS.map((r) => (
             <button
               key={r.key}
               onClick={() => handleRate(r.key)}
-              className={`${r.color} text-white font-medium px-5 py-2.5 rounded-lg transition-colors`}
+              className={`${r.color} font-semibold px-5 py-2.5 rounded-full transition-colors`}
             >
               {r.label}
               <span className="ml-1.5 text-xs opacity-60">({r.shortcut})</span>
@@ -164,7 +164,7 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
         </div>
       )}
 
-      <p className="text-center text-zinc-600 text-xs">
+      <p className="text-center text-[var(--color-text-subtle)] text-xs">
         Space: flip — 1-4: rate
       </p>
     </div>

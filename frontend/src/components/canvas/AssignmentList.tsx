@@ -42,7 +42,7 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
     return (
       <div className="space-y-2">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-14 bg-zinc-800/50 rounded-xl animate-pulse" />
+          <div key={i} className="h-14 bg-[var(--color-surface-raised)] rounded-xl animate-pulse" />
         ))}
       </div>
     );
@@ -51,9 +51,9 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
   if (assignments.length === 0) {
     return (
       <div className="text-center py-8">
-        <Calendar className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-        <p className="text-sm text-zinc-500">No assignments</p>
-        <p className="text-xs text-zinc-600 mt-1">
+        <Calendar className="w-10 h-10 text-[var(--color-text-subtle)] mx-auto mb-3" />
+        <p className="text-sm text-[var(--color-text-muted)]">No assignments</p>
+        <p className="text-xs text-[var(--color-text-subtle)] mt-1">
           Connect Canvas to import your assignments
         </p>
       </div>
@@ -73,18 +73,18 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
         return (
           <div
             key={a.id}
-            className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-800/50 transition-colors"
+            className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--color-surface-raised)] border border-transparent hover:border-[var(--color-border)] transition-colors"
           >
             <StatusIcon status={isOverdue ? "missing" : a.status} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium truncate">{a.title}</p>
+                <p className="text-sm font-medium truncate text-white">{a.title}</p>
                 {a.canvas_url && (
                   <a
                     href={a.canvas_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-zinc-600 hover:text-indigo-400 transition-colors shrink-0"
+                    className="text-[var(--color-text-subtle)] hover:text-[var(--color-primary-strong)] transition-colors shrink-0"
                   >
                     <ExternalLink className="w-3 h-3" />
                   </a>
@@ -92,7 +92,7 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 {course && (
-                  <span className="flex items-center gap-1 text-xs text-zinc-500">
+                  <span className="flex items-center gap-1 text-xs text-[var(--color-text-muted)]">
                     <div
                       className="w-2 h-2 rounded-full"
                       style={{ backgroundColor: course.color }}
@@ -101,7 +101,7 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
                   </span>
                 )}
                 {a.points_possible > 0 && (
-                  <span className="text-xs text-zinc-600">
+                  <span className="text-xs text-[var(--color-text-subtle)]">
                     {a.points_possible} pts
                   </span>
                 )}
@@ -111,10 +111,10 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
               {dueDate ? (
                 <div>
                   <p className={`text-xs font-medium ${
-                    isOverdue ? "text-red-400" :
+                    isOverdue ? "text-[var(--color-record)]" :
                     daysUntil !== null && daysUntil <= 1 ? "text-amber-400" :
                     daysUntil !== null && daysUntil <= 3 ? "text-amber-500" :
-                    "text-zinc-400"
+                    "text-[var(--color-text-muted)]"
                   }`}>
                     {isOverdue
                       ? "Overdue"
@@ -124,7 +124,7 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
                           ? "Due tomorrow"
                           : `${daysUntil}d left`}
                   </p>
-                  <p className="text-xs text-zinc-600">
+                  <p className="text-xs text-[var(--color-text-subtle)]">
                     {dueDate.toLocaleDateString(undefined, {
                       month: "short",
                       day: "numeric",
@@ -132,7 +132,7 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
                   </p>
                 </div>
               ) : (
-                <p className="text-xs text-zinc-600">No due date</p>
+                <p className="text-xs text-[var(--color-text-subtle)]">No due date</p>
               )}
             </div>
           </div>
@@ -146,20 +146,20 @@ function StatusIcon({ status }: { status: Assignment["status"] }) {
   switch (status) {
     case "submitted":
       return (
-        <div className="w-8 h-8 rounded-lg bg-emerald-600/10 flex items-center justify-center shrink-0">
-          <CheckCircle className="w-4 h-4 text-emerald-400" />
+        <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-soft)] flex items-center justify-center shrink-0">
+          <CheckCircle className="w-4 h-4 text-[var(--color-primary-strong)]" />
         </div>
       );
     case "graded":
       return (
-        <div className="w-8 h-8 rounded-lg bg-indigo-600/10 flex items-center justify-center shrink-0">
-          <CheckCircle className="w-4 h-4 text-indigo-400" />
+        <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-soft)] flex items-center justify-center shrink-0">
+          <CheckCircle className="w-4 h-4 text-[var(--color-primary-strong)]" />
         </div>
       );
     case "missing":
       return (
         <div className="w-8 h-8 rounded-lg bg-red-600/10 flex items-center justify-center shrink-0">
-          <XCircle className="w-4 h-4 text-red-400" />
+          <XCircle className="w-4 h-4 text-[var(--color-record)]" />
         </div>
       );
     default:
