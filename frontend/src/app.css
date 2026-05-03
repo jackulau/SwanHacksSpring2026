@@ -26,10 +26,10 @@
   /* Header band */
   --color-header: #2f2f2f;
 
-  /* Text */
+  /* Text — all pass WCAG AA (4.5:1) on every surface in this theme */
   --color-text: #ffffff;
   --color-text-muted: #b8b8b8;
-  --color-text-subtle: #7a7a7a;
+  --color-text-subtle: #9a9a9a;
 
   /* Status */
   --color-success: #5fbf78;
@@ -51,9 +51,28 @@ body,
 }
 
 body {
-  /* Quiet dark grey canvas — keeps cards (true black) reading as the
-   * elevated surface, matching the mockup's depth language. */
+  /* Atkinson Hyperlegible is loaded above; making it the default body font
+   * gives every student the dyslexia-friendly baseline this product
+   * promises, instead of requiring opt-in. Falls back gracefully. */
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
   background-image: none;
+}
+
+/* ── Global focus-visible ──────────────────────────────────────────────────
+ * Single declaration ensures every keyboard-reachable element has a visible
+ * focus ring (WCAG 2.4.7). Uses the green primary so it reads as part of the
+ * brand. Components may override locally for tighter offsets. */
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove default focus ring (we provide :focus-visible instead) */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* ── Font classes ──────────────────────────────────────────────────────── */
@@ -215,25 +234,36 @@ body {
   animation: none;
 }
 
-/* ── Streak chip pulse ─────────────────────────────────────────────────── */
+/* ── Streak chip ────────────────────────────────────────────────────────
+ * Static glow only. The infinite flicker animation was removed because it
+ * pulled focus from primary actions for ADHD users (audit 2026-05). To
+ * celebrate a streak increment, apply `.streak-flame.streak-just-bumped`
+ * for one cycle from JS, then remove the class. */
 
 .streak-flame {
-  animation: streak-flicker 2.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(251, 146, 60, 0.45));
+}
+
+.streak-flame.streak-just-bumped {
+  animation: streak-flicker 1.4s ease-out 1;
 }
 
 @keyframes streak-flicker {
-  0%,
-  100% {
+  0% {
     transform: scale(1) rotate(-1deg);
     filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.55));
   }
-  50% {
-    transform: scale(1.06) rotate(2deg);
-    filter: drop-shadow(0 0 14px rgba(251, 146, 60, 0.85));
+  40% {
+    transform: scale(1.08) rotate(2deg);
+    filter: drop-shadow(0 0 16px rgba(251, 146, 60, 0.95));
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    filter: drop-shadow(0 0 6px rgba(251, 146, 60, 0.45));
   }
 }
 
-.reduce-motion .streak-flame {
+.reduce-motion .streak-flame.streak-just-bumped {
   animation: none;
 }
 

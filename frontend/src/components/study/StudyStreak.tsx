@@ -5,23 +5,35 @@ interface StudyStreakProps {
   todayCompleted: boolean;
 }
 
+/**
+ * Inline streak chip — sized to live in `<PageHeader actions>`.
+ * Orange/red is allowed for this single component (it's the streak metaphor).
+ */
 export function StudyStreak({ streak, todayCompleted }: StudyStreakProps) {
+  const active = streak > 0;
+  const dayLabel = `${streak} day${streak === 1 ? '' : 's'}`;
+  const a11y = active
+    ? `${dayLabel} streak${todayCompleted ? ', today completed' : ''}`
+    : 'No active streak';
+
   return (
-    <div className="flex items-center gap-3">
-      <div className={`p-2 rounded-full ${streak > 0 ? 'bg-orange-500/20' : 'bg-[var(--color-input)]'}`}>
-        <Flame className={`w-6 h-6 ${streak > 0 ? 'text-orange-400' : 'text-[var(--color-text-subtle)]'}`} />
-      </div>
-      <div>
-        <p className="text-2xl font-bold text-white">{streak} day{streak !== 1 ? 's' : ''}</p>
-        <p className="text-sm text-[var(--color-text-muted)]">
-          {todayCompleted ? 'Keep it going!' : 'Study today to continue your streak'}
-        </p>
-      </div>
-      {streak >= 7 && (
-        <div className="ml-auto text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded-full font-medium">
-          On fire
-        </div>
+    <span
+      role="status"
+      aria-label={a11y}
+      className={`inline-flex items-center gap-2 h-8 px-3 rounded-md border text-sm tabular-nums ${
+        active
+          ? 'border-orange-500/40 bg-orange-500/10 text-orange-300'
+          : 'border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]'
+      }`}
+    >
+      <Flame
+        className={`w-4 h-4 ${active ? 'text-orange-400' : 'text-[var(--color-text-subtle)]'}`}
+        aria-hidden="true"
+      />
+      <span className="font-medium">{dayLabel}</span>
+      {active && !todayCompleted && (
+        <span className="text-[11px] text-orange-300/80">at risk</span>
       )}
-    </div>
+    </span>
   );
 }

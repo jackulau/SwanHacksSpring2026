@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle2, XCircle, FileText, BookOpen, Brain, HelpCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 
 type Stage = 'transcribing' | 'cleaning' | 'notes' | 'flashcards' | 'quiz' | 'done' | 'error';
 
@@ -7,75 +7,90 @@ interface ProcessingStatusProps {
   error?: string;
 }
 
-const stages: { key: Stage; label: string; icon: typeof FileText }[] = [
-  { key: 'transcribing', label: 'Transcribing audio', icon: FileText },
-  { key: 'cleaning', label: 'Cleaning transcript', icon: FileText },
-  { key: 'notes', label: 'Generating notes', icon: BookOpen },
-  { key: 'flashcards', label: 'Creating flashcards', icon: Brain },
-  { key: 'quiz', label: 'Building quiz', icon: HelpCircle },
+const STAGES: { key: Stage; label: string }[] = [
+  { key: 'transcribing', label: 'Transcribing' },
+  { key: 'cleaning', label: 'Cleaning transcript' },
+  { key: 'notes', label: 'Generating notes' },
+  { key: 'flashcards', label: 'Creating flashcards' },
+  { key: 'quiz', label: 'Building quiz' },
 ];
 
+/**
+ * Inline, single-row progress indicator.
+ *
+ * Replaces the previous step-list card. We show a thin determinate progress
+ * bar plus the current stage label and any final-state message — total height
+ * stays under ~80px so it never competes with the recording surface.
+ */
 export function ProcessingStatus({ currentStage, error }: ProcessingStatusProps) {
-  const currentIdx = stages.findIndex((s) => s.key === currentStage);
+  const idx = STAGES.findIndex((s) => s.key === currentStage);
+  const isError = currentStage === 'error';
+  const isDone = currentStage === 'done';
+  const total = STAGES.length;
+
+  // Progress: 0..1 — done = 1, otherwise (idx+1)/total once active.
+  const progress = isDone ? 1 : isError ? Math.max(idx, 0) / total : (idx + 1) / total;
+
+  const activeLabel = isDone
+    ? 'Processing complete'
+    : isError
+      ? 'Processing failed'
+      : STAGES[idx]?.label ?? 'Working';
 
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-6 space-y-4">
-      <h3 className="text-lg font-semibold text-white">Processing lecture</h3>
+    <div
+      className="space-y-2"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex items-center justify-between text-sm">
+        <span className="inline-flex items-center gap-2 text-white font-medium">
+          {isDone && (
+            <CheckCircle2
+              className="w-4 h-4 text-[var(--color-primary-strong)]"
+              aria-hidden="true"
+            />
+          )}
+          {isError && (
+            <XCircle className="w-4 h-4 text-[var(--color-record)]" aria-hidden="true" />
+          )}
+          {!isDone && !isError && (
+            <Loader2
+              className="w-4 h-4 text-[var(--color-primary-strong)] animate-spin"
+              aria-hidden="true"
+            />
+          )}
+          <span>{activeLabel}</span>
+        </span>
+        {!isDone && !isError && (
+          <span className="text-xs text-[var(--color-text-muted)] font-mono">
+            {Math.max(idx + 1, 1)} / {total}
+          </span>
+        )}
+      </div>
 
-      <div className="space-y-3">
-        {stages.map((stage, idx) => {
-          let status: 'done' | 'active' | 'pending' | 'error' = 'pending';
-
-          if (currentStage === 'error' && idx === currentIdx) {
-            status = 'error';
-          } else if (currentStage === 'done' || idx < currentIdx) {
-            status = 'done';
-          } else if (idx === currentIdx) {
-            status = 'active';
-          }
-
-          return (
-            <div key={stage.key} className="flex items-center gap-3">
-              {status === 'done' && (
-                <CheckCircle2 className="w-5 h-5 text-[var(--color-primary-strong)] shrink-0" />
-              )}
-              {status === 'active' && (
-                <Loader2 className="w-5 h-5 text-[var(--color-primary-strong)] animate-spin shrink-0" />
-              )}
-              {status === 'pending' && (
-                <div className="w-5 h-5 rounded-full border-2 border-[var(--color-border-strong)] shrink-0" />
-              )}
-              {status === 'error' && (
-                <XCircle className="w-5 h-5 text-[var(--color-record)] shrink-0" />
-              )}
-              <span
-                className={
-                  status === 'done'
-                    ? 'text-[var(--color-text-muted)]'
-                    : status === 'active'
-                      ? 'text-white font-medium'
-                      : status === 'error'
-                        ? 'text-[var(--color-record)]'
-                        : 'text-[var(--color-text-subtle)]'
-                }
-              >
-                {stage.label}
-              </span>
-            </div>
-          );
-        })}
+      <div
+        className="h-1 w-full bg-[var(--color-input)] overflow-hidden rounded-sm"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress * 100)}
+      >
+        <div
+          className={`h-full transition-all duration-500 ${
+            isError ? 'bg-[var(--color-record)]' : 'bg-[var(--color-primary)]'
+          }`}
+          style={{ width: `${progress * 100}%` }}
+        />
       </div>
 
       {error && (
-        <div className="bg-[var(--color-record)]/10 border border-[var(--color-record)]/40 rounded-xl p-3 text-[var(--color-record)] text-sm">
-          {error}
-        </div>
+        <p className="text-xs text-[var(--color-record)]">{error}</p>
       )}
-
-      {currentStage === 'done' && (
-        <div className="bg-[var(--color-primary-soft)] border border-[var(--color-primary)]/40 rounded-xl p-3 text-[var(--color-primary-strong)] text-sm">
-          Processing complete. Your notes, flashcards, and quiz are ready.
-        </div>
+      {isDone && (
+        <p className="text-xs text-[var(--color-text-muted)]">
+          Notes, flashcards, and quiz are ready.
+        </p>
       )}
     </div>
   );

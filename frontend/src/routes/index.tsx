@@ -6,7 +6,6 @@ import { ConvergeLogo } from "../components/layout/ConvergeLogo";
 import { pb } from "../lib/pocketbase";
 import {
   Mic,
-  BookOpen,
   Brain,
   Sparkles,
   Hand,
@@ -338,8 +337,7 @@ function Dashboard({ userId, email }: DashboardProps) {
   const displayName = email.split("@")[0];
 
   return (
-    <div className="space-y-0">
-      {/* Greeting band — runs across the top, no horizontal padding around it */}
+    <div>
       <HeroHeader
         name={displayName}
         streak={streak.streak}
@@ -347,42 +345,24 @@ function Dashboard({ userId, email }: DashboardProps) {
         streakLoading={streak.loading}
       />
 
-      {/* Body — two-column layout: left stack (Quick Actions + Recents), right column (Upcoming) */}
-      <div className="px-4 sm:px-6 lg:px-8 pb-8 -mt-4">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-          <div className="lg:col-span-2 space-y-4 sm:space-y-5">
-            <QuickActions
-              dueCount={loading ? null : dueCount}
-              loading={loading}
-            />
-            <RecentNotesDropdown
-              lectures={lectures}
-              loading={loading}
-              variant="card"
-              defaultOpen
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <UpcomingClasses userId={userId} />
-          </div>
-        </div>
+      <div className="px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+        <div className="max-w-3xl mx-auto flex flex-col gap-8">
+          <QuickActions
+            dueCount={loading ? null : dueCount}
+            loading={loading}
+          />
 
-        {/* Mobile-only quick links */}
-        <div className="grid grid-cols-2 gap-3 lg:hidden mt-4 max-w-6xl mx-auto">
-          <Link
-            to="/capture"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-black border border-[var(--color-border)] text-[var(--color-record)] hover:border-[var(--color-record)]/50 transition-colors"
-          >
-            <Mic className="w-4 h-4" />
-            <span className="text-sm font-medium">Record</span>
-          </Link>
-          <Link
-            to="/courses"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-black border border-[var(--color-border)] text-[var(--color-primary-strong)] hover:border-[var(--color-primary)]/50 transition-colors"
-          >
-            <BookOpen className="w-4 h-4" />
-            <span className="text-sm font-medium">Notes</span>
-          </Link>
+          <hr className="border-[var(--color-border)]" />
+
+          <UpcomingClasses userId={userId} />
+
+          <hr className="border-[var(--color-border)]" />
+
+          <RecentNotesDropdown
+            lectures={lectures}
+            loading={loading}
+            variant="card"
+          />
         </div>
       </div>
     </div>

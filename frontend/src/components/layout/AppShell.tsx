@@ -32,7 +32,6 @@ import {
   Settings,
   Accessibility,
   BookOpen,
-  Search,
   ListTodo,
   Glasses,
   Trash2,
@@ -51,13 +50,14 @@ interface NavItem {
  */
 const TOP_NAV: readonly NavItem[] = [
   { to: "/", icon: Home, label: "Home" },
+  { to: "/capture", icon: Mic, label: "Record" },
 ];
 
 const BOTTOM_NAV: readonly NavItem[] = [
   { to: "/courses", icon: BookOpen, label: "Courses" },
-  { to: "/study/planner", icon: ListTodo, label: "To-do" },
-  { to: "/study", icon: Glasses, label: "Study" },
   { to: "/calendar", icon: Calendar, label: "Calendar" },
+  { to: "/study", icon: Glasses, label: "Study" },
+  { to: "/study/planner", icon: ListTodo, label: "To-do" },
   { to: "/trash", icon: Trash2, label: "Trash" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
@@ -71,7 +71,6 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
   const [a11yOpen, setA11yOpen] = useState<boolean>(false);
-  const [search, setSearch] = useState<string>("");
 
   // Recent lectures for the sidebar Notes dropdown.
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
@@ -109,7 +108,15 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen text-white flex bg-[var(--color-bg)]">
-      {/* ── Sidebar (desktop only; <lg uses bottom MobileNav) ── */}
+      {/* Skip link — visible only on focus, jumps over the entire sidebar */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-3 focus:py-2 focus:rounded-md focus:bg-[var(--color-primary)] focus:text-black focus:font-medium"
+      >
+        Skip to main content
+      </a>
+
+      {/* ── Sidebar (desktop only) ── */}
       <aside className="w-64 hidden lg:flex flex-col bg-[var(--color-sidebar)] shrink-0">
         {/* Logo */}
         <Link
@@ -119,24 +126,6 @@ export function AppShell({ children }: AppShellProps) {
           <ConvergeLogo className="w-8 h-8 shrink-0" />
           <span className="font-semibold text-2xl tracking-tight">Converge</span>
         </Link>
-
-        {/* Search */}
-        <div className="px-4 mb-4">
-          <label className="relative block">
-            <span className="sr-only">Search</span>
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)] pointer-events-none"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search"
-              className="w-full bg-[var(--color-input)] text-sm text-white placeholder:text-[var(--color-text-muted)] rounded-full pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40"
-            />
-          </label>
-        </div>
 
         {/* Nav links */}
         <nav className="flex-1 px-2 overflow-y-auto pb-4">
@@ -187,11 +176,12 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Page content */}
         <main
-          className="flex-1 overflow-auto relative"
+          id="main"
+          tabIndex={-1}
+          className="flex-1 overflow-auto relative focus:outline-none"
           data-focus-zone
           style={{
-            paddingBottom:
-              "calc(var(--mobile-nav-height, 0px) + var(--audio-player-height, 0px))",
+            paddingBottom: "calc(var(--audio-player-height, 0px))",
           }}
         >
           {children}
@@ -246,7 +236,6 @@ function NavGroup({
             icon={item.icon}
             label={item.label}
             active={active}
-            badge={item.badge}
           />
         );
       })}
@@ -265,7 +254,8 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
   return (
     <Link
       to={to as string}
-      className={`relative flex items-center gap-3 pl-5 pr-3 py-2.5 mx-1 rounded-lg text-sm transition-colors group ${
+      aria-current={active ? "page" : undefined}
+      className={`relative flex items-center gap-3 pl-5 pr-3 py-2.5 mx-1 rounded-md text-sm transition-colors group ${
         active
           ? "text-white bg-white/[0.04]"
           : "text-[var(--color-text-muted)] hover:text-white hover:bg-white/[0.03]"

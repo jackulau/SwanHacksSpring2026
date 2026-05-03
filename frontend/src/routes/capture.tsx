@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate, Outlet, useMatch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, Outlet, useMatch } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Mic } from "lucide-react";
+import { Hand, Mic, Upload } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -39,6 +39,23 @@ function CapturePage() {
 
 type PipelineStage = 'transcribing' | 'cleaning' | 'notes' | 'flashcards' | 'quiz' | 'done' | 'error';
 
+function formatDuration(secs: number) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Capture / Record surface.
+ *
+ * Layout intent (top to bottom):
+ *   1. PageHeader with a Record / Upload tab toggle in the actions slot.
+ *   2. Inline processing status — only when a pipeline is running.
+ *   3. A single centered record affordance with timer + STT status.
+ *   4. The transcript itself, as continuous typographic text.
+ *   5. Sign-language panel pinned to the bottom-right corner when active,
+ *      with a small toggle button when inactive.
+ */
 function RecordingInterface() {
   const [audio, audioControls] = useAudioRecorder();
   const stt = useDeepgramSTT();
@@ -48,6 +65,7 @@ function RecordingInterface() {
   const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
   const [pipelineError, setPipelineError] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const recordRegionRef = useRef<HTMLDivElement>(null);
 
   const signLanguage = useSignLanguage((word) => {
     stt.addSignCaption(word);
@@ -59,6 +77,8 @@ function RecordingInterface() {
     if (stream) {
       stt.connect(stream);
     }
+    // Move focus to the live region so AT users hear the new state.
+    recordRegionRef.current?.focus();
   }, [audioControls, stt]);
 
   const handleStop = useCallback(async () => {
@@ -82,7 +102,9 @@ function RecordingInterface() {
         mediapipe.start();
 
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: 640, height: 480 },
+          });
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
           }
@@ -151,86 +173,155 @@ function RecordingInterface() {
     processAudio();
   }, [audio.audioBlob, audio.duration, stt.captions]);
 
-  const formatDuration = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+  const isRecording = audio.isRecording;
+  const sttStatus = isRecording
+    ? stt.isConnected
+      ? 'Live captions on'
+      : 'Connecting to captions…'
+    : 'Press record to begin';
 
   return (
     <>
-      <PageHeader title="Record Lecture" subtitle="Capture audio with live captions and optional sign language detection" />
+      <PageHeader
+        title="Record"
+        subtitle="Capture lecture audio with live captions and optional sign-language detection."
+        actions={<ModeTabs current="record" />}
+      />
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-6xl mx-auto">
-        {pipelineStage && (
-          <div className="mb-6">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
+        {pipelineStage && !isRecording && (
+          <div className="mb-8">
             <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
           </div>
         )}
 
         {!processing && (
           <>
-            <div className="flex items-center justify-between mb-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5">
-              <div className="flex items-center gap-4">
-                <RecordButton
-                  isRecording={audio.isRecording}
-                  isPaused={audio.isPaused}
-                  onStart={handleStart}
-                  onStop={handleStop}
-                  onPause={audioControls.pause}
-                  onResume={audioControls.resume}
-                />
-                {audio.isRecording && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[var(--color-record)] animate-pulse" />
-                    <span className="text-white font-mono text-lg">
-                      {formatDuration(audio.duration)}
-                    </span>
-                  </div>
+            {/* Record surface — centered, breathing, single primary action. */}
+            <div
+              ref={recordRegionRef}
+              tabIndex={-1}
+              aria-label="Recording controls"
+              className="flex flex-col items-center gap-6 py-8 outline-none"
+            >
+              <RecordButton
+                isRecording={audio.isRecording}
+                isPaused={audio.isPaused}
+                onStart={handleStart}
+                onStop={handleStop}
+                onPause={audioControls.pause}
+                onResume={audioControls.resume}
+              />
+
+              <div className="flex items-center gap-3 text-sm">
+                {isRecording && (
+                  <span
+                    className="inline-flex items-center gap-2 font-mono text-white tabular-nums text-base"
+                    aria-live="off"
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full bg-[var(--color-record)] animate-pulse"
+                      aria-hidden="true"
+                    />
+                    {formatDuration(audio.duration)}
+                  </span>
                 )}
+                <span
+                  className={
+                    isRecording
+                      ? 'text-[var(--color-text-muted)]'
+                      : 'text-[var(--color-text-subtle)]'
+                  }
+                >
+                  {sttStatus}
+                </span>
               </div>
 
-              {audio.isRecording && (
-                <div className="flex items-center gap-2">
-                  <Mic className={`w-4 h-4 ${stt.isConnected ? 'text-[var(--color-primary-strong)]' : 'text-[var(--color-text-subtle)]'}`} />
-                  <span className="text-sm text-[var(--color-text-muted)]">
-                    {stt.isConnected ? 'STT connected' : 'Connecting...'}
-                  </span>
-                </div>
+              {!isRecording && (
+                <button
+                  type="button"
+                  onClick={handleToggleSign}
+                  aria-pressed={signEnabled}
+                  className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-xs font-medium border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-white transition-colors"
+                >
+                  <Hand className="w-3.5 h-3.5" aria-hidden="true" />
+                  {signEnabled ? 'Sign language: on' : 'Enable sign language'}
+                </button>
               )}
             </div>
 
-            {audio.error && (
-              <div className="bg-[var(--color-record)]/10 border border-[var(--color-record)]/40 rounded-2xl p-4 mb-6 text-[var(--color-record)] text-sm">
-                {audio.error}
-              </div>
-            )}
-            {stt.error && (
-              <div className="bg-[var(--color-record)]/10 border border-[var(--color-record)]/40 rounded-2xl p-4 mb-6 text-[var(--color-record)] text-sm">
-                {stt.error}
-              </div>
+            {(audio.error || stt.error) && (
+              <p
+                role="alert"
+                className="mt-4 text-sm text-[var(--color-record)] text-center"
+              >
+                {audio.error || stt.error}
+              </p>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 flex flex-col" style={{ minHeight: 400 }}>
-                <LiveCaptions captions={stt.captions} />
-              </div>
-
-              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5 space-y-4">
-                <video ref={videoRef} className="hidden" autoPlay playsInline muted />
-                <SignLanguageDetector
-                  isActive={signEnabled}
-                  currentLandmarks={mediapipe.currentLandmarks}
-                  currentBuffer={signLanguage.currentBuffer}
-                  confidence={signLanguage.confidence}
-                  lastWord={signLanguage.lastWord}
-                  onToggle={handleToggleSign}
-                />
-              </div>
+            {/* Transcript — continuous typographic body, no card chrome. */}
+            <div className="mt-12 border-t border-[var(--color-border)] pt-8">
+              <LiveCaptions captions={stt.captions} />
             </div>
           </>
         )}
+
+        {/* Hidden video element used by MediaPipe init when sign is enabled. */}
+        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
+
+        {/* Sign-language detector floats in the bottom-right corner. */}
+        {signEnabled && (
+          <div className="fixed bottom-6 right-6 z-30">
+            <SignLanguageDetector
+              isActive={signEnabled}
+              currentLandmarks={mediapipe.currentLandmarks}
+              currentBuffer={signLanguage.currentBuffer}
+              confidence={signLanguage.confidence}
+              lastWord={signLanguage.lastWord}
+              onToggle={handleToggleSign}
+            />
+          </div>
+        )}
       </div>
     </>
+  );
+}
+
+/**
+ * Compact tab toggle that lives in the page header. Switching tabs is a
+ * single click — combined with the sidebar entry, recording starts in two
+ * clicks total.
+ */
+export function ModeTabs({ current }: { current: 'record' | 'upload' }) {
+  const base =
+    'inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm font-medium transition-colors';
+  const active = 'bg-white/10 text-white';
+  const inactive =
+    'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5';
+  return (
+    <div
+      role="tablist"
+      aria-label="Capture mode"
+      className="inline-flex items-center gap-1 p-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]"
+    >
+      <Link
+        to="/capture"
+        role="tab"
+        aria-selected={current === 'record'}
+        className={`${base} ${current === 'record' ? active : inactive}`}
+      >
+        <Mic className="w-4 h-4" aria-hidden="true" />
+        Record
+      </Link>
+      <Link
+        to="/capture/upload"
+        role="tab"
+        aria-selected={current === 'upload'}
+        className={`${base} ${current === 'upload' ? active : inactive}`}
+      >
+        <Upload className="w-4 h-4" aria-hidden="true" />
+        Upload
+      </Link>
+    </div>
   );
 }

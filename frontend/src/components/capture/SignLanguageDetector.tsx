@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { HAND_CONNECTIONS } from '@mediapipe/hands';
-import { Hand } from 'lucide-react';
+import { Hand, X } from 'lucide-react';
 import type { HandLandmarks } from '../../hooks/useMediaPipeHands';
 
 interface SignLanguageDetectorProps {
@@ -13,6 +13,14 @@ interface SignLanguageDetectorProps {
   onToggle: () => void;
 }
 
+/**
+ * Compact, togglable corner panel for sign language detection.
+ *
+ * When inactive: nothing renders here — the parent decides where to put the
+ * "Sign language" toggle button. When active: a small video preview with
+ * landmarks overlay and inline status. Designed to live in a corner of the
+ * capture surface, not to compete with the transcript.
+ */
 export function SignLanguageDetector({
   isActive,
   currentLandmarks,
@@ -54,74 +62,84 @@ export function SignLanguageDetector({
     ctx.restore();
   }, [isActive, currentLandmarks]);
 
+  if (!isActive) return null;
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-          <Hand className="w-4 h-4" />
-          Sign language detection
-        </div>
+    <aside
+      aria-label="Sign language detection"
+      className="w-72 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]"
+    >
+      <header className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border)]">
+        <span className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
+          <Hand className="w-3.5 h-3.5" aria-hidden="true" />
+          Sign language
+        </span>
         <button
+          type="button"
           onClick={onToggle}
-          className={`px-3 py-1 rounded-full text-sm font-semibold transition-colors ${
-            isActive
-              ? 'bg-[var(--color-primary)] text-black'
-              : 'bg-black border border-[var(--color-border)] text-white hover:border-[var(--color-border-strong)]'
-          }`}
+          aria-label="Disable sign language detection"
+          className="text-[var(--color-text-muted)] hover:text-white p-1 rounded-md transition-colors"
         >
-          {isActive ? 'On' : 'Off'}
+          <X className="w-3.5 h-3.5" />
         </button>
+      </header>
+
+      <div className="relative aspect-video bg-black">
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover -scale-x-100"
+          autoPlay
+          playsInline
+          muted
+        />
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full"
+          aria-hidden="true"
+        />
+        {currentLandmarks && currentLandmarks.landmarks.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+            <p className="text-[var(--color-text-muted)] text-xs">
+              Show your hands to the camera
+            </p>
+          </div>
+        )}
       </div>
 
-      {isActive && (
-        <>
-          <div className="relative rounded-2xl overflow-hidden bg-black border border-[var(--color-border)] aspect-video">
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover -scale-x-100"
-              autoPlay
-              playsInline
-              muted
+      <div className="px-3 py-2 space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-[var(--color-text-muted)]">Buffer</span>
+          <span className="text-[var(--color-primary-strong)] font-mono font-medium">
+            {currentBuffer || '—'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-[var(--color-text-muted)] shrink-0">Conf.</span>
+          <div
+            className="flex-1 h-1 bg-[var(--color-input)] overflow-hidden rounded-sm"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(confidence * 100)}
+          >
+            <div
+              className="h-full bg-[var(--color-primary)] transition-all duration-200"
+              style={{ width: `${confidence * 100}%` }}
             />
-            <canvas
-              ref={canvasRef}
-              className="absolute inset-0 w-full h-full"
-            />
-            {currentLandmarks && currentLandmarks.landmarks.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                <p className="text-[var(--color-text-muted)] text-sm">Show your hands to the camera</p>
-              </div>
-            )}
           </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <div>
-              <span className="text-[var(--color-text-muted)]">Detected: </span>
-              <span className="text-[var(--color-primary-strong)] font-mono font-bold">
-                {currentBuffer || '—'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--color-text-muted)]">Confidence:</span>
-              <div className="w-16 h-2 bg-[var(--color-input)] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[var(--color-primary)] transition-all duration-200"
-                  style={{ width: `${confidence * 100}%` }}
-                />
-              </div>
-              <span className="text-[var(--color-text-muted)] w-10 text-right">
-                {Math.round(confidence * 100)}%
-              </span>
-            </div>
-          </div>
-
-          {lastWord && (
-            <div className="text-sm text-[var(--color-primary-strong)]">
-              Last signed word: <span className="font-bold">{lastWord}</span>
-            </div>
-          )}
-        </>
-      )}
-    </div>
+          <span className="text-[var(--color-text-muted)] font-mono w-8 text-right">
+            {Math.round(confidence * 100)}%
+          </span>
+        </div>
+        {lastWord && (
+          <p className="text-xs text-[var(--color-text-muted)]">
+            Last word:{' '}
+            <span className="text-[var(--color-primary-strong)] font-medium">
+              {lastWord}
+            </span>
+          </p>
+        )}
+      </div>
+    </aside>
   );
 }

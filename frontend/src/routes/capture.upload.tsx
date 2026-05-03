@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import { FileUpload } from "../components/capture/FileUpload";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
 import { PageHeader } from "../components/layout/PageHeader";
+import { ModeTabs } from "./capture";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
 
@@ -12,6 +13,10 @@ export const Route = createFileRoute("/capture/upload")({
 
 type PipelineStage = 'transcribing' | 'cleaning' | 'notes' | 'flashcards' | 'quiz' | 'done' | 'error';
 
+/**
+ * Upload route — twin of `/capture`. Drag-and-drop dropzone, then inline
+ * processing status. No nested cards; the dropzone *is* the surface.
+ */
 function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -82,19 +87,25 @@ function UploadPage() {
 
   return (
     <>
-      <PageHeader title="Upload Lecture" subtitle="Drop in an audio file to transcribe and generate study materials" />
+      <PageHeader
+        title="Upload"
+        subtitle="Drop in an audio file to transcribe and generate study materials."
+        actions={<ModeTabs current="upload" />}
+      />
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-2xl mx-auto">
         {pipelineStage && (
-          <div className="mb-6">
+          <div className="mb-8">
             <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
           </div>
         )}
 
         {!pipelineStage && (
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5">
-            <FileUpload onUpload={handleUpload} isUploading={isUploading} progress={progress} />
-          </div>
+          <FileUpload
+            onUpload={handleUpload}
+            isUploading={isUploading}
+            progress={progress}
+          />
         )}
       </div>
     </>
