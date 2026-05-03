@@ -158,7 +158,7 @@ async function syncCanvasData(payload, onProgress) {
       course: courseId,
       canvas_id: ca.id,
       title: ca.name,
-      description: ca.description || "",
+      description: (ca.description || "").slice(0, 4999),
       due_at: ca.due_at || null,
       points_possible: ca.points_possible || 0,
       status,
