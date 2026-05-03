@@ -28,7 +28,7 @@ async function pbRequest(method, path, body) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`PocketBase ${res.status}: ${text}`);
+    throw new Error(`PocketBase ${res.status}: ${text.slice(0, 200)}`);
   }
   return res.json();
 }
@@ -84,28 +84,35 @@ async function logout() {
   ]);
 }
 
-async function syncCanvasData(payload) {
+function getAssignmentStatus(ca) {
+  if (ca.has_submitted_submissions) return "submitted";
+  if (ca.due_at && new Date(ca.due_at) < new Date()) return "missing";
+  return "upcoming";
+}
+
+async function syncCanvasData(payload, onProgress) {
   const auth = await getAuth();
   if (!auth) throw new Error("Not logged in to Converge");
 
   const { userId } = auth;
+  const totalSteps = payload.courses.length + payload.assignments.length;
+  let completed = 0;
 
+  function report(text) {
+    const pct = Math.round(30 + (completed / Math.max(totalSteps, 1)) * 65);
+    if (onProgress) onProgress(pct, text);
+  }
+
+  // Sync courses
   const existingCourses = await pbGetAll("courses", `user = "${userId}"`);
-
-  const colors = [
-    "#2f5d4f",
-    "#e07a5f",
-    "#3d8b7a",
-    "#d4a373",
-    "#c1666b",
-    "#5b8e7d",
-    "#4a7c6f",
-  ];
-
+  const colors = ["#2f5d4f", "#e07a5f", "#3d8b7a", "#d4a373", "#c1666b", "#5b8e7d", "#4a7c6f"];
   const courseMap = new Map();
   let colorIdx = 0;
 
-  for (const cc of payload.courses) {
+  for (let i = 0; i < payload.courses.length; i++) {
+    const cc = payload.courses[i];
+    report(`Syncing course ${i + 1}/${payload.courses.length}: ${cc.name}`);
+
     const existing = existingCourses.find(
       (c) => c.code === cc.course_code && c.name === cc.name
     );
@@ -126,20 +133,24 @@ async function syncCanvasData(payload) {
       courseMap.set(cc.id, created.id);
       colorIdx++;
     }
+    completed++;
   }
 
+  // Sync assignments
   const existingAssignments = await pbGetAll("assignments", `user = "${userId}"`);
-
   const existingByCanvasId = new Map(
     existingAssignments.map((a) => [a.canvas_id, a])
   );
 
-  let created = 0;
-  let updated = 0;
+  let createdCount = 0;
+  let updatedCount = 0;
 
-  for (const ca of payload.assignments) {
+  for (let i = 0; i < payload.assignments.length; i++) {
+    const ca = payload.assignments[i];
     const courseId = courseMap.get(ca.course_id);
-    if (!courseId) continue;
+    if (!courseId) { completed++; continue; }
+
+    report(`Syncing assignment ${i + 1}/${payload.assignments.length}: ${ca.name}`);
 
     const status = getAssignmentStatus(ca);
     const data = {
@@ -162,11 +173,12 @@ async function syncCanvasData(payload) {
         `/api/collections/assignments/records/${existing.id}`,
         data
       );
-      updated++;
+      updatedCount++;
     } else {
       await pbRequest("POST", "/api/collections/assignments/records", data);
-      created++;
+      createdCount++;
     }
+    completed++;
   }
 
   const now = new Date().toISOString();
@@ -176,15 +188,28 @@ async function syncCanvasData(payload) {
     lastSyncAssignments: payload.assignments.length,
   });
 
-  return { created, updated, courses: payload.courses.length };
+  return { created: createdCount, updated: updatedCount, courses: payload.courses.length };
 }
 
-function getAssignmentStatus(ca) {
-  if (ca.has_submitted_submissions) return "submitted";
-  if (ca.due_at && new Date(ca.due_at) < new Date()) return "missing";
-  return "upcoming";
-}
+// Port-based sync with progress (used by popup)
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "sync-progress") return;
 
+  port.onMessage.addListener(async (msg) => {
+    if (msg.type === "SYNC_CANVAS") {
+      try {
+        const result = await syncCanvasData(msg.payload, (pct, text) => {
+          port.postMessage({ type: "PROGRESS", pct, text });
+        });
+        port.postMessage({ type: "DONE", result });
+      } catch (e) {
+        port.postMessage({ type: "ERROR", error: e.message });
+      }
+    }
+  });
+});
+
+// Simple message-based handlers (used by content script floating button)
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "LOGIN") {
     login(msg.email, msg.password)

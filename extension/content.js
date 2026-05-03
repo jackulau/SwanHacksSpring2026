@@ -1,41 +1,78 @@
 (() => {
-  if (document.getElementById("hackstack-sync-btn")) return;
+  // Floating sync button on Canvas pages
+  if (!document.getElementById("hackstack-sync-btn")) {
+    const isCanvas =
+      document.querySelector("#application") ||
+      document.querySelector(".ic-app") ||
+      document.querySelector('meta[name="csrf-token"]');
 
-  const isCanvas =
-    document.querySelector("#application") ||
-    document.querySelector(".ic-app") ||
-    document.querySelector('meta[name="csrf-token"]');
-  if (!isCanvas) return;
+    if (isCanvas) {
+      const btn = document.createElement("button");
+      btn.id = "hackstack-sync-btn";
+      btn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+          <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+          <path d="M16 16h5v5"/>
+        </svg>
+        <span>Sync to Converge</span>
+      `;
+      document.body.appendChild(btn);
 
-  const btn = document.createElement("button");
-  btn.id = "hackstack-sync-btn";
-  btn.innerHTML = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-      <path d="M3 3v5h5"/>
-      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-      <path d="M16 16h5v5"/>
-    </svg>
-    <span>Sync to Converge</span>
-  `;
-  document.body.appendChild(btn);
+      const toast = document.createElement("div");
+      toast.id = "hackstack-toast";
+      document.body.appendChild(toast);
 
-  const toast = document.createElement("div");
-  toast.id = "hackstack-toast";
-  document.body.appendChild(toast);
+      function showToast(message, type) {
+        toast.textContent = message;
+        toast.className = "hackstack-toast-show hackstack-toast-" + type;
+        setTimeout(() => { toast.className = ""; }, 4000);
+      }
 
-  function showToast(message, type) {
-    toast.textContent = message;
-    toast.className = "hackstack-toast-show hackstack-toast-" + type;
-    setTimeout(() => {
-      toast.className = "";
-    }, 4000);
+      function setLoading(loading) {
+        btn.classList.toggle("hackstack-loading", loading);
+        btn.disabled = loading;
+      }
+
+      btn.addEventListener("click", async () => {
+        setLoading(true);
+        try {
+          const authCheck = await chrome.runtime.sendMessage({ type: "GET_AUTH" });
+          if (!authCheck.ok) {
+            showToast("Log in to Converge first (click extension icon)", "error");
+            setLoading(false);
+            return;
+          }
+
+          showToast("Fetching Canvas data...", "info");
+          const payload = await fetchCanvasData();
+
+          showToast(`Syncing ${payload.courses.length} courses, ${payload.assignments.length} assignments...`, "info");
+          const result = await chrome.runtime.sendMessage({ type: "SYNC_CANVAS", payload });
+
+          if (result.ok) {
+            showToast(`Synced! ${result.result.created} new, ${result.result.updated} updated`, "success");
+          } else {
+            showToast(result.error || "Sync failed", "error");
+          }
+        } catch (e) {
+          showToast(e.message || "Sync failed", "error");
+        }
+        setLoading(false);
+      });
+    }
   }
 
-  function setLoading(loading) {
-    btn.classList.toggle("hackstack-loading", loading);
-    btn.disabled = loading;
-  }
+  // Listen for popup-initiated fetch requests
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type === "FETCH_CANVAS_DATA") {
+      fetchCanvasData()
+        .then((data) => sendResponse({ ok: true, data }))
+        .catch((e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
+  });
 
   async function fetchCanvasData() {
     const baseUrl = window.location.origin;
@@ -66,42 +103,4 @@
 
     return { base_url: baseUrl, user: user.name, courses, assignments };
   }
-
-  btn.addEventListener("click", async () => {
-    setLoading(true);
-
-    try {
-      const authCheck = await chrome.runtime.sendMessage({ type: "GET_AUTH" });
-      if (!authCheck.ok) {
-        showToast("Log in to Converge first (click extension icon)", "error");
-        setLoading(false);
-        return;
-      }
-
-      showToast("Fetching Canvas data...", "info");
-      const payload = await fetchCanvasData();
-
-      showToast(
-        `Syncing ${payload.courses.length} courses, ${payload.assignments.length} assignments...`,
-        "info"
-      );
-      const result = await chrome.runtime.sendMessage({
-        type: "SYNC_CANVAS",
-        payload,
-      });
-
-      if (result.ok) {
-        showToast(
-          `Synced! ${result.result.created} new, ${result.result.updated} updated`,
-          "success"
-        );
-      } else {
-        showToast(result.error || "Sync failed", "error");
-      }
-    } catch (e) {
-      showToast(e.message || "Sync failed", "error");
-    }
-
-    setLoading(false);
-  });
 })();
