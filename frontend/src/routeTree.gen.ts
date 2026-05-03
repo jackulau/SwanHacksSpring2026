@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as CaptureRouteImport } from './routes/capture'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudyPlannerRouteImport } from './routes/study.planner'
 import { Route as StudyFlashcardsRouteImport } from './routes/study.flashcards'
@@ -46,6 +47,11 @@ const CoursesRoute = CoursesRouteImport.update({
 const CaptureRoute = CaptureRouteImport.update({
   id: '/capture',
   path: '/capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -91,6 +97,7 @@ const StudyQuizQuizIdRoute = StudyQuizQuizIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
@@ -122,6 +130,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/calendar'
     | '/capture'
     | '/courses'
     | '/login'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/calendar'
     | '/capture'
     | '/courses'
     | '/login'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/calendar'
     | '/capture'
     | '/courses'
     | '/login'
@@ -185,6 +197,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalendarRoute: typeof CalendarRoute
   CaptureRoute: typeof CaptureRouteWithChildren
   CoursesRoute: typeof CoursesRouteWithChildren
   LoginRoute: typeof LoginRoute
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/capture'
       fullPath: '/capture'
       preLoaderRoute: typeof CaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -339,6 +359,7 @@ const StudyRouteWithChildren = StudyRoute._addFileChildren(StudyRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalendarRoute: CalendarRoute,
   CaptureRoute: CaptureRouteWithChildren,
   CoursesRoute: CoursesRouteWithChildren,
   LoginRoute: LoginRoute,

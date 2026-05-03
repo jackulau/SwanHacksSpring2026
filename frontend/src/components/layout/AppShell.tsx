@@ -11,12 +11,14 @@ import {
   ChevronRight,
   LogOut,
   Accessibility,
+  Calendar,
 } from "lucide-react";
 
 const navItems = [
   { to: "/", icon: Home, label: "Dashboard" },
   { to: "/capture", icon: Mic, label: "Capture" },
   { to: "/courses", icon: BookOpen, label: "Courses" },
+  { to: "/calendar", icon: Calendar, label: "Calendar" },
   { to: "/study", icon: GraduationCap, label: "Study" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ] as const;
