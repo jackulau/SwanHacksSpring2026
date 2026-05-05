@@ -21,6 +21,7 @@ function FlashcardsPage() {
   const navigate = useNavigate();
   const { rateCard, getDueCards } = useSM2();
   const [cards, setCards] = useState<Flashcard[]>([]);
+  const [reviewedCount, setReviewedCount] = useState<number>(0);
   const [stage, setStage] = useState<Stage>("loading");
 
   useEffect(() => {
@@ -28,7 +29,7 @@ function FlashcardsPage() {
     getDueCards(user.id)
       .then((c) => {
         setCards(c);
-        setStage(c.length === 0 ? "ready" : "ready");
+        setStage("ready");
       })
       .catch(() => setStage("ready"));
   }, [user, getDueCards]);
@@ -41,8 +42,9 @@ function FlashcardsPage() {
   );
 
   const handleComplete = useCallback(() => {
+    setReviewedCount(cards.length);
     setStage("complete");
-  }, []);
+  }, [cards.length]);
 
   if (stage === "loading") {
     return (
@@ -122,14 +124,24 @@ function FlashcardsPage() {
             Session complete
           </p>
           <p className="text-[var(--color-text-muted)] mb-8">
-            Come back tomorrow for your next review.
+            {reviewedCount > 0
+              ? `Reviewed ${reviewedCount} ${reviewedCount === 1 ? "card" : "cards"}. Next review opens as cards become due.`
+              : "Next review opens as cards become due."}
           </p>
-          <button
-            onClick={() => navigate({ to: "/study" })}
-            className="w-full h-12 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors"
-          >
-            Back to Study
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => navigate({ to: "/study" })}
+              className="flex-1 h-11 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors"
+            >
+              Back to Study
+            </button>
+            <Link
+              to="/study/planner"
+              className="flex-1 h-11 rounded-md border border-[var(--color-border-strong)] hover:bg-[var(--color-surface-raised)] text-[var(--color-text)] font-medium transition-colors flex items-center justify-center"
+            >
+              Open planner
+            </Link>
+          </div>
         </div>
       </>
     );
