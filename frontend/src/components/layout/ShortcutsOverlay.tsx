@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface ShortcutsOverlayProps {
   open: boolean;
@@ -65,13 +65,22 @@ const GROUPS: ShortcutGroup[] = [
 ];
 
 export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (previouslyFocused && document.body.contains(previouslyFocused)) {
+        previouslyFocused.focus();
+      }
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -93,6 +102,7 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
             Keyboard shortcuts
           </h2>
           <button
+            ref={closeRef}
             type="button"
             onClick={onClose}
             aria-label="Close"
