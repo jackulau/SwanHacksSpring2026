@@ -15,12 +15,14 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../lib/auth";
 import { ReadingRuler } from "../accessibility/ReadingRuler";
 import { FocusMode } from "../accessibility/FocusMode";
 import { A11yPanel } from "../accessibility/A11yPanel";
 import { AudioPlayer } from "./AudioPlayer";
+import { CommandPalette } from "./CommandPalette";
+import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
 import { ConvergeLogo } from "./ConvergeLogo";
 import { RecentNotesDropdown } from "../dashboard/RecentNotesDropdown";
@@ -69,14 +71,86 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
   const [a11yOpen, setA11yOpen] = useState<boolean>(false);
+  const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
 
   // Recent lectures for the sidebar Notes dropdown.
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
   const [recentLoading, setRecentLoading] = useState<boolean>(true);
 
   useReadingAidsShortcuts();
+
+  // Global shortcuts: cmd/ctrl+K palette, ? overlay, g-then-X navigation.
+  useEffect(() => {
+    let chordPending = false;
+    let chordTimer: number | undefined;
+
+    const isTyping = (el: EventTarget | null) => {
+      const node = el as HTMLElement | null;
+      if (!node) return false;
+      const tag = node.tagName;
+      return (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        node.isContentEditable
+      );
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl+K opens the palette regardless of focus context.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+        return;
+      }
+      if (isTyping(e.target)) return;
+
+      // ? opens shortcuts (Shift+/ on US layouts).
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+
+      // g-then-X chord nav.
+      if (chordPending) {
+        const k = e.key.toLowerCase();
+        chordPending = false;
+        if (chordTimer) window.clearTimeout(chordTimer);
+        const map: Record<string, string> = {
+          h: "/",
+          c: "/calendar",
+          s: "/study",
+          r: "/capture",
+          t: "/study/planner",
+          o: "/courses",
+        };
+        const target = map[k];
+        if (target) {
+          e.preventDefault();
+          navigate({ to: target });
+        }
+        return;
+      }
+      if ((e.key === "g" || e.key === "G") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        chordPending = true;
+        chordTimer = window.setTimeout(() => {
+          chordPending = false;
+        }, 900);
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      if (chordTimer) window.clearTimeout(chordTimer);
+    };
+  }, [navigate]);
 
   useEffect(() => {
     if (!user) {
@@ -121,11 +195,24 @@ export function AppShell({ children }: AppShellProps) {
         {/* Logo */}
         <Link
           to="/"
-          className="flex items-center gap-2.5 px-5 pt-6 pb-5 text-white hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2.5 px-5 pt-6 pb-3 text-white hover:opacity-90 transition-opacity"
         >
           <ConvergeLogo className="w-8 h-8 shrink-0" />
           <span className="font-semibold text-2xl tracking-tight">Converge</span>
         </Link>
+
+        {/* Command palette opener — visible affordance. */}
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="mx-3 mb-3 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
+          aria-label="Open command palette"
+        >
+          <span className="flex-1 text-left">Search or jump…</span>
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/[0.12] text-white/80 border border-white/10">
+            ⌘K
+          </kbd>
+        </button>
 
         {/* Nav links */}
         <nav className="flex-1 px-2 overflow-y-auto pb-4">
@@ -193,6 +280,17 @@ export function AppShell({ children }: AppShellProps) {
       <FocusMode />
       <A11yPanel isOpen={a11yOpen} onClose={() => setA11yOpen(false)} />
       <AudioPlayer />
+
+      {/* ── Global overlays ── */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onShowShortcuts={() => {
+          setPaletteOpen(false);
+          setShortcutsOpen(true);
+        }}
+      />
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* Floating accessibility button */}
       <button
