@@ -957,6 +957,7 @@ function EditEventModal({
   const [endTime, setEndTime] = useState(minutesToTimeInput(event.endMinutes));
   const [notes, setNotes] = useState(event.notes ?? "");
   const [externalHref, setExternalHref] = useState(event.externalHref ?? "");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const handleSave = () => {
     if (!title.trim()) return;
@@ -1079,14 +1080,35 @@ function EditEventModal({
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => onDelete(event)}
-            className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-medium text-[var(--color-record)] hover:bg-[var(--color-record)]/10 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Delete
-          </button>
+          {confirmingDelete ? (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-[var(--color-text-muted)]">Delete this event?</span>
+              <button
+                type="button"
+                onClick={() => onDelete(event)}
+                autoFocus
+                className="text-[var(--color-record)] font-semibold px-2 h-7 rounded-md hover:bg-[var(--color-record)]/10"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(false)}
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-2 h-7 rounded-md"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-medium text-[var(--color-record)] hover:bg-[var(--color-record)]/10 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </button>
+          )}
           <div className="flex items-center gap-2">
             {externalHref.trim() && (
               <a
