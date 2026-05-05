@@ -379,6 +379,21 @@ function LectureDetailPage() {
         <div
           role="tablist"
           aria-label="Lecture content"
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+            const order: View[] = ["transcript", "notes", "flashcards", "quiz"];
+            const idx = order.indexOf(view);
+            const next =
+              e.key === "ArrowRight"
+                ? order[(idx + 1) % order.length]
+                : order[(idx - 1 + order.length) % order.length];
+            e.preventDefault();
+            setView(next);
+            // Move focus to the freshly-activated tab so the focus ring follows.
+            window.setTimeout(() => {
+              document.getElementById(`tab-${next}`)?.focus();
+            }, 0);
+          }}
           className="max-w-3xl mx-auto mb-8 flex items-center gap-1 border-b border-[var(--color-border)]"
         >
           <ViewTab
