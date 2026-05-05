@@ -275,8 +275,24 @@ function LectureDetailPage() {
       <AppShell>
         <PageHeader
           title="Lecture not found"
-          subtitle="We couldn't find that lecture in your library."
+          subtitle="It may have been deleted, or the link is from a different account."
         />
+        <div className="px-4 sm:px-6 lg:px-8 pb-16">
+          <div className="max-w-3xl mx-auto mt-6 flex flex-wrap items-center gap-4 text-sm">
+            <Link
+              to="/courses"
+              className="inline-flex items-center gap-1.5 font-medium text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)]"
+            >
+              ← Back to courses
+            </Link>
+            <Link
+              to="/capture"
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            >
+              Record a new lecture
+            </Link>
+          </div>
+        </div>
       </AppShell>
     );
   }
@@ -516,15 +532,22 @@ function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onStart}
-          disabled={due === 0}
-          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
-        >
-          <Play className="w-4 h-4" aria-hidden="true" />
-          {due === 0 ? "Nothing due" : "Start review"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={due === 0}
+            className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+          >
+            <Play className="w-4 h-4" aria-hidden="true" />
+            {due === 0 ? "All caught up" : "Start review"}
+          </button>
+          {due === 0 && total > 0 && (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Next cards become due as their interval expires.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
