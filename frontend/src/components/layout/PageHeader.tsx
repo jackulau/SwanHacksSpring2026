@@ -12,7 +12,7 @@ interface PageHeaderProps {
   /** Right-aligned slot for actions (search, filters, "Add" button, etc). */
   actions?: ReactNode;
   /** Optional eyebrow line above the title (e.g. course code). */
-  eyebrow?: string;
+  eyebrow?: ReactNode;
 }
 
 export function PageHeader({ title, subtitle, actions, eyebrow }: PageHeaderProps) {

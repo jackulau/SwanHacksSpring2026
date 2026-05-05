@@ -119,7 +119,20 @@ function CourseDetailPage() {
     <>
       <PageHeader
         title={course.name}
-        eyebrow={course.code || course.semester || undefined}
+        eyebrow={
+          course.code || course.semester ? (
+            <span className="inline-flex items-center gap-2">
+              {course.color && (
+                <span
+                  aria-hidden="true"
+                  className="inline-block w-2 h-2 rounded-full"
+                  style={{ backgroundColor: course.color }}
+                />
+              )}
+              {course.code || course.semester}
+            </span>
+          ) : undefined
+        }
         actions={
           <Link
             to="/capture"
@@ -259,8 +272,24 @@ function StatusPill({ status }: { status: Lecture["status"] }) {
       : status === "error"
         ? "text-[var(--color-record)]"
         : "text-amber-400";
+  const label =
+    status === "ready"
+      ? "Ready"
+      : status === "error"
+        ? "Failed"
+        : status === "generating"
+          ? "Generating…"
+          : status === "transcribing"
+            ? "Transcribing…"
+            : status === "uploading"
+              ? "Uploading…"
+              : status === "processing"
+                ? "Processing…"
+                : status;
   return (
-    <span className={`text-xs font-medium ${tone}`}>{status}</span>
+    <span className={`text-xs font-medium ${tone}`} title={status}>
+      {label}
+    </span>
   );
 }
 
