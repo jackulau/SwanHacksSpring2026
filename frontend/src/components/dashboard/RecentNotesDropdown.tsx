@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { ChevronDown, NotebookPen, FileText } from "lucide-react";
 import type { Lecture } from "../../lib/types";
 import { Skeleton } from "../layout/Skeleton";
@@ -40,10 +40,20 @@ export function RecentNotesDropdown({
 }: RecentNotesDropdownProps) {
   const [open, setOpen] = useState<boolean>(defaultOpen);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const { pathname } = useLocation();
+  const activeLectureId =
+    pathname.startsWith("/lectures/")
+      ? pathname.split("/")[2]
+      : null;
 
   useEffect(() => {
     if (defaultOpen !== undefined) setOpen(defaultOpen);
   }, [defaultOpen]);
+
+  // Auto-open when the user is reading a lecture so the active one is visible.
+  useEffect(() => {
+    if (activeLectureId && variant === "sidebar") setOpen(true);
+  }, [activeLectureId, variant]);
 
   const items = lectures.slice(0, limit);
 
@@ -87,23 +97,31 @@ export function RecentNotesDropdown({
               </p>
             ) : (
               <ul className="py-1 space-y-0.5">
-                {items.map((lec) => (
-                  <li key={lec.id}>
-                    <Link
-                      to="/lectures/$lectureId"
-                      params={{ lectureId: lec.id }}
-                      className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-white/60 hover:text-white truncate rounded-sm hover:bg-white/[0.08] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      title={lec.title}
-                    >
-                      <span className="truncate">{lec.title || "Untitled"}</span>
-                      {lec.duration_secs > 0 && (
-                        <span className="shrink-0 text-[10px] tabular-nums text-[var(--color-text-subtle)]">
-                          {Math.round(lec.duration_secs / 60)}m
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
+                {items.map((lec) => {
+                  const isActive = lec.id === activeLectureId;
+                  return (
+                    <li key={lec.id}>
+                      <Link
+                        to="/lectures/$lectureId"
+                        params={{ lectureId: lec.id }}
+                        aria-current={isActive ? "page" : undefined}
+                        className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm truncate rounded-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${
+                          isActive
+                            ? "bg-white/[0.12] text-white"
+                            : "text-white/60 hover:text-white hover:bg-white/[0.08]"
+                        }`}
+                        title={lec.title}
+                      >
+                        <span className="truncate">{lec.title || "Untitled"}</span>
+                        {lec.duration_secs > 0 && (
+                          <span className="shrink-0 text-[10px] tabular-nums text-[var(--color-text-subtle)]">
+                            {Math.round(lec.duration_secs / 60)}m
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
