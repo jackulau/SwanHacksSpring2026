@@ -486,6 +486,8 @@ function LectureDetailPage() {
               // queue. Lecture-scoped filtering can be added by extending the
               // study route's validateSearch + getDueCards filter.
               onStart={() => navigate({ to: "/study/flashcards" })}
+              onGenerate={handleGenerateStudySet}
+              generating={generating || lecture.status === "generating"}
             />
           )}
           {view === "quiz" && (
@@ -494,6 +496,8 @@ function LectureDetailPage() {
               onStart={(quizId) =>
                 navigate({ to: "/study/quiz/$quizId", params: { quizId } })
               }
+              onGenerate={handleGenerateStudySet}
+              generating={generating || lecture.status === "generating"}
             />
           )}
         </main>
@@ -537,17 +541,32 @@ interface FlashcardsTabProps {
   due: number;
   lectureId: string;
   onStart: () => void;
+  onGenerate?: () => void;
+  generating?: boolean;
 }
 
-function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
+function FlashcardsTab({ total, due, onStart, onGenerate, generating }: FlashcardsTabProps) {
   if (total === 0) {
     return (
       <div className="max-w-3xl mx-auto">
         <EmptyState
           icon={Brain}
           title="No flashcards yet"
-          description="Generate a study set from this lecture to create flashcards."
+          description="Run a study-set generation to turn this lecture into spaced-repetition cards."
           size="md"
+          action={
+            onGenerate && (
+              <button
+                type="button"
+                onClick={onGenerate}
+                disabled={generating}
+                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-3.5 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              >
+                <Sparkles className="w-4 h-4" aria-hidden="true" />
+                {generating ? "Generating…" : "Generate study set"}
+              </button>
+            )
+          }
         />
       </div>
     );
@@ -598,17 +617,32 @@ function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
 interface QuizTabProps {
   quiz: Quiz | null;
   onStart: (quizId: string) => void;
+  onGenerate?: () => void;
+  generating?: boolean;
 }
 
-function QuizTab({ quiz, onStart }: QuizTabProps) {
+function QuizTab({ quiz, onStart, onGenerate, generating }: QuizTabProps) {
   if (!quiz) {
     return (
       <div className="max-w-3xl mx-auto">
         <EmptyState
           icon={FileQuestion}
           title="No quiz yet"
-          description="Generate a study set from this lecture to create a quiz."
+          description="Run a study-set generation to turn this lecture into a quiz."
           size="md"
+          action={
+            onGenerate && (
+              <button
+                type="button"
+                onClick={onGenerate}
+                disabled={generating}
+                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-3.5 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              >
+                <Sparkles className="w-4 h-4" aria-hidden="true" />
+                {generating ? "Generating…" : "Generate study set"}
+              </button>
+            )
+          }
         />
       </div>
     );
