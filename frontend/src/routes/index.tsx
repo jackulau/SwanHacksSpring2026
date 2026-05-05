@@ -29,7 +29,11 @@ function HomePage() {
   if (!user) return <LandingPage />;
   return (
     <AppShell>
-      <Dashboard userId={user.id} email={user.email} />
+      <Dashboard
+        userId={user.id}
+        email={user.email}
+        displayName={user.display_name}
+      />
     </AppShell>
   );
 }
@@ -583,9 +587,10 @@ function LandingFooter() {
 interface DashboardProps {
   userId: string;
   email: string;
+  displayName?: string;
 }
 
-function Dashboard({ userId, email }: DashboardProps) {
+function Dashboard({ userId, email, displayName }: DashboardProps) {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [dueCount, setDueCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -621,12 +626,13 @@ function Dashboard({ userId, email }: DashboardProps) {
     };
   }, [userId]);
 
-  const displayName = email.split("@")[0];
+  const greetingName =
+    (displayName && displayName.trim()) || email.split("@")[0];
 
   return (
     <div>
       <HeroHeader
-        name={displayName}
+        name={greetingName}
         streak={streak.streak}
         todayCompleted={streak.todayCompleted}
         streakLoading={streak.loading}

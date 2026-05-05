@@ -244,6 +244,7 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
           <UserMenu
             email={user?.email}
+            displayName={user?.display_name}
             open={userMenuOpen}
             onToggle={() => setUserMenuOpen((o) => !o)}
             onClose={() => setUserMenuOpen(false)}
@@ -255,6 +256,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="hidden lg:block absolute top-4 right-6 z-30">
           <UserMenu
             email={user?.email}
+            displayName={user?.display_name}
             open={userMenuOpen}
             onToggle={() => setUserMenuOpen((o) => !o)}
             onClose={() => setUserMenuOpen(false)}
@@ -378,18 +380,22 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
 
 function UserMenu({
   email,
+  displayName,
   open,
   onToggle,
   onClose,
   onLogout,
 }: {
   email: string | undefined;
+  displayName?: string;
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
   onLogout: () => void;
 }) {
-  const initial = email?.charAt(0).toUpperCase() ?? "?";
+  const friendly =
+    (displayName && displayName.trim()) || email?.split("@")[0] || "User";
+  const initial = (friendly[0] || email?.[0] || "?").toUpperCase();
 
   useEffect(() => {
     if (!open) return;
@@ -412,7 +418,7 @@ function UserMenu({
         <span className="w-5 h-5 rounded-full bg-[var(--color-primary-soft)] flex items-center justify-center text-[10px] font-semibold text-[var(--color-primary-strong)]">
           {initial}
         </span>
-        <span className="max-w-[140px] truncate">{email?.split("@")[0] ?? "User"}</span>
+        <span className="max-w-[140px] truncate">{friendly}</span>
         <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
           <path
             d="M3 4.5L6 7.5L9 4.5"
