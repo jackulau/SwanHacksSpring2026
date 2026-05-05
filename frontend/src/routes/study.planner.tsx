@@ -188,7 +188,13 @@ function StudyPlannerPage() {
             />
           ) : (
             <ul className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
-              {tasks.map((task) => {
+              {[...tasks]
+                .sort((a, b) => {
+                  const aDone = a.status === "submitted" || a.status === "graded" ? 1 : 0;
+                  const bDone = b.status === "submitted" || b.status === "graded" ? 1 : 0;
+                  return aDone - bDone;
+                })
+                .map((task) => {
                 const done = task.status === "submitted" || task.status === "graded";
                 const isEditing = editingId === task.id;
                 return (
