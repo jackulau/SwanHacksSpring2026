@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { Brain, Play } from "lucide-react";
 import { FlashcardDeck } from "../components/study/FlashcardDeck";
@@ -66,6 +66,22 @@ function FlashcardsPage() {
             title="No cards due"
             description="Record or upload a lecture to generate flashcards, then return here when they're ready for review."
             size="lg"
+            action={
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/capture"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-primary)] px-3.5 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] transition-colors"
+                >
+                  Record a lecture
+                </Link>
+                <Link
+                  to="/courses"
+                  className="text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                >
+                  Or browse courses
+                </Link>
+              </div>
+            }
           />
         </div>
       </>
