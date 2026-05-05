@@ -1,5 +1,6 @@
 import { AlertTriangle, Lightbulb, Star } from 'lucide-react';
 import type { NoteBlock as NoteBlockType } from '../../lib/types';
+import { renderInlineMarkdown } from './markdown';
 
 interface NoteBlockProps {
   block: NoteBlockType;
@@ -34,7 +35,7 @@ export function NoteBlock({ block }: NoteBlockProps) {
     case 'paragraph':
       return (
         <p className="text-[var(--color-text-muted)] leading-7">
-          {block.text}
+          {renderInlineMarkdown(block.text)}
         </p>
       );
 
@@ -42,7 +43,7 @@ export function NoteBlock({ block }: NoteBlockProps) {
       return (
         <ul className="list-disc pl-6 space-y-1 text-[var(--color-text-muted)] leading-7 marker:text-[var(--color-text-subtle)]">
           {block.items.map((item, i) => (
-            <li key={i}>{item}</li>
+            <li key={i}>{renderInlineMarkdown(item)}</li>
           ))}
         </ul>
       );
@@ -52,7 +53,7 @@ export function NoteBlock({ block }: NoteBlockProps) {
         <p className="text-[var(--color-text-muted)] leading-7">
           <strong className="text-[var(--color-text)] font-semibold">{block.term}</strong>
           <span className="text-[var(--color-text-subtle)]"> — </span>
-          <span>{block.definition}</span>
+          <span>{renderInlineMarkdown(block.definition)}</span>
         </p>
       );
 
@@ -62,7 +63,7 @@ export function NoteBlock({ block }: NoteBlockProps) {
           <span className="text-[var(--color-text-subtle)] uppercase tracking-wider text-xs font-medium mr-2">
             Example
           </span>
-          {block.text}
+          {renderInlineMarkdown(block.text)}
         </p>
       );
 
@@ -87,7 +88,7 @@ export function NoteBlock({ block }: NoteBlockProps) {
           {s.icon}
           <span>
             <span className="sr-only">{s.label}: </span>
-            {block.text}
+            {renderInlineMarkdown(block.text)}
           </span>
         </p>
       );
