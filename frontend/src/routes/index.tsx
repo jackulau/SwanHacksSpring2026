@@ -610,7 +610,10 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
       pb
         .collection("flashcards")
         .getList(1, 1, {
-          filter: `user = "${userId}" && next_review <= "${nowIso}"`,
+          // Match the rule used by useSM2.getDueCards — new cards (empty
+          // next_review) also count as due, otherwise the dashboard hides
+          // brand-new cards and the hub disagrees with the deck.
+          filter: `user = "${userId}" && (next_review <= "${nowIso}" || next_review = "")`,
         })
         .then((r) => r.totalItems)
         .catch(() => 0),
