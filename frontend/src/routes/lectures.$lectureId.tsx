@@ -307,7 +307,21 @@ function LectureDetailPage() {
   const durationMin = lecture.duration_secs
     ? `${Math.ceil(lecture.duration_secs / 60)} min`
     : "";
-  const subtitleParts = [recordedDate, durationMin].filter(Boolean);
+  const inFlightStatus =
+    lecture.status === "transcribing"
+      ? "Transcribing…"
+      : lecture.status === "generating"
+        ? "Generating notes & flashcards…"
+        : lecture.status === "uploading"
+          ? "Uploading audio…"
+          : lecture.status === "processing"
+            ? "Processing…"
+            : lecture.status === "error"
+              ? "Last run failed — generate again to retry."
+              : null;
+  const subtitleParts = [recordedDate, durationMin, inFlightStatus].filter(
+    Boolean,
+  );
   const eyebrow = course
     ? [course.code, course.name].filter(Boolean).join(" · ") || undefined
     : undefined;
