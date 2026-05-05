@@ -185,7 +185,8 @@ export function PomodoroTimer({
         </button>
         <button
           onClick={timer.skip}
-          className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors flex items-center gap-2"
+          disabled={timer.phase === 'idle'}
+          className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           aria-label="Skip phase"
         >
           <SkipForward className="w-4 h-4" />
