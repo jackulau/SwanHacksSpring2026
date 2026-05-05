@@ -246,6 +246,19 @@ function RecordingInterface() {
 
   const isRecording = audio.isRecording;
 
+  // Warn before unload if the user has audio in flight — mid-recording or
+  // mid-pipeline navigation drops everything we captured. Only attaches the
+  // handler when something is actually at risk.
+  useEffect(() => {
+    if (!isRecording && !processing) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isRecording, processing]);
+
   // Space toggles record on the capture page. Disabled while typing or while
   // the post-record pipeline is running so we don't duplicate work.
   useEffect(() => {
