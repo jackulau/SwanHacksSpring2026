@@ -30,6 +30,10 @@ export function useAudioRecorder(): [AudioRecorderState, AudioRecorderControls] 
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const startTimeRef = useRef(0);
+  // Accumulated active recording milliseconds across pause/resume cycles.
+  // Without this the displayed duration would keep ticking while paused.
+  const accumulatedRef = useRef(0);
+  const pausedAtRef = useRef(0);
 
   const start = useCallback(async () => {
     try {
@@ -66,12 +70,16 @@ export function useAudioRecorder(): [AudioRecorderState, AudioRecorderControls] 
       recorderRef.current = recorder;
       recorder.start(250);
       startTimeRef.current = Date.now();
+      accumulatedRef.current = 0;
+      pausedAtRef.current = 0;
 
       timerRef.current = setInterval(() => {
-        setState((s) => ({
-          ...s,
-          duration: Math.floor((Date.now() - startTimeRef.current) / 1000),
-        }));
+        // Skip ticks while paused — the segment will be folded into
+        // accumulatedRef on resume so the wall clock stays honest.
+        if (pausedAtRef.current !== 0) return;
+        const activeMs =
+          accumulatedRef.current + (Date.now() - startTimeRef.current);
+        setState((s) => ({ ...s, duration: Math.floor(activeMs / 1000) }));
       }, 1000);
 
       setState({
@@ -96,6 +104,7 @@ export function useAudioRecorder(): [AudioRecorderState, AudioRecorderControls] 
   const pause = useCallback(() => {
     if (recorderRef.current?.state === 'recording') {
       recorderRef.current.pause();
+      pausedAtRef.current = Date.now();
       setState((s) => ({ ...s, isPaused: true }));
     }
   }, []);
@@ -103,6 +112,11 @@ export function useAudioRecorder(): [AudioRecorderState, AudioRecorderControls] 
   const resume = useCallback(() => {
     if (recorderRef.current?.state === 'paused') {
       recorderRef.current.resume();
+      // Roll the just-completed active segment into the accumulator and
+      // restart the segment clock so future ticks count correctly.
+      accumulatedRef.current += pausedAtRef.current - startTimeRef.current;
+      startTimeRef.current = Date.now();
+      pausedAtRef.current = 0;
       setState((s) => ({ ...s, isPaused: false }));
     }
   }, []);
