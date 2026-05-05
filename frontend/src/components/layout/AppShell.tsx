@@ -327,9 +327,7 @@ function NavGroup({
   return (
     <div className="space-y-0.5">
       {items.map((item) => {
-        const active =
-          pathname === item.to ||
-          (item.to !== "/" && pathname.startsWith(item.to));
+        const active = isNavItemActive(item.to, pathname);
         return (
           <NavRow
             key={item.to}
@@ -342,6 +340,18 @@ function NavGroup({
       })}
     </div>
   );
+}
+
+/**
+ * Lecture detail (/lectures/:id) and standalone trash/study sub-pages have no
+ * exact match in the sidebar — without this, the sidebar reads as if the user
+ * is "outside" any section. Treat lectures as a child of Courses.
+ */
+function isNavItemActive(to: string, pathname: string): boolean {
+  if (pathname === to) return true;
+  if (to === "/") return false;
+  if (to === "/courses" && pathname.startsWith("/lectures")) return true;
+  return pathname.startsWith(to);
 }
 
 interface NavRowProps {
