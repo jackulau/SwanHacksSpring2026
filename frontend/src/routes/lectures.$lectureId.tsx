@@ -308,7 +308,9 @@ function LectureDetailPage() {
     ? `${Math.ceil(lecture.duration_secs / 60)} min`
     : "";
   const subtitleParts = [recordedDate, durationMin].filter(Boolean);
-  const eyebrow = course ? `${course.code} · ${course.name}` : undefined;
+  const eyebrow = course
+    ? [course.code, course.name].filter(Boolean).join(" · ") || undefined
+    : undefined;
 
   const blocks = (notes?.content as NoteBlock[]) || [];
   const segments = transcript?.segments;
