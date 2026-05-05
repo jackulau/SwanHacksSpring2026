@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Trash2, ArrowRight } from "lucide-react";
+import { Trash2, ArrowRight, Info } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -29,16 +29,32 @@ function TrashPage() {
     <AppShell>
       <PageHeader
         title="Trash"
-        subtitle="Deleted notes, lectures, and courses will appear here for 30 days before being permanently removed."
+        subtitle="Deleted items recover here before they're permanently removed."
       />
 
       <div className="px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="max-w-3xl mx-auto mt-8">
+        <div className="max-w-3xl mx-auto mt-6 space-y-6">
+          <div
+            role="note"
+            className="flex items-start gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-4 py-3 text-sm"
+          >
+            <Info
+              className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-text-subtle)]"
+              aria-hidden="true"
+            />
+            <p className="text-[var(--color-text-muted)]">
+              Soft-delete recovery is coming with the next release. Today,
+              deleting a course, lecture, or note removes it immediately.
+              Use <span className="font-medium text-[var(--color-text)]">Settings → Data → Export</span>{" "}
+              to keep a local backup of everything you've stored.
+            </p>
+          </div>
+
           <EmptyState
             size="lg"
             icon={Trash2}
             title="Trash is empty"
-            description="Nothing has been deleted recently. Items you remove will land here first and stay recoverable for 30 days."
+            description="Nothing has been deleted recently."
             action={
               <Link
                 to="/"
