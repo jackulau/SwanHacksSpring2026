@@ -123,6 +123,12 @@ export function NoteBlock({ block }: NoteBlockProps) {
           <img
             src={block.url}
             alt={block.alt || ''}
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              // Hide the broken-image icon — caption (if any) still tells the story.
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+            }}
             className="rounded-sm max-w-full"
           />
           {block.caption && (
