@@ -13,7 +13,12 @@ import { Calendar } from "lucide-react";
 import { Skeleton } from "../layout/Skeleton";
 import { EmptyState } from "../layout/EmptyState";
 import { pb } from "../../lib/pocketbase";
-import type { Assignment, Course, Lecture } from "../../lib/types";
+import type {
+  Assignment,
+  Course,
+  Lecture,
+  CalendarEventRecord,
+} from "../../lib/types";
 
 interface UpcomingClassesProps {
   userId: string;
@@ -30,6 +35,8 @@ interface UpcomingItem {
   externalHref?: string;
   /** Internal lecture id — when set, links to /lectures/$lectureId. */
   lectureId?: string;
+  /** When set, this row links into /calendar (user-created event). */
+  calendarEvent?: boolean;
   /** True when this is a live/joinable meeting link. */
   isMeeting?: boolean;
 }
@@ -63,7 +70,14 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
           sort: "recorded_at",
         })
         .catch(() => [] as Lecture[]),
-    ]).then(([asg, courses, scheduledLectures]) => {
+      pb
+        .collection("calendar_events")
+        .getFullList<CalendarEventRecord>({
+          filter: `user = "${userId}" && start_at >= "${nowIso}" && start_at <= "${weekAheadIso}"`,
+          sort: "start_at",
+        })
+        .catch(() => [] as CalendarEventRecord[]),
+    ]).then(([asg, courses, scheduledLectures, calEvents]) => {
       if (cancelled) return;
       const courseById = new Map(courses.map((c) => [c.id, c]));
 
@@ -96,7 +110,17 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
         };
       });
 
-      const merged = [...fromAssignments, ...fromLectures].sort(
+      const fromEvents: UpcomingItem[] = calEvents.map((e) => ({
+        id: `evt:${e.id}`,
+        title: e.title || "Untitled event",
+        meta: formatDueLine(e.start_at),
+        when: new Date(e.start_at).getTime(),
+        externalHref: e.external_href || undefined,
+        calendarEvent: !e.external_href,
+        isMeeting: isMeetingLike(e.external_href),
+      }));
+
+      const merged = [...fromAssignments, ...fromLectures, ...fromEvents].sort(
         (a, b) => a.when - b.when,
       );
 
@@ -213,6 +237,16 @@ function UpcomingRow({ item }: { item: UpcomingItem }) {
           params={{ lectureId: item.lectureId }}
           className={rowClass}
         >
+          {titleNode}
+          {metaNode}
+        </Link>
+      </li>
+    );
+  }
+  if (item.calendarEvent) {
+    return (
+      <li>
+        <Link to="/calendar" className={rowClass}>
           {titleNode}
           {metaNode}
         </Link>
