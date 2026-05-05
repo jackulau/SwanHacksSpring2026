@@ -24,6 +24,15 @@ function CourseDetailPage() {
   const [tab, setTab] = useState<Tab>("lectures");
 
   useEffect(() => {
+    if (!course?.name) return;
+    const previous = document.title;
+    document.title = `${course.name} · Converge`;
+    return () => {
+      document.title = previous;
+    };
+  }, [course?.name]);
+
+  useEffect(() => {
     let cancelled = false;
     async function run() {
       try {
