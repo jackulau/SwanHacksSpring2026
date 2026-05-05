@@ -87,6 +87,13 @@ export function AppShell({ children }: AppShellProps) {
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
   const [recentLoading, setRecentLoading] = useState<boolean>(true);
 
+  // Reset main scroll on route change so users don't land mid-page after
+  // navigating from a long page like a transcript.
+  useEffect(() => {
+    const main = document.getElementById("main");
+    if (main) main.scrollTop = 0;
+  }, [location.pathname]);
+
   useReadingAidsShortcuts();
 
   // Global shortcuts: cmd/ctrl+K palette, ? overlay, g-then-X navigation.
