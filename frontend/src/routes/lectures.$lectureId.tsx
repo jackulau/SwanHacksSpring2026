@@ -199,13 +199,17 @@ function LectureDetailPage() {
     }
   };
 
-  // 1/2/3/4 jumps between tabs when not typing.
+  // 1/2/3/4 jumps between tabs when not typing — but yields to the inner
+  // surface when the user is already on Flashcards or Quiz, where 1-4 are
+  // bound to rating/answer choices. Without this guard, pressing "1" to
+  // mark a card "Again" would also kick the user back to the transcript.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const node = e.target as HTMLElement | null;
       const tag = node?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || node?.isContentEditable) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (view === "flashcards" || view === "quiz") return;
       const map: Record<string, View> = { "1": "transcript", "2": "notes", "3": "flashcards", "4": "quiz" };
       const next = map[e.key];
       if (next) {
@@ -215,7 +219,7 @@ function LectureDetailPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [view]);
 
   const handlePersonalNotesChange = async (next: string) => {
     if (!user || !lecture) return;
