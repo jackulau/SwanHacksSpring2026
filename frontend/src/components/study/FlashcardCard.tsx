@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 interface FlashcardCardProps {
   front: string;
@@ -13,6 +13,7 @@ interface FlashcardCardProps {
  * generous whitespace, no decorative chrome.
  */
 export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardProps) {
+  const reduceMotion = useReducedMotion();
   return (
     <div
       className="relative w-full perspective-1000"
@@ -36,7 +37,7 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
         className="relative w-full"
         style={{ minHeight: 360, transformStyle: 'preserve-3d' }}
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: reduceMotion ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <div
           className="absolute inset-0 bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-lg p-12 flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
