@@ -21,9 +21,9 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: PageHeaderProp
       <div className="max-w-6xl mx-auto relative z-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="min-w-0">
           {eyebrow && (
-            <p className="text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
+            <div className="text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
               {eyebrow}
-            </p>
+            </div>
           )}
           <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] tracking-tight">
             {title}
