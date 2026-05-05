@@ -602,10 +602,11 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
     Promise.all([
       pb
         .collection("lectures")
-        .getFullList<Lecture>({
+        .getList<Lecture>(1, 8, {
           filter: `user = "${userId}"`,
           sort: "-recorded_at",
         })
+        .then((r) => r.items)
         .catch(() => [] as Lecture[]),
       pb
         .collection("flashcards")
