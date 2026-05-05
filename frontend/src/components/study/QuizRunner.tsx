@@ -222,6 +222,23 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
             );
           })}
         </ul>
+
+        <div className="flex justify-center pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              setAnswers({});
+              setResults([]);
+              setSubmitted(false);
+              setCurrentIdx(0);
+              finishedRef.current = false;
+              sessionIdRef.current = null;
+            }}
+            className="text-sm font-medium text-[var(--color-text)] border border-[var(--color-border-strong)] hover:bg-[var(--color-surface-raised)] rounded-md px-4 py-2 transition-colors"
+          >
+            Retake quiz
+          </button>
+        </div>
       </div>
     );
   }
