@@ -48,14 +48,21 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const nowIso = new Date().toISOString();
-    const weekAheadIso = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    // Anchor at start-of-day so something due at 10am still shows up in
+    // "Today" when the dashboard is opened at 2pm. Without this the user
+    // would lose visibility of earlier-today items as the day progressed.
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startIso = startOfToday.toISOString();
+    const weekAheadIso = new Date(
+      startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
     Promise.all([
       pb
         .collection("assignments")
         .getFullList<Assignment>({
-          filter: `user = "${userId}" && due_at >= "${nowIso}" && due_at <= "${weekAheadIso}"`,
+          filter: `user = "${userId}" && due_at >= "${startIso}" && due_at <= "${weekAheadIso}"`,
           sort: "due_at",
         })
         .catch(() => [] as Assignment[]),
@@ -66,14 +73,14 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
       pb
         .collection("lectures")
         .getFullList<Lecture>({
-          filter: `user = "${userId}" && recorded_at >= "${nowIso}" && recorded_at <= "${weekAheadIso}"`,
+          filter: `user = "${userId}" && recorded_at >= "${startIso}" && recorded_at <= "${weekAheadIso}"`,
           sort: "recorded_at",
         })
         .catch(() => [] as Lecture[]),
       pb
         .collection("calendar_events")
         .getFullList<CalendarEventRecord>({
-          filter: `user = "${userId}" && start_at >= "${nowIso}" && start_at <= "${weekAheadIso}"`,
+          filter: `user = "${userId}" && start_at >= "${startIso}" && start_at <= "${weekAheadIso}"`,
           sort: "start_at",
         })
         .catch(() => [] as CalendarEventRecord[]),
