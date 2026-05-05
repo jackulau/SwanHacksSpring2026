@@ -756,8 +756,10 @@ function CalendarPage() {
             </button>
             <h1 className="text-base font-semibold text-[var(--color-text)] ml-1">{rangeLabel}</h1>
 
-            <div className="ml-auto text-xs text-[var(--color-text-subtle)]">
-              {loading ? "Syncing…" : `${remoteEvents.length + userEvents.length} events`}
+            <div className="ml-auto text-xs text-[var(--color-text-subtle)] tabular-nums">
+              {loading
+                ? "Syncing…"
+                : `${events.length} ${events.length === 1 ? "event" : "events"}`}
             </div>
           </div>
 
