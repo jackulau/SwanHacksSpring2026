@@ -8,7 +8,7 @@
  */
 
 import { Link } from "@tanstack/react-router";
-import { Mic } from "lucide-react";
+import { Mic, Search } from "lucide-react";
 
 interface QuickActionsProps {
   /** Number of flashcards due now. When > 0, the "Review" link surfaces a count. */
@@ -27,13 +27,26 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
       aria-label="Quick actions"
       className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
     >
-      <Link
-        to="/capture"
-        className="inline-flex items-center justify-center gap-2 self-start bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold text-sm rounded-md px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-      >
-        <Mic className="w-4 h-4" aria-hidden="true" />
-        Start recording
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link
+          to="/capture"
+          className="inline-flex items-center justify-center gap-2 self-start bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold text-sm rounded-md px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+        >
+          <Mic className="w-4 h-4" aria-hidden="true" />
+          Start recording
+        </Link>
+        <span
+          className="hidden md:inline-flex items-center gap-1.5 text-xs text-[var(--color-text-subtle)]"
+          aria-hidden="true"
+        >
+          <Search className="w-3 h-3" />
+          Press
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]">
+            ⌘K
+          </kbd>
+          to jump anywhere
+        </span>
+      </div>
 
       <nav
         aria-label="Quick links"
