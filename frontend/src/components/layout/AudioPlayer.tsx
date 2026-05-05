@@ -3,7 +3,7 @@ import {
   Play,
   SkipBack,
   SkipForward,
-  Volume2,
+  X,
 } from "lucide-react";
 import { useAudioPlayer } from "../../lib/audioPlayer";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -28,6 +28,7 @@ export function AudioPlayer() {
     seek,
     togglePlay,
     setRate,
+    setSrc,
     skip,
   } = useAudioPlayer();
 
@@ -131,7 +132,15 @@ export function AudioPlayer() {
         </select>
       </label>
 
-      <Volume2 className="hidden sm:inline w-4 h-4 text-[var(--color-text-subtle)]" aria-hidden="true" />
+      <button
+        type="button"
+        onClick={() => setSrc(null)}
+        className="text-[var(--color-text-subtle)] hover:text-[var(--color-text)] p-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        aria-label="Close audio player"
+        title="Close audio player"
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }
