@@ -119,6 +119,11 @@ function dateToEvent(date: Date, durationMin: number, base: Omit<CalendarEvent, 
   };
 }
 
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
+
 /** Convert ISO date (yyyy-mm-dd) + minute-of-day into an ISO timestamp. */
 function localDateTimeToIso(date: string, minutes: number): string {
   const [y, m, d] = date.split("-").map(Number);
@@ -1149,7 +1154,7 @@ function EditEventModal({
           </div>
         </div>
         <p className="mt-2 text-[10px] text-[var(--color-text-subtle)] text-right">
-          <kbd className="font-mono">⌘↵</kbd> save · <kbd className="font-mono">esc</kbd> cancel
+          <kbd className="font-mono">{isMacPlatform() ? "⌘↵" : "Ctrl ↵"}</kbd> save · <kbd className="font-mono">esc</kbd> cancel
         </p>
       </div>
     </div>
