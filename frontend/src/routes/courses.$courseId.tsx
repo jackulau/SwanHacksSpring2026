@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { FileText, ArrowLeft, Plus, ClipboardList, NotebookPen } from "lucide-react";
 import { pb } from "../lib/pocketbase";
-import type { Assignment, Course, Lecture, Note } from "../lib/types";
+import type { Course, Lecture, Note } from "../lib/types";
 import { PageHeader } from "../components/layout/PageHeader";
 import { EmptyState } from "../components/layout/EmptyState";
 import { Skeleton } from "../components/layout/Skeleton";
