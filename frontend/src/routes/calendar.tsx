@@ -1447,16 +1447,25 @@ function MonthView({
           const inMonth = d.getMonth() === month.getMonth();
           const isToday = isoDate(d) === isoDate(today);
           const dayEvents = eventsByDay[isoDate(d)] ?? [];
+          // Cell is a div, not a button — event chips inside are interactive
+          // and the day-number is a separate keyboard target. Avoids the
+          // nested-button accessibility/HTML violation.
           return (
-            <button
+            <div
               key={d.toISOString()}
               onClick={() => onPickDay(d)}
-              className={`text-left p-1.5 transition-colors ${
+              className={`text-left p-1.5 transition-colors cursor-pointer ${
                 inMonth ? "bg-[var(--color-bg)] hover:bg-[var(--color-surface-raised)]" : "bg-[var(--color-bg)]/50 hover:bg-[var(--color-surface-raised)]/50"
               }`}
             >
-              <div
-                className={`text-xs mb-1 ${
+              <button
+                type="button"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onPickDay(d);
+                }}
+                aria-label={d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                className={`text-xs mb-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-full ${
                   isToday
                     ? "inline-grid place-items-center w-5 h-5 rounded-full bg-[var(--color-primary)] text-white font-semibold"
                     : inMonth
@@ -1465,28 +1474,29 @@ function MonthView({
                 }`}
               >
                 {d.getDate()}
-              </div>
+              </button>
               <div className="space-y-0.5">
                 {dayEvents.slice(0, 3).map((e) => {
                   const c = KIND_STYLE[e.kind];
                   return (
-                    <span
+                    <button
                       key={e.id}
+                      type="button"
                       onClick={(ev) => {
                         ev.stopPropagation();
                         onOpenEvent(e);
                       }}
-                      className={`block text-[10px] px-1.5 py-0.5 rounded truncate ${c.bg} ${c.text}`}
+                      className={`block w-full text-left text-[10px] px-1.5 py-0.5 rounded truncate focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${c.bg} ${c.text}`}
                     >
                       {e.title}
-                    </span>
+                    </button>
                   );
                 })}
                 {dayEvents.length > 3 && (
                   <div className="text-[10px] text-[var(--color-text-subtle)] px-1.5">+{dayEvents.length - 3} more</div>
                 )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
