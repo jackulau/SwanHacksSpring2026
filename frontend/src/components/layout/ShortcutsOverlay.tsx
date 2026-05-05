@@ -62,6 +62,26 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ["Esc"], label: "Cancel sign-language detector" },
     ],
   },
+  {
+    title: "Audio playback",
+    rows: [
+      { keys: ["Space"], label: "Play / pause" },
+      { keys: ["K"], label: "Play / pause (alt)" },
+      { keys: ["J"], label: "Skip back 10s" },
+      { keys: ["L"], label: "Skip forward 10s" },
+    ],
+  },
+  {
+    title: "Flashcards",
+    rows: [
+      { keys: ["Space"], label: "Flip card" },
+      { keys: ["1"], label: "Again" },
+      { keys: ["2"], label: "Hard" },
+      { keys: ["3"], label: "Good" },
+      { keys: ["4"], label: "Easy" },
+      { keys: ["←", "→"], label: "Previous / next" },
+    ],
+  },
 ];
 
 export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
