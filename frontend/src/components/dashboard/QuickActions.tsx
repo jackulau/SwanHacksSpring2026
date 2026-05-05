@@ -16,11 +16,17 @@ interface QuickActionsProps {
   loading: boolean;
 }
 
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
+
 export function QuickActions({ dueCount, loading }: QuickActionsProps) {
   const dueLabel =
     !loading && dueCount !== null && dueCount > 0
       ? `Review (${dueCount} due)`
       : "Review";
+  const cmdKey = isMacPlatform() ? "⌘K" : "Ctrl K";
 
   return (
     <section
@@ -42,7 +48,7 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
           <Search className="w-3 h-3" />
           Press
           <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]">
-            ⌘K
+            {cmdKey}
           </kbd>
           to jump anywhere
         </span>

@@ -41,6 +41,11 @@ import {
   LogOut,
 } from "lucide-react";
 
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
+
 interface NavItem {
   to: string;
   icon: typeof Home;
@@ -211,7 +216,7 @@ export function AppShell({ children }: AppShellProps) {
         >
           <span className="flex-1 text-left">Search or jump…</span>
           <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/[0.12] text-white/80 border border-white/10">
-            ⌘K
+            {isMacPlatform() ? "⌘K" : "Ctrl K"}
           </kbd>
         </button>
 
