@@ -1286,7 +1286,22 @@ function WeekGrid({
 }
 
 function NowLine() {
-  const now = new Date();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    // Refresh on the next minute boundary, then every 60s. Without this the
+    // line freezes at the moment the user opened the calendar.
+    const msUntilMinute = 60_000 - (Date.now() % 60_000);
+    let interval: number | undefined;
+    const tick = () => setNow(new Date());
+    const initial = window.setTimeout(() => {
+      tick();
+      interval = window.setInterval(tick, 60_000);
+    }, msUntilMinute);
+    return () => {
+      window.clearTimeout(initial);
+      if (interval) window.clearInterval(interval);
+    };
+  }, []);
   const minutes = now.getHours() * 60 + now.getMinutes();
   const offset = minutes - DAY_START_HOUR * 60;
   if (offset < 0 || offset > (DAY_END_HOUR - DAY_START_HOUR) * 60) return null;
