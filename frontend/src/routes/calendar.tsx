@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
@@ -19,6 +19,7 @@ import {
   X,
   ExternalLink,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/calendar")({
@@ -138,6 +139,128 @@ function timeInputToMinutes(value: string): number {
   return (h || 0) * 60 + (m || 0);
 }
 
+/**
+ * Best-effort natural-language event parser. Lossy by design — if we can't
+ * confidently extract a date or time, we surface the raw title and let the
+ * user edit it inline. Recognises:
+ *   - relative dates: today, tonight, tomorrow, "next mon", weekday names
+ *   - times: "3pm", "3:30pm", "15:00", "at 9", "from 9-11"
+ *   - duration: "for 90m", "for 2h"
+ * Returns null when the input is empty.
+ */
+export interface ParsedNLEvent {
+  title: string;
+  date: string; // yyyy-mm-dd
+  startMinutes: number;
+  endMinutes: number;
+  /** True when the parser had to guess a default time. UI shows a chip. */
+  inferredTime: boolean;
+}
+
+const DOW_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+export function parseNaturalEvent(input: string, now: Date = new Date()): ParsedNLEvent | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  let working = raw;
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let date = today;
+
+  // Relative-date keywords (consume them so they don't pollute the title).
+  const re = (pat: RegExp): RegExpMatchArray | null => working.match(pat);
+  if (re(/\btomorrow\b/i)) {
+    date = addDays(today, 1);
+    working = working.replace(/\btomorrow\b/i, "");
+  } else if (re(/\btonight\b/i)) {
+    date = today;
+    working = working.replace(/\btonight\b/i, "");
+  } else if (re(/\btoday\b/i)) {
+    date = today;
+    working = working.replace(/\btoday\b/i, "");
+  } else {
+    const nextMatch = working.match(/\bnext\s+(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i);
+    const onlyMatch = working.match(/\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i);
+    const wkMatch = nextMatch ?? onlyMatch;
+    if (wkMatch) {
+      const idx = DOW_NAMES.findIndex((d) => d.startsWith(wkMatch[1].toLowerCase()));
+      if (idx >= 0) {
+        const cur = today.getDay();
+        let delta = (idx - cur + 7) % 7;
+        if (delta === 0 || nextMatch) delta = delta === 0 ? 7 : delta;
+        date = addDays(today, delta);
+        working = working.replace(wkMatch[0], "");
+      }
+    }
+  }
+
+  // Time + duration. Accept "at 9", "9pm", "9:30am", "from 9-11", "9-11am".
+  let inferredTime = true;
+  let startMinutes = 9 * 60;
+  let endMinutes = 10 * 60;
+
+  const rangeMatch = working.match(
+    /\b(?:from\s+)?(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i,
+  );
+  if (rangeMatch) {
+    const aH = parseInt(rangeMatch[1], 10);
+    const aM = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : 0;
+    const bH = parseInt(rangeMatch[3], 10);
+    const bM = rangeMatch[4] ? parseInt(rangeMatch[4], 10) : 0;
+    const meridiem = rangeMatch[5]?.toLowerCase();
+    const apply = (h: number, isStart: boolean) => {
+      if (meridiem === "pm" && h < 12) return h + 12;
+      if (meridiem === "am" && h === 12) return 0;
+      // No meridiem: assume AM for morning hours (<8 → PM heuristic skipped),
+      // PM for ambiguous "1-3" because students study afternoons.
+      if (!meridiem && h >= 1 && h <= 7 && isStart) return h + 12;
+      return h;
+    };
+    startMinutes = apply(aH, true) * 60 + aM;
+    endMinutes = apply(bH, false) * 60 + bM;
+    if (endMinutes <= startMinutes) endMinutes = startMinutes + 60;
+    inferredTime = false;
+    working = working.replace(rangeMatch[0], "");
+  } else {
+    const timeMatch = working.match(
+      /\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i,
+    );
+    if (timeMatch) {
+      let h = parseInt(timeMatch[1], 10);
+      const m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+      const mer = timeMatch[3]?.toLowerCase();
+      if (mer === "pm" && h < 12) h += 12;
+      else if (mer === "am" && h === 12) h = 0;
+      else if (!mer && h >= 1 && h <= 7) h += 12; // afternoon heuristic
+      if (h >= 0 && h < 24 && m >= 0 && m < 60 && timeMatch[1].length <= 2) {
+        startMinutes = h * 60 + m;
+        endMinutes = startMinutes + 60;
+        inferredTime = false;
+        working = working.replace(timeMatch[0], "");
+      }
+    }
+  }
+
+  const durationMatch = working.match(/\bfor\s+(\d+)\s*(h|hr|hrs|hour|hours|m|min|mins|minutes)\b/i);
+  if (durationMatch) {
+    const n = parseInt(durationMatch[1], 10);
+    const unit = durationMatch[2].toLowerCase();
+    const minutes = unit.startsWith("h") ? n * 60 : n;
+    endMinutes = startMinutes + Math.max(15, minutes);
+    working = working.replace(durationMatch[0], "");
+  }
+
+  const title = working.replace(/\s{2,}/g, " ").replace(/^[\s,-]+|[\s,-]+$/g, "").trim() || raw;
+
+  return {
+    title,
+    date: isoDate(date),
+    startMinutes,
+    endMinutes,
+    inferredTime,
+  };
+}
+
 /** Convert a CalendarEventRecord (PB) into a CalendarEvent (local). */
 function recordToEvent(rec: CalendarEventRecord): CalendarEvent | null {
   const start = new Date(rec.start_at);
@@ -179,6 +302,9 @@ function CalendarPage() {
   const [creating, setCreating] = useState<{ date: string; startMinutes: number } | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
+  const [nlInput, setNlInput] = useState("");
+  const [nlOpen, setNlOpen] = useState(false);
+  const nlRef = useRef<HTMLInputElement | null>(null);
   const [visibleKinds, setVisibleKinds] = useState<Record<EventKind, boolean>>({
     lecture: true,
     assignment: true,
@@ -415,20 +541,141 @@ function CalendarPage() {
     setVisibleKinds((prev) => ({ ...prev, [kind]: !prev[kind] }));
   };
 
+  const submitNaturalEvent = useCallback(async () => {
+    const parsed = parseNaturalEvent(nlInput, new Date());
+    if (!parsed || !user) return;
+    setNlInput("");
+    setNlOpen(false);
+    try {
+      const rec = await pb.collection("calendar_events").create<CalendarEventRecord>({
+        user: user.id,
+        title: parsed.title,
+        start_at: localDateTimeToIso(parsed.date, parsed.startMinutes),
+        end_at: localDateTimeToIso(parsed.date, parsed.endMinutes),
+        notes: parsed.inferredTime ? "Time inferred — edit to confirm." : "",
+        color: "",
+        external_href: "",
+      });
+      const ev = recordToEvent(rec);
+      if (ev) {
+        setUserEvents((prev) => [...prev, ev]);
+        // Pan calendar to the event date so the user sees the result.
+        const [y, m, d] = parsed.date.split("-").map(Number);
+        setAnchor(new Date(y, (m || 1) - 1, d || 1));
+      }
+    } catch {
+      // Local fallback so input never feels lost.
+      setUserEvents((prev) => [
+        ...prev,
+        {
+          id: `usr-${Date.now()}`,
+          title: parsed.title,
+          date: parsed.date,
+          startMinutes: parsed.startMinutes,
+          endMinutes: parsed.endMinutes,
+          kind: "user",
+        },
+      ]);
+    }
+  }, [nlInput, user]);
+
+  // View-level keyboard shortcuts (T today, arrows, 1-4 view, N new event,
+  // / focus quick-add). All shortcuts are no-ops while a field is focused.
+  useEffect(() => {
+    const isTyping = (el: EventTarget | null) => {
+      const node = el as HTMLElement | null;
+      if (!node) return false;
+      const tag = node.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || node.isContentEditable;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (isTyping(e.target)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      switch (e.key.toLowerCase()) {
+        case "t":
+          e.preventDefault();
+          goToday();
+          return;
+        case "arrowleft":
+          e.preventDefault();
+          navigateRange(-1);
+          return;
+        case "arrowright":
+          e.preventDefault();
+          navigateRange(1);
+          return;
+        case "1":
+          e.preventDefault();
+          setView("day");
+          return;
+        case "2":
+          e.preventDefault();
+          setView("schoolWeek");
+          return;
+        case "3":
+          e.preventDefault();
+          setView("week");
+          return;
+        case "4":
+          e.preventDefault();
+          setView("month");
+          return;
+        case "n":
+          e.preventDefault();
+          handleSlotClick(isoDate(anchor), new Date().getHours());
+          return;
+        case "/":
+          e.preventDefault();
+          setNlOpen(true);
+          window.setTimeout(() => nlRef.current?.focus(), 0);
+          return;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchor]);
+
   if (authLoading || !user) return null;
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-bg)] text-[var(--color-text)]">
       {/* Top toolbar */}
       <div className="flex items-center gap-1 px-4 h-12 border-b border-[var(--color-border)] bg-[var(--color-surface-raised)] shrink-0 overflow-x-auto">
-        <button
-          onClick={() => handleSlotClick(isoDate(anchor), new Date().getHours())}
-          className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-sm font-medium transition-colors shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          New event
-          <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-        </button>
+        {nlOpen ? (
+          <NaturalLanguageBar
+            inputRef={nlRef}
+            value={nlInput}
+            onChange={setNlInput}
+            onSubmit={submitNaturalEvent}
+            onClose={() => {
+              setNlOpen(false);
+              setNlInput("");
+            }}
+          />
+        ) : (
+          <>
+            <button
+              onClick={() => {
+                setNlOpen(true);
+                window.setTimeout(() => nlRef.current?.focus(), 0);
+              }}
+              className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-sm font-medium transition-colors shrink-0"
+              title="New event — try natural language like 'Bio review tomorrow 3pm'"
+            >
+              <Plus className="w-4 h-4" />
+              New event
+              <kbd className="hidden sm:inline px-1 py-0.5 text-[10px] font-mono rounded bg-white/15 text-white/85">/</kbd>
+            </button>
+            <button
+              onClick={() => handleSlotClick(isoDate(anchor), new Date().getHours())}
+              className="px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-elevated)] text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0"
+              title="Drop a blank event at the current hour (n)"
+            >
+              Blank slot
+            </button>
+          </>
+        )}
 
         <div className="w-px h-5 bg-[var(--color-border)] mx-1" />
 
@@ -544,6 +791,70 @@ function CalendarPage() {
           onDelete={deleteEditedEvent}
         />
       )}
+    </div>
+  );
+}
+
+function NaturalLanguageBar({
+  inputRef,
+  value,
+  onChange,
+  onSubmit,
+  onClose,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  value: string;
+  onChange: (s: string) => void;
+  onSubmit: () => void;
+  onClose: () => void;
+}) {
+  const preview = useMemo(() => parseNaturalEvent(value, new Date()), [value]);
+  return (
+    <div className="flex items-center gap-2 flex-1 min-w-0">
+      <Sparkles className="w-4 h-4 text-[var(--color-primary)] shrink-0" aria-hidden="true" />
+      <input
+        ref={inputRef}
+        autoFocus
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onSubmit();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            onClose();
+          }
+        }}
+        placeholder="Try: 'Bio review tomorrow 3pm for 90m'"
+        className="flex-1 min-w-0 bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none"
+        aria-label="Natural-language event input"
+      />
+      {preview && value.trim() && (
+        <span
+          className="hidden md:inline text-[11px] text-[var(--color-text-subtle)] truncate max-w-[280px]"
+          aria-live="polite"
+        >
+          → <strong className="text-[var(--color-text-muted)] font-medium">{preview.title}</strong>
+          {" · "}
+          {preview.date} {fmtTime(preview.startMinutes)}
+          {preview.inferredTime && <span className="ml-1 text-[var(--color-warning)]">(time guess)</span>}
+        </span>
+      )}
+      <button
+        onClick={onSubmit}
+        disabled={!value.trim()}
+        className="px-3 h-7 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors shrink-0"
+      >
+        Add
+      </button>
+      <button
+        onClick={onClose}
+        aria-label="Close quick-add"
+        className="w-7 h-7 grid place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-elevated)] shrink-0"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
