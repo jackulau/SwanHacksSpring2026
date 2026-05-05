@@ -510,9 +510,15 @@ function CalendarPage() {
   };
 
   const openEvent = (e: CalendarEvent) => {
+    // User events always open the edit modal — even when they carry an
+    // external link, so the student can change the time / notes / link
+    // without first clearing the URL. The modal still has its own "Open" CTA.
+    if (e.kind === "user") {
+      setEditing(e);
+      return;
+    }
     if (e.href) navigate({ to: e.href });
     else if (e.externalHref) window.open(e.externalHref, "_blank", "noopener,noreferrer");
-    else if (e.kind === "user") setEditing(e);
   };
 
   const saveEditedEvent = async (updated: CalendarEvent) => {
