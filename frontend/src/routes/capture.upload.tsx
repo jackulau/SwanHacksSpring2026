@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { FileUpload } from "../components/capture/FileUpload";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
@@ -23,6 +23,7 @@ function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
   const [pipelineError, setPipelineError] = useState('');
+  const [pipelineLectureId, setPipelineLectureId] = useState<string | null>(null);
 
   const handleUpload = useCallback(async (file: File) => {
     setIsUploading(true);
@@ -40,6 +41,7 @@ function UploadPage() {
 
       setProgress(50);
       const lecture = await pb.collection('lectures').create(formData);
+      setPipelineLectureId(lecture.id);
       setProgress(100);
       setIsUploading(false);
 
@@ -77,7 +79,21 @@ function UploadPage() {
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-2xl mx-auto">
         {pipelineStage && (
           <div className="mb-8">
-            <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
+            <ProcessingStatus
+              currentStage={pipelineStage}
+              error={pipelineError}
+              finalAction={
+                pipelineLectureId ? (
+                  <Link
+                    to="/lectures/$lectureId"
+                    params={{ lectureId: pipelineLectureId }}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)]"
+                  >
+                    {pipelineStage === 'done' ? 'Open lecture →' : 'View partial result →'}
+                  </Link>
+                ) : null
+              }
+            />
           </div>
         )}
 
