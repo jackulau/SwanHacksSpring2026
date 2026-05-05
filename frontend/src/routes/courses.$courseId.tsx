@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { FileText, ArrowLeft, Plus, ClipboardList, NotebookPen } from "lucide-react";
+import { FileText, ArrowLeft, Plus, ClipboardList, NotebookPen, Loader2 } from "lucide-react";
 import { pb } from "../lib/pocketbase";
 import type { Course, Lecture, Note } from "../lib/types";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -266,6 +266,11 @@ function LecturesPanel({ lectures }: { lectures: Lecture[] }) {
 }
 
 function StatusPill({ status }: { status: Lecture["status"] }) {
+  const inFlight =
+    status === "generating" ||
+    status === "transcribing" ||
+    status === "uploading" ||
+    status === "processing";
   const tone =
     status === "ready"
       ? "text-[var(--color-primary-strong)]"
@@ -287,7 +292,13 @@ function StatusPill({ status }: { status: Lecture["status"] }) {
                 ? "Processing…"
                 : status;
   return (
-    <span className={`text-xs font-medium ${tone}`} title={status}>
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-medium ${tone}`}
+      title={status}
+    >
+      {inFlight && (
+        <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+      )}
       {label}
     </span>
   );
