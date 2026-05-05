@@ -337,6 +337,12 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
             type="text"
             value={String(answers[question.id] ?? '')}
             onChange={(e) => handleAnswer(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' || submitted || !hasAnswer) return;
+              e.preventDefault();
+              if (isLast) handleSubmit();
+              else setCurrentIdx((i) => Math.min(questions.length - 1, i + 1));
+            }}
             placeholder={
               question.type === 'fill_blank' ? 'Fill in the blank…' : 'Type your answer…'
             }
