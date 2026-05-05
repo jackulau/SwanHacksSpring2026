@@ -728,7 +728,7 @@ function CalendarPage() {
                 onToggle={() => toggleKind("assignment")}
               />
               <CalendarLegendRow
-                color="rgb(255 255 255 / 0.4)"
+                color="var(--color-text-subtle)"
                 label="Personal"
                 count={userEvents.length}
                 visible={visibleKinds.user}
