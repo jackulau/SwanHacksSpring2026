@@ -38,6 +38,7 @@ import {
   Glasses,
   Trash2,
   Calendar,
+  LogOut,
 } from "lucide-react";
 
 interface NavItem {
@@ -389,6 +390,16 @@ function UserMenu({
   onLogout: () => void;
 }) {
   const initial = email?.charAt(0).toUpperCase() ?? "?";
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   return (
     <div className="relative">
       <button
@@ -454,8 +465,8 @@ function UserMenu({
               }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
-              <Settings className="w-4 h-4" />
-              Sign Out
+              <LogOut className="w-4 h-4" />
+              Sign out
             </button>
           </div>
         </>
