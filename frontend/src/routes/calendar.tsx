@@ -45,6 +45,8 @@ type CalendarEvent = {
   kind: EventKind;
   href?: string;
   externalHref?: string;
+  /** Free-form notes attached to a user event. Persisted via PB. */
+  notes?: string;
 };
 
 const HOUR_HEIGHT = 56;
@@ -276,6 +278,8 @@ function recordToEvent(rec: CalendarEventRecord): CalendarEvent | null {
     startMinutes,
     endMinutes: endMinutes > startMinutes ? endMinutes : startMinutes + 60,
     kind: "user",
+    notes: rec.notes ?? "",
+    externalHref: rec.external_href || undefined,
   };
 }
 
@@ -520,6 +524,8 @@ function CalendarPage() {
         title: updated.title,
         start_at: localDateTimeToIso(updated.date, updated.startMinutes),
         end_at: localDateTimeToIso(updated.date, updated.endMinutes),
+        notes: updated.notes ?? "",
+        external_href: updated.externalHref ?? "",
       });
     } catch {
       // Persistence failure — local state already updated. No retry queue.
@@ -947,19 +953,41 @@ function EditEventModal({
   const [date, setDate] = useState(event.date);
   const [startTime, setStartTime] = useState(minutesToTimeInput(event.startMinutes));
   const [endTime, setEndTime] = useState(minutesToTimeInput(event.endMinutes));
+  const [notes, setNotes] = useState(event.notes ?? "");
+  const [externalHref, setExternalHref] = useState(event.externalHref ?? "");
 
   const handleSave = () => {
     if (!title.trim()) return;
     const startMinutes = timeInputToMinutes(startTime);
     const endRaw = timeInputToMinutes(endTime);
     const endMinutes = endRaw > startMinutes ? endRaw : startMinutes + 60;
+    // Lightweight URL hygiene — accept blank, otherwise require a scheme.
+    const href = externalHref.trim();
+    const cleanHref = !href
+      ? ""
+      : /^https?:\/\//i.test(href)
+        ? href
+        : `https://${href}`;
     onSave({
       ...event,
       title: title.trim(),
       date,
       startMinutes,
       endMinutes,
+      notes: notes,
+      externalHref: cleanHref || undefined,
     });
+  };
+
+  // Submit on Cmd/Ctrl+Enter; Escape closes from inside any field.
+  const onModalKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onClose();
+    }
   };
 
   return (
@@ -971,8 +999,9 @@ function EditEventModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl"
+        className="w-full max-w-md rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={onModalKeyDown}
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-[var(--color-text)]">Edit event</h2>
@@ -1024,9 +1053,30 @@ function EditEventModal({
               />
             </label>
           </div>
+          <label className="block">
+            <span className="block text-xs text-[var(--color-text-muted)] mb-1">Link (optional)</span>
+            <input
+              type="url"
+              inputMode="url"
+              value={externalHref}
+              onChange={(e) => setExternalHref(e.target.value)}
+              placeholder="meeting link, study guide, lecture URL…"
+              className="w-full px-2 py-1.5 rounded-md bg-[var(--color-input)] text-sm text-[var(--color-text)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)]"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-xs text-[var(--color-text-muted)] mb-1">Notes</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Anything to remember about this event…"
+              rows={3}
+              className="w-full px-2 py-1.5 rounded-md bg-[var(--color-input)] text-sm text-[var(--color-text)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)] leading-6 resize-y"
+            />
+          </label>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => onDelete(event)}
@@ -1036,6 +1086,21 @@ function EditEventModal({
             Delete
           </button>
           <div className="flex items-center gap-2">
+            {externalHref.trim() && (
+              <a
+                href={
+                  /^https?:\/\//i.test(externalHref.trim())
+                    ? externalHref.trim()
+                    : `https://${externalHref.trim()}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Open
+              </a>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -1047,11 +1112,15 @@ function EditEventModal({
               type="button"
               onClick={handleSave}
               className="px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-xs font-medium transition-colors"
+              title="Cmd/Ctrl + Enter"
             >
               Save
             </button>
           </div>
         </div>
+        <p className="mt-2 text-[10px] text-[var(--color-text-subtle)] text-right">
+          <kbd className="font-mono">⌘↵</kbd> save · <kbd className="font-mono">esc</kbd> cancel
+        </p>
       </div>
     </div>
   );
@@ -1235,10 +1304,13 @@ function EventBlock({ event, onOpen }: { event: CalendarEvent; onOpen: () => voi
   const top = (offset / 60) * HOUR_HEIGHT;
   const height = ((event.endMinutes - event.startMinutes) / 60) * HOUR_HEIGHT;
   const c = KIND_STYLE[event.kind];
+  const isShort = height < 36;
+  const timeRange = `${fmtTime(event.startMinutes)} – ${fmtTime(event.endMinutes)}`;
 
   return (
     <button
       onClick={onOpen}
+      title={`${event.title} · ${timeRange}`}
       className={`absolute left-1 right-1 rounded-md overflow-hidden text-left ${c.bg} cursor-pointer transition-colors group focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]`}
       style={{ top, height: Math.max(height, 22) }}
     >
@@ -1248,8 +1320,10 @@ function EventBlock({ event, onOpen }: { event: CalendarEvent; onOpen: () => voi
           {event.title}
           {event.externalHref && <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />}
         </div>
-        {event.subtitle && (
-          <div className={`text-[10px] ${c.sub} truncate`}>{event.subtitle}</div>
+        {!isShort && (
+          <div className={`text-[10px] ${c.sub} truncate`}>
+            {event.subtitle ? event.subtitle : timeRange}
+          </div>
         )}
       </div>
     </button>
