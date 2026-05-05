@@ -199,6 +199,24 @@ function LectureDetailPage() {
     }
   };
 
+  // 1/2/3/4 jumps between tabs when not typing.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const node = e.target as HTMLElement | null;
+      const tag = node?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || node?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const map: Record<string, View> = { "1": "transcript", "2": "notes", "3": "flashcards", "4": "quiz" };
+      const next = map[e.key];
+      if (next) {
+        e.preventDefault();
+        setView(next);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const handlePersonalNotesChange = async (next: string) => {
     if (!user || !lecture) return;
     const summary = next;
