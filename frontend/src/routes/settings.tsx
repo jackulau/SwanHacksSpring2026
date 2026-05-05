@@ -321,6 +321,7 @@ function ProfileSection() {
   const [displayName, setDisplayName] = useState(baseName);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const inputId = useId();
 
   useEffect(() => {
@@ -333,13 +334,14 @@ function ProfileSection() {
     e.preventDefault();
     if (!user || !dirty) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await pb
         .collection("users")
         .update(user.id, { display_name: displayName.trim() });
       setSavedAt(Date.now());
     } catch {
-      // Silent fail; the dirty state will remain visible so the user can retry.
+      setSaveError("Couldn't save. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -378,8 +380,13 @@ function ProfileSection() {
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
-        {savedAt && !dirty && !saving && (
+        {savedAt && !dirty && !saving && !saveError && (
           <span className="text-xs text-[var(--color-text-muted)]">Saved.</span>
+        )}
+        {saveError && (
+          <span role="alert" className="text-xs text-[var(--color-record)]">
+            {saveError}
+          </span>
         )}
       </div>
     </form>
@@ -792,6 +799,7 @@ export function AccessibilitySection() {
 function AccountSection() {
   const { logout } = useAuth();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
 
   return (
     <div>
@@ -824,8 +832,8 @@ function AccountSection() {
             <button
               type="button"
               onClick={() => {
-                alert(
-                  "Account deletion will be available once email confirmation is wired up.",
+                setDeleteNotice(
+                  "Account deletion will be available once email confirmation is wired up. Email champpacifiquemukiza@gmail.com to delete in the meantime.",
                 );
                 setConfirmDelete(false);
               }}
@@ -844,17 +852,34 @@ function AccountSection() {
           </button>
         )}
       </Row>
+      {deleteNotice && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="mt-3 text-xs text-[var(--color-text-muted)] border border-[var(--color-border)] rounded-md px-3 py-2 bg-[var(--color-surface-raised)]"
+        >
+          {deleteNotice}
+        </p>
+      )}
     </div>
   );
 }
 
 function DataSection({ userId }: { userId: string }) {
   const [exporting, setExporting] = useState(false);
+  const [status, setStatus] = useState<{ kind: "success" | "error"; msg: string } | null>(null);
 
   async function handleExport() {
     setExporting(true);
+    setStatus(null);
     try {
-      await exportUserData(userId);
+      const filename = await exportUserData(userId);
+      setStatus({ kind: "success", msg: `Exported as ${filename}.` });
+    } catch {
+      setStatus({
+        kind: "error",
+        msg: "Export failed. Check your connection and try again.",
+      });
     } finally {
       setExporting(false);
     }
@@ -875,35 +900,46 @@ function DataSection({ userId }: { userId: string }) {
           {exporting ? "Exporting…" : "Export"}
         </button>
       </Row>
+      {status && (
+        <p
+          role="status"
+          aria-live="polite"
+          className={`mt-3 text-xs ${
+            status.kind === "error"
+              ? "text-[var(--color-record)]"
+              : "text-[var(--color-text-muted)]"
+          }`}
+        >
+          {status.msg}
+        </p>
+      )}
     </div>
   );
 }
 
-async function exportUserData(userId: string) {
-  try {
-    const [lectures, notes, flashcards, courses] = await Promise.all([
-      pb.collection("lectures").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-lectures" }).catch(() => []),
-      pb.collection("notes").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-notes" }).catch(() => []),
-      pb.collection("flashcards").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-flashcards" }).catch(() => []),
-      pb.collection("courses").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-courses" }).catch(() => []),
-    ]);
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          { exported_at: new Date().toISOString(), lectures, notes, flashcards, courses },
-          null,
-          2,
-        ),
-      ],
-      { type: "application/json" },
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `converge-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  } catch {
-    alert("Export failed. Try again or check your network connection.");
-  }
+async function exportUserData(userId: string): Promise<string> {
+  const [lectures, notes, flashcards, courses] = await Promise.all([
+    pb.collection("lectures").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-lectures" }).catch(() => []),
+    pb.collection("notes").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-notes" }).catch(() => []),
+    pb.collection("flashcards").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-flashcards" }).catch(() => []),
+    pb.collection("courses").getFullList({ filter: `user = "${userId}"`, requestKey: "exp-courses" }).catch(() => []),
+  ]);
+  const blob = new Blob(
+    [
+      JSON.stringify(
+        { exported_at: new Date().toISOString(), lectures, notes, flashcards, courses },
+        null,
+        2,
+      ),
+    ],
+    { type: "application/json" },
+  );
+  const url = URL.createObjectURL(blob);
+  const filename = `converge-export-${new Date().toISOString().slice(0, 10)}.json`;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  return filename;
 }
