@@ -53,6 +53,13 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ["4"], label: "Quiz tab" },
     ],
   },
+  {
+    title: "Recording",
+    rows: [
+      { keys: ["Space"], label: "Start / stop recording" },
+      { keys: ["Esc"], label: "Cancel sign-language detector" },
+    ],
+  },
 ];
 
 export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {

@@ -243,6 +243,27 @@ function RecordingInterface() {
   }, [audio.audioBlob, audio.duration, stt.captions]);
 
   const isRecording = audio.isRecording;
+
+  // Space toggles record on the capture page. Disabled while typing or while
+  // the post-record pipeline is running so we don't duplicate work.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const node = e.target as HTMLElement | null;
+      const tag = node?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON" || tag === "SELECT" || node?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.code !== "Space" && e.key !== " ") return;
+      e.preventDefault();
+      if (processing) return;
+      if (audio.isRecording) {
+        handleStop();
+      } else {
+        handleStart();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [audio.isRecording, processing, handleStart, handleStop]);
   const sttStatus = isRecording
     ? stt.isConnected
       ? 'Whisper transcribing'
@@ -309,6 +330,16 @@ function RecordingInterface() {
               </div>
 
               {!isRecording && (
+                <p className="text-xs text-[var(--color-text-subtle)] -mt-3">
+                  Press{" "}
+                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)]">
+                    Space
+                  </kbd>{" "}
+                  to start, again to stop.
+                </p>
+              )}
+
+              {!isRecording && (
                 <div className="flex flex-col items-center gap-2">
                   <button
                     type="button"
@@ -347,9 +378,23 @@ function RecordingInterface() {
               </p>
             )}
 
-            {/* Transcript — continuous typographic body, no card chrome. */}
+            {/* Transcript — continuous typographic body, no card chrome.
+             * showConfidence flags uncertain words with a dotted underline so
+             * the user can spot mishears before the post-process pass. */}
             <div className="mt-12 border-t border-[var(--color-border)] pt-8">
-              <LiveCaptions captions={stt.captions} />
+              <LiveCaptions captions={stt.captions} showConfidence />
+              {stt.captions.length > 0 && (
+                <div className="mt-4 text-xs text-[var(--color-text-subtle)] flex items-center gap-3">
+                  <span className="tabular-nums">
+                    {stt.captions.reduce((acc, c) => acc + (c.isFinal ? c.text.split(/\s+/).filter(Boolean).length : 0), 0)} words transcribed
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-3 h-px decoration-dotted underline underline-offset-4 decoration-[var(--color-warning)] border-b border-dotted border-[var(--color-warning)]" aria-hidden="true" />
+                    Underlined = low-confidence; verify after stop.
+                  </span>
+                </div>
+              )}
             </div>
           </>
         )}
