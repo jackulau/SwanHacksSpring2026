@@ -53,13 +53,21 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  // Reset state and focus input each time the palette opens.
+  // Reset state and focus input each time the palette opens. On close,
+  // restore focus to whatever the user was on so keyboard navigation isn't
+  // dumped at the body.
   useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     setQuery("");
     setActiveIndex(0);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      if (previouslyFocused && document.body.contains(previouslyFocused)) {
+        previouslyFocused.focus();
+      }
+    };
   }, [open]);
 
   // Lazy-load searchable records when the palette opens.
