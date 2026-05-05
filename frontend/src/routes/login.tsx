@@ -113,7 +113,7 @@ function LoginPage() {
             <div
               role="alert"
               aria-live="assertive"
-              className="bg-red-50 border border-red-200 rounded-md px-3 py-2 mb-6 text-red-700 text-sm"
+              className="border-l-2 border-[var(--color-record)] bg-[var(--color-record)]/10 rounded-sm px-3 py-2 mb-6 text-sm text-[var(--color-record)]"
             >
               {error}
             </div>
