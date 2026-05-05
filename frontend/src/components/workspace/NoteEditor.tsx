@@ -70,6 +70,11 @@ export function NoteEditor({
       onPersonalNotesChange(draft);
       // Optimistic — assume the parent will reflect the value back.
       window.setTimeout(() => setSaveState("saved"), 200);
+      // Fade the "Saved" pill back to the default hint after a beat so the
+      // status row doesn't permanently read "Saved" once you stop typing.
+      window.setTimeout(() => {
+        setSaveState((s) => (s === "saved" ? "idle" : s));
+      }, 2200);
     }, AUTOSAVE_MS);
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
