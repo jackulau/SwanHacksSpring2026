@@ -58,6 +58,17 @@ function LectureDetailPage() {
     if (!authLoading && !user) navigate({ to: "/login" });
   }, [authLoading, user, navigate]);
 
+  // Reflect the lecture title in the browser tab so multi-tab users can find it.
+  useEffect(() => {
+    const previous = document.title;
+    if (lecture?.title) {
+      document.title = `${lecture.title} · Converge`;
+    }
+    return () => {
+      document.title = previous;
+    };
+  }, [lecture?.title]);
+
   // Load all lecture-scoped data from PocketBase
   useEffect(() => {
     if (!user) return;
