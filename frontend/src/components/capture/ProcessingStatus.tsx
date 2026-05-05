@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 
 type Stage = 'transcribing' | 'cleaning' | 'notes' | 'flashcards' | 'quiz' | 'done' | 'error';
@@ -5,6 +6,8 @@ type Stage = 'transcribing' | 'cleaning' | 'notes' | 'flashcards' | 'quiz' | 'do
 interface ProcessingStatusProps {
   currentStage: Stage;
   error?: string;
+  /** Slot for terminal-state actions: opening the new lecture, retrying, etc. */
+  finalAction?: ReactNode;
 }
 
 const STAGES: { key: Stage; label: string }[] = [
@@ -22,7 +25,7 @@ const STAGES: { key: Stage; label: string }[] = [
  * bar plus the current stage label and any final-state message — total height
  * stays under ~80px so it never competes with the recording surface.
  */
-export function ProcessingStatus({ currentStage, error }: ProcessingStatusProps) {
+export function ProcessingStatus({ currentStage, error, finalAction }: ProcessingStatusProps) {
   const idx = STAGES.findIndex((s) => s.key === currentStage);
   const isError = currentStage === 'error';
   const isDone = currentStage === 'done';
@@ -91,6 +94,9 @@ export function ProcessingStatus({ currentStage, error }: ProcessingStatusProps)
         <p className="text-xs text-[var(--color-text-muted)]">
           Notes, flashcards, and quiz are ready.
         </p>
+      )}
+      {(isDone || isError) && finalAction && (
+        <div className="pt-2">{finalAction}</div>
       )}
     </div>
   );

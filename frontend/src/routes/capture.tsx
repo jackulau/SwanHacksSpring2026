@@ -66,6 +66,7 @@ function RecordingInterface() {
   const [processing, setProcessing] = useState(false);
   const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
   const [pipelineError, setPipelineError] = useState('');
+  const [pipelineLectureId, setPipelineLectureId] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   // Mirror videoRef into state so hooks that need to react when the element
   // mounts (e.g. the VLM frame sampler in useWordSignRecognition) get a
@@ -197,6 +198,7 @@ function RecordingInterface() {
         lectureData.append('user', pb.authStore.record?.id || '');
 
         const lecture = await pb.collection('lectures').create(lectureData);
+        setPipelineLectureId(lecture.id);
 
         let fullTranscript = stt.captions
           .filter((c) => c.isFinal)
@@ -283,7 +285,21 @@ function RecordingInterface() {
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
         {pipelineStage && !isRecording && (
           <div className="mb-8">
-            <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
+            <ProcessingStatus
+              currentStage={pipelineStage}
+              error={pipelineError}
+              finalAction={
+                pipelineLectureId ? (
+                  <Link
+                    to="/lectures/$lectureId"
+                    params={{ lectureId: pipelineLectureId }}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)]"
+                  >
+                    {pipelineStage === 'done' ? 'Open lecture →' : 'View partial result →'}
+                  </Link>
+                ) : null
+              }
+            />
           </div>
         )}
 
