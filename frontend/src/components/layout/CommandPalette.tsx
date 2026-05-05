@@ -20,6 +20,11 @@ import { pb } from "../../lib/pocketbase";
 import { useAuth } from "../../lib/auth";
 import type { Lecture, Course, Assignment } from "../../lib/types";
 
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
+
 interface CommandItem {
   id: string;
   label: string;
@@ -305,7 +310,7 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
             <span><kbd className="font-mono">↑↓</kbd> navigate</span>
             <span><kbd className="font-mono">↵</kbd> select</span>
           </span>
-          <span><kbd className="font-mono">⌘K</kbd> toggle</span>
+          <span><kbd className="font-mono">{isMacPlatform() ? "⌘K" : "Ctrl K"}</kbd> toggle</span>
         </div>
       </div>
     </div>
