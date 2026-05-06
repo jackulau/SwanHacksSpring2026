@@ -484,7 +484,7 @@ function LectureDetailPage() {
 
         {/* The reading surface itself — one calm column. */}
         <main
-          id={`panel-${view}`}
+          id="lecture-panel"
           role="tabpanel"
           aria-labelledby={`tab-${view}`}
           tabIndex={-1}
@@ -552,7 +552,7 @@ function ViewTab({ id, label, icon: Icon, active, onSelect }: ViewTabProps) {
       role="tab"
       id={`tab-${id}`}
       aria-selected={active}
-      aria-controls={`panel-${id}`}
+      aria-controls="lecture-panel"
       tabIndex={active ? 0 : -1}
       onClick={onSelect}
       className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] focus-visible:outline-offset-2 rounded-sm ${
