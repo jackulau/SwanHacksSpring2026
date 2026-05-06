@@ -33,6 +33,13 @@ function CourseDetailPage() {
   }, [course?.name]);
 
   useEffect(() => {
+    // Reset state when switching between course IDs so the previous course's
+    // lectures/notes don't briefly flash on screen.
+    setCourse(null);
+    setLectures([]);
+    setNotes([]);
+    setAssignmentCount(0);
+    setLoading(true);
     let cancelled = false;
     async function run() {
       try {
