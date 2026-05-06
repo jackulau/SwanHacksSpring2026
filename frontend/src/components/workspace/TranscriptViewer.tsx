@@ -62,7 +62,15 @@ export function TranscriptViewer({
   useEffect(() => {
     if (activeIdx < 0 || activeIdx === lastScrolledIdx.current) return;
     lastScrolledIdx.current = activeIdx;
-    activeRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // Respect prefers-reduced-motion: jump instead of smooth scroll so we
+    // don't trigger motion sickness for users with that pref.
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    activeRef.current?.scrollIntoView({
+      block: 'center',
+      behavior: prefersReduced ? 'auto' : 'smooth',
+    });
   }, [activeIdx]);
 
   if (!hasSegments && !fallbackText) {
