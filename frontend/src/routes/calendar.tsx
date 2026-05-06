@@ -1539,6 +1539,7 @@ function MonthView({
                     <button
                       key={e.id}
                       type="button"
+                      title={`${e.title} · ${fmtTime(e.startMinutes)}`}
                       onClick={(ev) => {
                         ev.stopPropagation();
                         onOpenEvent(e);
