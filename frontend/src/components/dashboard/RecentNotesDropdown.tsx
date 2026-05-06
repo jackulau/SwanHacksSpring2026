@@ -135,12 +135,9 @@ export function RecentNotesDropdown({
     <section aria-label="Recent notes" className="flex flex-col gap-4">
       {!hideHeader && (
         <div className="flex items-baseline justify-between">
-          <Link
-            to="/courses"
-            className="text-base font-semibold text-[var(--color-text)] hover:text-[var(--color-primary-strong)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
-          >
+          <h2 className="text-base font-semibold text-[var(--color-text)]">
             Recent notes
-          </Link>
+          </h2>
           <Link
             to="/courses"
             className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
