@@ -292,8 +292,10 @@ function formatDueLine(iso?: string): string {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const startOfDayAfter = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000);
   const time = t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   if (t >= startOfToday && t < startOfTomorrow) return time;
+  if (t >= startOfTomorrow && t < startOfDayAfter) return `Tomorrow · ${time}`;
   const date = t.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   return `${date} · ${time}`;
 }
