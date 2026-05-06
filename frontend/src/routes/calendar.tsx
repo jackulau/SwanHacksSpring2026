@@ -1093,7 +1093,9 @@ function EditEventModal({
         <div className="mt-4 flex items-center justify-between gap-2">
           {confirmingDelete ? (
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-[var(--color-text-muted)]">Delete this event?</span>
+              <span className="text-[var(--color-text-muted)]">
+                Delete <span className="font-semibold text-[var(--color-text)]">{event.title || "this event"}</span>?
+              </span>
               <button
                 type="button"
                 onClick={() => onDelete(event)}
