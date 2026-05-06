@@ -93,7 +93,7 @@ function LandingHeader() {
 
 function HeroSection() {
   return (
-    <section id="top" className="px-6 lg:px-10 pt-20 pb-24">
+    <section id="top" className="px-6 lg:px-10 pt-20 pb-24 scroll-mt-20">
       <div className="max-w-6xl mx-auto grid lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-7">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-subtle)] mb-6">
@@ -209,7 +209,7 @@ function WorkflowSection() {
   return (
     <section
       id="workflow"
-      className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)]/40"
+      className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)]/40 scroll-mt-20"
     >
       <div className="max-w-6xl mx-auto">
         <h2 className="text-4xl sm:text-5xl font-brand font-semibold tracking-tight max-w-3xl">
@@ -311,7 +311,7 @@ function FeatureGrid() {
   return (
     <section
       id="features"
-      className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)]"
+      className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] scroll-mt-20"
     >
       <div className="max-w-5xl mx-auto">
         <h2 className="text-4xl sm:text-5xl font-brand font-semibold tracking-tight">
@@ -344,7 +344,7 @@ function AccessibilityBlock() {
     { label: "ASL fingerspelling", body: "Sign letters into your webcam, see them in the live caption stream." },
   ];
   return (
-    <section id="accessibility" className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)]">
+    <section id="accessibility" className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] scroll-mt-20">
       <div className="max-w-5xl mx-auto grid lg:grid-cols-12 gap-12">
         <div className="lg:col-span-5">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-primary)] mb-5">
@@ -384,7 +384,7 @@ function AccessibilityBlock() {
 
 function DemoMockup() {
   return (
-    <section id="demo" className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)]/40">
+    <section id="demo" className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)]/40 scroll-mt-20">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
           <div>
