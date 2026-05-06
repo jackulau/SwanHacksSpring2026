@@ -694,11 +694,17 @@ function QuizTab({ quiz, onStart, onGenerate, generating }: QuizTabProps) {
         <button
           type="button"
           onClick={() => onStart(quiz.id)}
-          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+          disabled={questionCount === 0}
+          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
         >
           <Play className="w-4 h-4" aria-hidden="true" />
-          Take quiz
+          {questionCount === 0 ? "Empty quiz" : "Take quiz"}
         </button>
+        {questionCount === 0 && (
+          <p className="text-xs text-[var(--color-text-muted)] mt-2">
+            Generation produced no questions. Re-run the study set from the page header.
+          </p>
+        )}
       </div>
     </div>
   );
