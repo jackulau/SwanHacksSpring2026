@@ -1064,7 +1064,7 @@ function EditEventModal({
             aria-label="Close"
             className="w-7 h-7 grid place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)]"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -1174,7 +1174,7 @@ function EditEventModal({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                 Open
               </a>
             )}
