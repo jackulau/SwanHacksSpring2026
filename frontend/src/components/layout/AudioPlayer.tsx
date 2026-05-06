@@ -72,7 +72,7 @@ export function AudioPlayer() {
       {error && (
         <span
           role="alert"
-          className="hidden sm:inline truncate text-xs text-[var(--color-record)] max-w-72"
+          className="truncate text-xs text-[var(--color-record)] max-w-[60%] sm:max-w-72"
         >
           {error}
         </span>
