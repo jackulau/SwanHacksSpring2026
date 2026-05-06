@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, Outlet, useMatch } from "@tanstack/react-router";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Hand, Mic, Upload } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
@@ -293,6 +293,19 @@ function RecordingInterface() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [audio.isRecording, processing, handleStart, handleStop]);
+  // Memoize the transcribed-word count so each re-render doesn't re-walk the
+  // whole captions array (cheap individually, but the array grows fast during
+  // a long recording and this re-runs on every render).
+  const transcribedWordCount = useMemo(
+    () =>
+      stt.captions.reduce(
+        (acc, c) =>
+          acc + (c.isFinal ? c.text.split(/\s+/).filter(Boolean).length : 0),
+        0,
+      ),
+    [stt.captions],
+  );
+
   const sttStatus = isRecording
     ? stt.isConnected
       ? 'Whisper transcribing'
@@ -429,7 +442,7 @@ function RecordingInterface() {
               {stt.captions.length > 0 && (
                 <div className="mt-4 text-xs text-[var(--color-text-subtle)] flex items-center gap-3">
                   <span className="tabular-nums">
-                    {stt.captions.reduce((acc, c) => acc + (c.isFinal ? c.text.split(/\s+/).filter(Boolean).length : 0), 0)} words transcribed
+                    {transcribedWordCount.toLocaleString()} words transcribed
                   </span>
                   <span aria-hidden="true">·</span>
                   <span className="inline-flex items-center gap-1.5">
