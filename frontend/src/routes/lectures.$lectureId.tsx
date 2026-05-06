@@ -370,6 +370,11 @@ function LectureDetailPage() {
       type="button"
       onClick={handleGenerateStudySet}
       disabled={generating || lecture.status === "generating"}
+      title={
+        lecture.status === "generating"
+          ? "A generation run is already in progress for this lecture."
+          : "Re-run the AI pipeline: cleans the transcript and regenerates notes, flashcards, and a quiz."
+      }
       className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
     >
       <Sparkles className="w-4 h-4" aria-hidden="true" />
