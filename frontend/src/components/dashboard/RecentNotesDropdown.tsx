@@ -170,6 +170,7 @@ export function RecentNotesDropdown({
               <Link
                 to="/lectures/$lectureId"
                 params={{ lectureId: lec.id }}
+                title={lec.title || "Untitled"}
                 className="flex items-baseline justify-between gap-4 py-2 text-sm group focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
               >
                 <span className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-strong)] transition-colors">
