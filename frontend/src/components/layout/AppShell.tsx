@@ -39,6 +39,7 @@ import {
   Trash2,
   Calendar,
   LogOut,
+  Search,
 } from "lucide-react";
 
 function isMacPlatform(): boolean {
@@ -254,14 +255,24 @@ export function AppShell({ children }: AppShellProps) {
             <ConvergeLogo className="w-6 h-6" />
             <span className="font-semibold tracking-tight">Converge</span>
           </Link>
-          <UserMenu
-            email={user?.email}
-            displayName={user?.display_name}
-            open={userMenuOpen}
-            onToggle={() => setUserMenuOpen((o) => !o)}
-            onClose={() => setUserMenuOpen(false)}
-            onLogout={logout}
-          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Open command palette"
+              className="w-8 h-8 grid place-items-center rounded-md text-white/70 hover:text-white hover:bg-white/[0.12] transition-colors"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+            <UserMenu
+              email={user?.email}
+              displayName={user?.display_name}
+              open={userMenuOpen}
+              onToggle={() => setUserMenuOpen((o) => !o)}
+              onClose={() => setUserMenuOpen(false)}
+              onLogout={logout}
+            />
+          </div>
         </header>
 
         {/* Floating user menu (desktop) — sits on top of the page header band */}
