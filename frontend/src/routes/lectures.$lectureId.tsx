@@ -603,7 +603,7 @@ function FlashcardsTab({ total, due, onStart, onGenerate, generating }: Flashcar
         <div className="flex items-center gap-6 mb-6">
           <div>
             <p className="text-3xl font-semibold text-[var(--color-text)] tabular-nums">
-              {total}
+              {total.toLocaleString()}
             </p>
             <p className="text-sm text-[var(--color-text-muted)]">
               {total === 1 ? "card" : "cards"} in deck
@@ -612,7 +612,7 @@ function FlashcardsTab({ total, due, onStart, onGenerate, generating }: Flashcar
           <div className="h-10 w-px bg-[var(--color-border)]" aria-hidden="true" />
           <div>
             <p className="text-3xl font-semibold text-[var(--color-text)] tabular-nums">
-              {due}
+              {due.toLocaleString()}
             </p>
             <p className="text-sm text-[var(--color-text-muted)]">
               due now

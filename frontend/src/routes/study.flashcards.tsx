@@ -99,7 +99,7 @@ function FlashcardsPage() {
         />
         <div className="px-6 lg:px-8 py-16 max-w-md mx-auto text-center">
           <p className="text-4xl font-semibold text-[var(--color-text)] tracking-tight tabular-nums mb-2">
-            {cards.length}
+            {cards.length.toLocaleString()}
           </p>
           <p className="text-[var(--color-text-muted)] mb-8">
             cards due today
