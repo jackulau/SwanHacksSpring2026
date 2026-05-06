@@ -377,7 +377,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
           disabled={currentIdx === 0}
           className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
         >
-          <ChevronLeft className="w-4 h-4" /> Previous
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" /> Previous
         </button>
 
         {isLast ? (
@@ -395,7 +395,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
             disabled={!hasAnswer}
             className="h-10 px-4 rounded-md text-sm text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
           >
-            Next <ChevronRight className="w-4 h-4" />
+            Next <ChevronRight className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
       </div>
