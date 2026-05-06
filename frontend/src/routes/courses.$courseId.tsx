@@ -186,7 +186,7 @@ function CourseDetailPage() {
                 role="tab"
                 type="button"
                 aria-selected={active}
-                aria-controls={`tabpanel-${t.id}`}
+                aria-controls="course-panel"
                 id={`tab-${t.id}`}
                 onClick={() => setTab(t.id)}
                 className={`relative -mb-px py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-sm ${
@@ -201,7 +201,7 @@ function CourseDetailPage() {
                     active ? "text-[var(--color-text-muted)]" : "text-[var(--color-text-subtle)]"
                   }`}
                 >
-                  {t.count}
+                  {t.count.toLocaleString()}
                 </span>
               </button>
             );
@@ -210,7 +210,7 @@ function CourseDetailPage() {
 
         <div
           role="tabpanel"
-          id={`tabpanel-${tab}`}
+          id="course-panel"
           aria-labelledby={`tab-${tab}`}
           className="min-h-[12rem]"
         >
