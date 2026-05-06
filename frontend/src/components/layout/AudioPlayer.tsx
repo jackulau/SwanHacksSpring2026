@@ -65,7 +65,10 @@ export function AudioPlayer() {
       style={{ height: "var(--audio-player-height, 56px)" }}
     >
       {title && (
-        <span className="hidden sm:inline truncate max-w-48 text-sm text-[var(--color-text-muted)]">
+        <span
+          className="truncate text-xs sm:text-sm text-[var(--color-text-muted)] max-w-[40%] sm:max-w-48"
+          title={title}
+        >
           {title}
         </span>
       )}
