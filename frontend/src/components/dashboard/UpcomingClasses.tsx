@@ -208,8 +208,12 @@ function Section({
 }
 
 function UpcomingRow({ item }: { item: UpcomingItem }) {
+  const tooltip = `${item.title} · ${item.meta}`;
   const titleNode = (
-    <span className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
+    <span
+      className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors"
+      title={tooltip}
+    >
       {item.title}
       {item.isMeeting && (
         <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)] text-[10px] font-semibold uppercase tracking-wider">
