@@ -154,7 +154,7 @@ export function AudioPlayer() {
         aria-label="Close audio player"
         title="Close audio player"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </button>
     </div>
   );
