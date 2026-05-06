@@ -156,7 +156,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
             {pct}%
           </p>
           <p className="text-[var(--color-text-muted)] mt-2 tabular-nums">
-            {totalEarned} of {totalPossible} points
+            {totalEarned.toLocaleString()} of {totalPossible.toLocaleString()} points
           </p>
         </div>
 

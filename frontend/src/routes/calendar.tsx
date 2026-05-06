@@ -776,7 +776,7 @@ function CalendarPage() {
             <div className="ml-auto text-xs text-[var(--color-text-subtle)] tabular-nums">
               {loading
                 ? "Syncing…"
-                : `${events.length} ${events.length === 1 ? "event" : "events"}`}
+                : `${events.length.toLocaleString()} ${events.length === 1 ? "event" : "events"}`}
             </div>
           </div>
 
