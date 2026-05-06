@@ -24,7 +24,7 @@ function isMacPlatform(): boolean {
 export function QuickActions({ dueCount, loading }: QuickActionsProps) {
   const dueLabel =
     !loading && dueCount !== null && dueCount > 0
-      ? `Review (${dueCount} due)`
+      ? `Review (${dueCount.toLocaleString()} due)`
       : "Review";
   const cmdKey = isMacPlatform() ? "⌘K" : "Ctrl K";
 
