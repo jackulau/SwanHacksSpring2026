@@ -32,8 +32,8 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
       tabIndex={0}
       aria-label={
         isFlipped
-          ? 'Showing answer. Press space to show question.'
-          : 'Showing question. Press space to show answer.'
+          ? 'Showing answer. Tap or press space to show question.'
+          : 'Showing question. Tap or press space to show answer.'
       }
     >
       <motion.div
