@@ -73,6 +73,17 @@ function LectureDetailPage() {
   // Load all lecture-scoped data from PocketBase
   useEffect(() => {
     if (!user) return;
+    // Reset stale state on navigation between lectures so the previous
+    // lecture's transcript / notes / cards don't flash before the fetch
+    // resolves.
+    setLecture(null);
+    setCourse(null);
+    setTranscript(null);
+    setNotes(null);
+    setNotesLoaded(false);
+    setFlashcards([]);
+    setQuiz(null);
+    setLoading(true);
     let cancelled = false;
 
     async function fetchData() {
