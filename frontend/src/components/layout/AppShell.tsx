@@ -357,13 +357,34 @@ function NavGroup({
 /**
  * Lecture detail (/lectures/:id) and standalone trash/study sub-pages have no
  * exact match in the sidebar — without this, the sidebar reads as if the user
- * is "outside" any section. Treat lectures as a child of Courses.
+ * is "outside" any section. Treat lectures as a child of Courses, and prefer
+ * the most-specific match so /study/planner doesn't also light up "Study".
  */
+const NAV_TARGETS = [
+  "/",
+  "/capture",
+  "/courses",
+  "/calendar",
+  "/study",
+  "/study/planner",
+  "/trash",
+  "/settings",
+] as const;
+
+function bestNavMatch(pathname: string): string | null {
+  if (pathname.startsWith("/lectures")) return "/courses";
+  let best: string | null = null;
+  for (const t of NAV_TARGETS) {
+    if (pathname === t || (t !== "/" && pathname.startsWith(t))) {
+      if (!best || t.length > best.length) best = t;
+    }
+  }
+  if (pathname === "/") return "/";
+  return best;
+}
+
 function isNavItemActive(to: string, pathname: string): boolean {
-  if (pathname === to) return true;
-  if (to === "/") return false;
-  if (to === "/courses" && pathname.startsWith("/lectures")) return true;
-  return pathname.startsWith(to);
+  return bestNavMatch(pathname) === to;
 }
 
 interface NavRowProps {
