@@ -1158,7 +1158,7 @@ function EditEventModal({
               onClick={() => setConfirmingDelete(true)}
               className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-medium text-[var(--color-record)] hover:bg-[var(--color-record)]/10 transition-colors"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
               Delete
             </button>
           )}
