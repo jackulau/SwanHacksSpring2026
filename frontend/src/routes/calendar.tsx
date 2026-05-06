@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
@@ -19,6 +19,7 @@ import {
   X,
   ExternalLink,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/calendar")({
@@ -44,6 +45,8 @@ type CalendarEvent = {
   kind: EventKind;
   href?: string;
   externalHref?: string;
+  /** Free-form notes attached to a user event. Persisted via PB. */
+  notes?: string;
 };
 
 const HOUR_HEIGHT = 56;
@@ -116,6 +119,33 @@ function dateToEvent(date: Date, durationMin: number, base: Omit<CalendarEvent, 
   };
 }
 
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
+
+/**
+ * Format a yyyy-mm-dd ISO date into a friendly preview label:
+ * "Today", "Tomorrow", or "Mon, May 6". Used by the natural-language bar.
+ */
+function humanizePreviewDate(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  if (!y || !m || !d) return date;
+  const target = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round(
+    (target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  return target.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /** Convert ISO date (yyyy-mm-dd) + minute-of-day into an ISO timestamp. */
 function localDateTimeToIso(date: string, minutes: number): string {
   const [y, m, d] = date.split("-").map(Number);
@@ -138,6 +168,128 @@ function timeInputToMinutes(value: string): number {
   return (h || 0) * 60 + (m || 0);
 }
 
+/**
+ * Best-effort natural-language event parser. Lossy by design — if we can't
+ * confidently extract a date or time, we surface the raw title and let the
+ * user edit it inline. Recognises:
+ *   - relative dates: today, tonight, tomorrow, "next mon", weekday names
+ *   - times: "3pm", "3:30pm", "15:00", "at 9", "from 9-11"
+ *   - duration: "for 90m", "for 2h"
+ * Returns null when the input is empty.
+ */
+export interface ParsedNLEvent {
+  title: string;
+  date: string; // yyyy-mm-dd
+  startMinutes: number;
+  endMinutes: number;
+  /** True when the parser had to guess a default time. UI shows a chip. */
+  inferredTime: boolean;
+}
+
+const DOW_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+export function parseNaturalEvent(input: string, now: Date = new Date()): ParsedNLEvent | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  let working = raw;
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let date = today;
+
+  // Relative-date keywords (consume them so they don't pollute the title).
+  const re = (pat: RegExp): RegExpMatchArray | null => working.match(pat);
+  if (re(/\btomorrow\b/i)) {
+    date = addDays(today, 1);
+    working = working.replace(/\btomorrow\b/i, "");
+  } else if (re(/\btonight\b/i)) {
+    date = today;
+    working = working.replace(/\btonight\b/i, "");
+  } else if (re(/\btoday\b/i)) {
+    date = today;
+    working = working.replace(/\btoday\b/i, "");
+  } else {
+    const nextMatch = working.match(/\bnext\s+(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i);
+    const onlyMatch = working.match(/\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i);
+    const wkMatch = nextMatch ?? onlyMatch;
+    if (wkMatch) {
+      const idx = DOW_NAMES.findIndex((d) => d.startsWith(wkMatch[1].toLowerCase()));
+      if (idx >= 0) {
+        const cur = today.getDay();
+        let delta = (idx - cur + 7) % 7;
+        if (delta === 0 || nextMatch) delta = delta === 0 ? 7 : delta;
+        date = addDays(today, delta);
+        working = working.replace(wkMatch[0], "");
+      }
+    }
+  }
+
+  // Time + duration. Accept "at 9", "9pm", "9:30am", "from 9-11", "9-11am".
+  let inferredTime = true;
+  let startMinutes = 9 * 60;
+  let endMinutes = 10 * 60;
+
+  const rangeMatch = working.match(
+    /\b(?:from\s+)?(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i,
+  );
+  if (rangeMatch) {
+    const aH = parseInt(rangeMatch[1], 10);
+    const aM = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : 0;
+    const bH = parseInt(rangeMatch[3], 10);
+    const bM = rangeMatch[4] ? parseInt(rangeMatch[4], 10) : 0;
+    const meridiem = rangeMatch[5]?.toLowerCase();
+    const apply = (h: number, isStart: boolean) => {
+      if (meridiem === "pm" && h < 12) return h + 12;
+      if (meridiem === "am" && h === 12) return 0;
+      // No meridiem: assume AM for morning hours (<8 → PM heuristic skipped),
+      // PM for ambiguous "1-3" because students study afternoons.
+      if (!meridiem && h >= 1 && h <= 7 && isStart) return h + 12;
+      return h;
+    };
+    startMinutes = apply(aH, true) * 60 + aM;
+    endMinutes = apply(bH, false) * 60 + bM;
+    if (endMinutes <= startMinutes) endMinutes = startMinutes + 60;
+    inferredTime = false;
+    working = working.replace(rangeMatch[0], "");
+  } else {
+    const timeMatch = working.match(
+      /\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i,
+    );
+    if (timeMatch) {
+      let h = parseInt(timeMatch[1], 10);
+      const m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+      const mer = timeMatch[3]?.toLowerCase();
+      if (mer === "pm" && h < 12) h += 12;
+      else if (mer === "am" && h === 12) h = 0;
+      else if (!mer && h >= 1 && h <= 7) h += 12; // afternoon heuristic
+      if (h >= 0 && h < 24 && m >= 0 && m < 60 && timeMatch[1].length <= 2) {
+        startMinutes = h * 60 + m;
+        endMinutes = startMinutes + 60;
+        inferredTime = false;
+        working = working.replace(timeMatch[0], "");
+      }
+    }
+  }
+
+  const durationMatch = working.match(/\bfor\s+(\d+)\s*(h|hr|hrs|hour|hours|m|min|mins|minutes)\b/i);
+  if (durationMatch) {
+    const n = parseInt(durationMatch[1], 10);
+    const unit = durationMatch[2].toLowerCase();
+    const minutes = unit.startsWith("h") ? n * 60 : n;
+    endMinutes = startMinutes + Math.max(15, minutes);
+    working = working.replace(durationMatch[0], "");
+  }
+
+  const title = working.replace(/\s{2,}/g, " ").replace(/^[\s,-]+|[\s,-]+$/g, "").trim() || raw;
+
+  return {
+    title,
+    date: isoDate(date),
+    startMinutes,
+    endMinutes,
+    inferredTime,
+  };
+}
+
 /** Convert a CalendarEventRecord (PB) into a CalendarEvent (local). */
 function recordToEvent(rec: CalendarEventRecord): CalendarEvent | null {
   const start = new Date(rec.start_at);
@@ -153,6 +305,8 @@ function recordToEvent(rec: CalendarEventRecord): CalendarEvent | null {
     startMinutes,
     endMinutes: endMinutes > startMinutes ? endMinutes : startMinutes + 60,
     kind: "user",
+    notes: rec.notes ?? "",
+    externalHref: rec.external_href || undefined,
   };
 }
 
@@ -179,6 +333,9 @@ function CalendarPage() {
   const [creating, setCreating] = useState<{ date: string; startMinutes: number } | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
+  const [nlInput, setNlInput] = useState("");
+  const [nlOpen, setNlOpen] = useState(false);
+  const nlRef = useRef<HTMLInputElement | null>(null);
   const [visibleKinds, setVisibleKinds] = useState<Record<EventKind, boolean>>({
     lecture: true,
     assignment: true,
@@ -288,6 +445,18 @@ function CalendarPage() {
     return Array.from({ length: 5 }, (_, i) => addDays(mon, i));
   }, [anchor, view]);
 
+  // Keep the mini-month in sync with the visible anchor month so navigating
+  // weeks/days across a month boundary doesn't leave the sidebar stale.
+  useEffect(() => {
+    if (
+      anchor.getFullYear() !== miniMonth.getFullYear() ||
+      anchor.getMonth() !== miniMonth.getMonth()
+    ) {
+      setMiniMonth(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchor]);
+
   const rangeLabel = useMemo(() => {
     if (view === "day") {
       return `${MONTHS[anchor.getMonth()]} ${anchor.getDate()}, ${anchor.getFullYear()}`;
@@ -380,9 +549,15 @@ function CalendarPage() {
   };
 
   const openEvent = (e: CalendarEvent) => {
+    // User events always open the edit modal — even when they carry an
+    // external link, so the student can change the time / notes / link
+    // without first clearing the URL. The modal still has its own "Open" CTA.
+    if (e.kind === "user") {
+      setEditing(e);
+      return;
+    }
     if (e.href) navigate({ to: e.href });
     else if (e.externalHref) window.open(e.externalHref, "_blank", "noopener,noreferrer");
-    else if (e.kind === "user") setEditing(e);
   };
 
   const saveEditedEvent = async (updated: CalendarEvent) => {
@@ -394,6 +569,8 @@ function CalendarPage() {
         title: updated.title,
         start_at: localDateTimeToIso(updated.date, updated.startMinutes),
         end_at: localDateTimeToIso(updated.date, updated.endMinutes),
+        notes: updated.notes ?? "",
+        external_href: updated.externalHref ?? "",
       });
     } catch {
       // Persistence failure — local state already updated. No retry queue.
@@ -415,20 +592,147 @@ function CalendarPage() {
     setVisibleKinds((prev) => ({ ...prev, [kind]: !prev[kind] }));
   };
 
+  const submitNaturalEvent = useCallback(async () => {
+    const parsed = parseNaturalEvent(nlInput, new Date());
+    if (!parsed || !user) return;
+    setNlInput("");
+    setNlOpen(false);
+    try {
+      const rec = await pb.collection("calendar_events").create<CalendarEventRecord>({
+        user: user.id,
+        title: parsed.title,
+        start_at: localDateTimeToIso(parsed.date, parsed.startMinutes),
+        end_at: localDateTimeToIso(parsed.date, parsed.endMinutes),
+        notes: parsed.inferredTime ? "Time inferred — edit to confirm." : "",
+        color: "",
+        external_href: "",
+      });
+      const ev = recordToEvent(rec);
+      if (ev) {
+        setUserEvents((prev) => [...prev, ev]);
+        // Pan calendar to the event date so the user sees the result.
+        const [y, m, d] = parsed.date.split("-").map(Number);
+        setAnchor(new Date(y, (m || 1) - 1, d || 1));
+      }
+    } catch {
+      // Local fallback so input never feels lost.
+      setUserEvents((prev) => [
+        ...prev,
+        {
+          id: `usr-${Date.now()}`,
+          title: parsed.title,
+          date: parsed.date,
+          startMinutes: parsed.startMinutes,
+          endMinutes: parsed.endMinutes,
+          kind: "user",
+        },
+      ]);
+    }
+  }, [nlInput, user]);
+
+  // View-level keyboard shortcuts (T today, arrows, 1-4 view, N new event,
+  // / focus quick-add). All shortcuts are no-ops while a field is focused.
+  useEffect(() => {
+    const isTyping = (el: EventTarget | null) => {
+      const node = el as HTMLElement | null;
+      if (!node) return false;
+      const tag = node.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || node.isContentEditable;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (isTyping(e.target)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      switch (e.key.toLowerCase()) {
+        case "t":
+          e.preventDefault();
+          goToday();
+          return;
+        case "arrowleft":
+          e.preventDefault();
+          navigateRange(-1);
+          return;
+        case "arrowright":
+          e.preventDefault();
+          navigateRange(1);
+          return;
+        case "1":
+          e.preventDefault();
+          setView("day");
+          return;
+        case "2":
+          e.preventDefault();
+          setView("schoolWeek");
+          return;
+        case "3":
+          e.preventDefault();
+          setView("week");
+          return;
+        case "4":
+          e.preventDefault();
+          setView("month");
+          return;
+        case "n":
+          e.preventDefault();
+          if (view === "month") setView("day");
+          handleSlotClick(isoDate(anchor), new Date().getHours());
+          return;
+        case "/":
+          e.preventDefault();
+          setNlOpen(true);
+          window.setTimeout(() => nlRef.current?.focus(), 0);
+          return;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchor]);
+
   if (authLoading || !user) return null;
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-bg)] text-[var(--color-text)]">
       {/* Top toolbar */}
       <div className="flex items-center gap-1 px-4 h-12 border-b border-[var(--color-border)] bg-[var(--color-surface-raised)] shrink-0 overflow-x-auto">
-        <button
-          onClick={() => handleSlotClick(isoDate(anchor), new Date().getHours())}
-          className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-sm font-medium transition-colors shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          New event
-          <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-        </button>
+        {nlOpen ? (
+          <NaturalLanguageBar
+            inputRef={nlRef}
+            value={nlInput}
+            onChange={setNlInput}
+            onSubmit={submitNaturalEvent}
+            onClose={() => {
+              setNlOpen(false);
+              setNlInput("");
+            }}
+          />
+        ) : (
+          <>
+            <button
+              onClick={() => {
+                setNlOpen(true);
+                window.setTimeout(() => nlRef.current?.focus(), 0);
+              }}
+              className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-sm font-medium transition-colors shrink-0"
+              title="New event — try natural language like 'Bio review tomorrow 3pm'"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              New event
+              <kbd className="hidden sm:inline px-1 py-0.5 text-[10px] font-mono rounded bg-white/15 text-white/85">/</kbd>
+            </button>
+            <button
+              onClick={() => {
+                // The draft block only renders inside WeekGrid, so jump out of
+                // month view first — otherwise "Blank slot" silently no-ops.
+                if (view === "month") setView("day");
+                handleSlotClick(isoDate(anchor), new Date().getHours());
+              }}
+              className="px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-elevated)] text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0"
+              title="Drop a blank event at the current hour (n)"
+            >
+              Blank slot
+            </button>
+          </>
+        )}
 
         <div className="w-px h-5 bg-[var(--color-border)] mx-1" />
 
@@ -475,7 +779,7 @@ function CalendarPage() {
                 onToggle={() => toggleKind("assignment")}
               />
               <CalendarLegendRow
-                color="rgb(255 255 255 / 0.4)"
+                color="var(--color-text-subtle)"
                 label="Personal"
                 count={userEvents.length}
                 visible={visibleKinds.user}
@@ -492,19 +796,21 @@ function CalendarPage() {
               onClick={goToday}
               className="flex items-center gap-1.5 px-2.5 h-7 rounded-md bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text)] text-xs font-medium transition-colors"
             >
-              <CalendarIcon className="w-3.5 h-3.5" />
+              <CalendarIcon className="w-3.5 h-3.5" aria-hidden="true" />
               Today
             </button>
             <button onClick={() => navigateRange(-1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] grid place-items-center" aria-label="Previous">
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
             <button onClick={() => navigateRange(1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] grid place-items-center" aria-label="Next">
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
             <h1 className="text-base font-semibold text-[var(--color-text)] ml-1">{rangeLabel}</h1>
 
-            <div className="ml-auto text-xs text-[var(--color-text-subtle)]">
-              {loading ? "Syncing…" : `${remoteEvents.length + userEvents.length} events`}
+            <div className="ml-auto text-xs text-[var(--color-text-subtle)] tabular-nums">
+              {loading
+                ? "Syncing…"
+                : `${events.length.toLocaleString()} ${events.length === 1 ? "event" : "events"}`}
             </div>
           </div>
 
@@ -548,6 +854,70 @@ function CalendarPage() {
   );
 }
 
+function NaturalLanguageBar({
+  inputRef,
+  value,
+  onChange,
+  onSubmit,
+  onClose,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  value: string;
+  onChange: (s: string) => void;
+  onSubmit: () => void;
+  onClose: () => void;
+}) {
+  const preview = useMemo(() => parseNaturalEvent(value, new Date()), [value]);
+  return (
+    <div className="flex items-center gap-2 flex-1 min-w-0">
+      <Sparkles className="w-4 h-4 text-[var(--color-primary)] shrink-0" aria-hidden="true" />
+      <input
+        ref={inputRef}
+        autoFocus
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onSubmit();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            onClose();
+          }
+        }}
+        placeholder="Try: 'Bio review tomorrow 3pm for 90m'"
+        className="flex-1 min-w-0 bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none"
+        aria-label="Natural-language event input"
+      />
+      {preview && value.trim() && (
+        <span
+          className="hidden md:inline text-[11px] text-[var(--color-text-subtle)] truncate max-w-[280px]"
+          aria-live="polite"
+        >
+          → <strong className="text-[var(--color-text-muted)] font-medium">{preview.title}</strong>
+          {" · "}
+          {humanizePreviewDate(preview.date)} {fmtTime(preview.startMinutes)}
+          {preview.inferredTime && <span className="ml-1 text-[var(--color-warning)]">(time guess)</span>}
+        </span>
+      )}
+      <button
+        onClick={onSubmit}
+        disabled={!value.trim()}
+        className="px-3 h-7 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors shrink-0"
+      >
+        Add
+      </button>
+      <button
+        onClick={onClose}
+        aria-label="Close quick-add"
+        className="w-7 h-7 grid place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-elevated)] shrink-0"
+      >
+        <X className="w-3.5 h-3.5" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 function ToolbarToggle({
   icon: Icon, label, active, onClick, disabled,
 }: {
@@ -569,21 +939,22 @@ function ToolbarToggle({
           : "hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
       }`}
     >
-      <Icon className="w-3.5 h-3.5" />
+      <Icon className="w-3.5 h-3.5" aria-hidden="true" />
       {label}
     </button>
   );
 }
 
-function SidebarLink({ icon: Icon, label, disabled }: { icon: React.ComponentType<{ className?: string }>; label: string; disabled?: boolean }) {
+function SidebarLink({ icon: Icon, label, disabled }: { icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>; label: string; disabled?: boolean }) {
   return (
     <button
+      type="button"
       disabled={disabled}
       className={`flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-sm transition-colors ${
         disabled ? "text-[var(--color-text-subtle)] cursor-not-allowed" : "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
       }`}
     >
-      <Icon className="w-4 h-4 text-[var(--color-text-muted)]" />
+      <Icon className="w-4 h-4 text-[var(--color-text-muted)]" aria-hidden />
       {label}
     </button>
   );
@@ -636,19 +1007,42 @@ function EditEventModal({
   const [date, setDate] = useState(event.date);
   const [startTime, setStartTime] = useState(minutesToTimeInput(event.startMinutes));
   const [endTime, setEndTime] = useState(minutesToTimeInput(event.endMinutes));
+  const [notes, setNotes] = useState(event.notes ?? "");
+  const [externalHref, setExternalHref] = useState(event.externalHref ?? "");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const handleSave = () => {
     if (!title.trim()) return;
     const startMinutes = timeInputToMinutes(startTime);
     const endRaw = timeInputToMinutes(endTime);
     const endMinutes = endRaw > startMinutes ? endRaw : startMinutes + 60;
+    // Lightweight URL hygiene — accept blank, otherwise require a scheme.
+    const href = externalHref.trim();
+    const cleanHref = !href
+      ? ""
+      : /^https?:\/\//i.test(href)
+        ? href
+        : `https://${href}`;
     onSave({
       ...event,
       title: title.trim(),
       date,
       startMinutes,
       endMinutes,
+      notes: notes,
+      externalHref: cleanHref || undefined,
     });
+  };
+
+  // Submit on Cmd/Ctrl+Enter; Escape closes from inside any field.
+  const onModalKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onClose();
+    }
   };
 
   return (
@@ -660,8 +1054,9 @@ function EditEventModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl"
+        className="w-full max-w-md rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={onModalKeyDown}
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-[var(--color-text)]">Edit event</h2>
@@ -670,7 +1065,7 @@ function EditEventModal({
             aria-label="Close"
             className="w-7 h-7 grid place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)]"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -713,18 +1108,77 @@ function EditEventModal({
               />
             </label>
           </div>
+          <label className="block">
+            <span className="block text-xs text-[var(--color-text-muted)] mb-1">Link (optional)</span>
+            <input
+              type="url"
+              inputMode="url"
+              value={externalHref}
+              onChange={(e) => setExternalHref(e.target.value)}
+              placeholder="meeting link, study guide, lecture URL…"
+              className="w-full px-2 py-1.5 rounded-md bg-[var(--color-input)] text-sm text-[var(--color-text)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)]"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-xs text-[var(--color-text-muted)] mb-1">Notes</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Anything to remember about this event…"
+              rows={3}
+              className="w-full px-2 py-1.5 rounded-md bg-[var(--color-input)] text-sm text-[var(--color-text)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)] leading-6 resize-y"
+            />
+          </label>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => onDelete(event)}
-            className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-medium text-[var(--color-record)] hover:bg-[var(--color-record)]/10 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Delete
-          </button>
+        <div className="mt-4 flex items-center justify-between gap-2">
+          {confirmingDelete ? (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-[var(--color-text-muted)]">
+                Delete <span className="font-semibold text-[var(--color-text)]">{event.title || "this event"}</span>?
+              </span>
+              <button
+                type="button"
+                onClick={() => onDelete(event)}
+                autoFocus
+                className="text-[var(--color-record)] font-semibold px-2 h-7 rounded-md hover:bg-[var(--color-record)]/10"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(false)}
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-2 h-7 rounded-md"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-medium text-[var(--color-record)] hover:bg-[var(--color-record)]/10 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+              Delete
+            </button>
+          )}
           <div className="flex items-center gap-2">
+            {externalHref.trim() && (
+              <a
+                href={
+                  /^https?:\/\//i.test(externalHref.trim())
+                    ? externalHref.trim()
+                    : `https://${externalHref.trim()}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                Open
+              </a>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -736,11 +1190,15 @@ function EditEventModal({
               type="button"
               onClick={handleSave}
               className="px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-xs font-medium transition-colors"
+              title="Cmd/Ctrl + Enter"
             >
               Save
             </button>
           </div>
         </div>
+        <p className="mt-2 text-[10px] text-[var(--color-text-subtle)] text-right">
+          <kbd className="font-mono">{isMacPlatform() ? "⌘↵" : "Ctrl ↵"}</kbd> save · <kbd className="font-mono">esc</kbd> cancel
+        </p>
       </div>
     </div>
   );
@@ -767,10 +1225,10 @@ function MiniMonth({
         <span className="text-sm font-semibold text-[var(--color-text)]">{monthLabel}</span>
         <div className="flex items-center">
           <button onClick={onPrev} className="w-6 h-6 rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] grid place-items-center" aria-label="Previous month">
-            <ChevronUp className="w-3.5 h-3.5" />
+            <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button onClick={onNext} className="w-6 h-6 rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] grid place-items-center" aria-label="Next month">
-            <ChevronDown className="w-3.5 h-3.5" />
+            <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -823,6 +1281,21 @@ function WeekGrid({
 }) {
   const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => DAY_START_HOUR + i);
   const dayKeys = days.map(isoDate);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Initial scroll: anchor to current hour (or DAY_START_HOUR if before window)
+  // so today's calendar opens with "now" visible instead of starting at 8 AM.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const nowHour = new Date().getHours();
+    const targetHour = Math.max(DAY_START_HOUR, Math.min(DAY_END_HOUR - 2, nowHour - 1));
+    const top = (targetHour - DAY_START_HOUR) * HOUR_HEIGHT;
+    el.scrollTop = top;
+    // Run only on first mount of the grid; subsequent view changes shouldn't
+    // jump the user's scroll position back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const eventsByDay = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
     for (const k of dayKeys) map[k] = [];
@@ -831,7 +1304,7 @@ function WeekGrid({
   }, [events, dayKeys]);
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div ref={scrollRef} className="flex-1 overflow-auto">
       <div className="min-w-fit">
         <div
           className="grid sticky top-0 z-20 bg-[var(--color-bg)] border-b border-[var(--color-border)]"
@@ -872,15 +1345,22 @@ function WeekGrid({
             const isToday = isoDate(d) === isoDate(today);
             return (
               <div key={key} className="relative border-l border-[var(--color-border)]">
-                {hours.map((h) => (
-                  <button
-                    key={h}
-                    onClick={() => onSlotClick(key, h)}
-                    className="block w-full border-b border-[var(--color-border)]/60 hover:bg-[var(--color-surface-raised)]/40 transition-colors"
-                    style={{ height: HOUR_HEIGHT }}
-                    aria-label={`Create event ${key} ${fmtTime(h * 60)}`}
-                  />
-                ))}
+                {hours.map((h) => {
+                  const dayLabel = d.toLocaleDateString(undefined, {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  });
+                  return (
+                    <button
+                      key={h}
+                      onClick={() => onSlotClick(key, h)}
+                      className="block w-full border-b border-[var(--color-border)]/60 hover:bg-[var(--color-surface-raised)]/40 transition-colors"
+                      style={{ height: HOUR_HEIGHT }}
+                      aria-label={`Create event on ${dayLabel} at ${fmtTime(h * 60)}`}
+                    />
+                  );
+                })}
                 {isToday && <NowLine />}
                 {eventsByDay[key]?.map((e) => (
                   <EventBlock key={e.id} event={e} onOpen={() => onOpenEvent(e)} />
@@ -904,7 +1384,22 @@ function WeekGrid({
 }
 
 function NowLine() {
-  const now = new Date();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    // Refresh on the next minute boundary, then every 60s. Without this the
+    // line freezes at the moment the user opened the calendar.
+    const msUntilMinute = 60_000 - (Date.now() % 60_000);
+    let interval: number | undefined;
+    const tick = () => setNow(new Date());
+    const initial = window.setTimeout(() => {
+      tick();
+      interval = window.setInterval(tick, 60_000);
+    }, msUntilMinute);
+    return () => {
+      window.clearTimeout(initial);
+      if (interval) window.clearInterval(interval);
+    };
+  }, []);
   const minutes = now.getHours() * 60 + now.getMinutes();
   const offset = minutes - DAY_START_HOUR * 60;
   if (offset < 0 || offset > (DAY_END_HOUR - DAY_START_HOUR) * 60) return null;
@@ -924,10 +1419,13 @@ function EventBlock({ event, onOpen }: { event: CalendarEvent; onOpen: () => voi
   const top = (offset / 60) * HOUR_HEIGHT;
   const height = ((event.endMinutes - event.startMinutes) / 60) * HOUR_HEIGHT;
   const c = KIND_STYLE[event.kind];
+  const isShort = height < 36;
+  const timeRange = `${fmtTime(event.startMinutes)} – ${fmtTime(event.endMinutes)}`;
 
   return (
     <button
       onClick={onOpen}
+      title={`${event.title} · ${timeRange}`}
       className={`absolute left-1 right-1 rounded-md overflow-hidden text-left ${c.bg} cursor-pointer transition-colors group focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]`}
       style={{ top, height: Math.max(height, 22) }}
     >
@@ -935,10 +1433,12 @@ function EventBlock({ event, onOpen }: { event: CalendarEvent; onOpen: () => voi
       <div className="pl-2.5 pr-2 py-1">
         <div className={`text-xs font-medium ${c.text} truncate flex items-center gap-1`}>
           {event.title}
-          {event.externalHref && <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />}
+          {event.externalHref && <ExternalLink className="w-3 h-3 opacity-60 shrink-0" aria-hidden="true" />}
         </div>
-        {event.subtitle && (
-          <div className={`text-[10px] ${c.sub} truncate`}>{event.subtitle}</div>
+        {!isShort && (
+          <div className={`text-[10px] ${c.sub} truncate`}>
+            {event.subtitle ? event.subtitle : timeRange}
+          </div>
         )}
       </div>
     </button>
@@ -976,11 +1476,11 @@ function DraftEventBlock({
           placeholder="Event name"
           className="flex-1 bg-transparent text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none min-w-0"
         />
-        <button onClick={onCommit} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Save">
-          <Check className="w-3 h-3" />
+        <button type="button" onClick={onCommit} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Save">
+          <Check className="w-3 h-3" aria-hidden="true" />
         </button>
-        <button onClick={onCancel} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Cancel">
-          <X className="w-3 h-3" />
+        <button type="button" onClick={onCancel} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Cancel">
+          <X className="w-3 h-3" aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -1017,16 +1517,25 @@ function MonthView({
           const inMonth = d.getMonth() === month.getMonth();
           const isToday = isoDate(d) === isoDate(today);
           const dayEvents = eventsByDay[isoDate(d)] ?? [];
+          // Cell is a div, not a button — event chips inside are interactive
+          // and the day-number is a separate keyboard target. Avoids the
+          // nested-button accessibility/HTML violation.
           return (
-            <button
+            <div
               key={d.toISOString()}
               onClick={() => onPickDay(d)}
-              className={`text-left p-1.5 transition-colors ${
+              className={`text-left p-1.5 transition-colors cursor-pointer ${
                 inMonth ? "bg-[var(--color-bg)] hover:bg-[var(--color-surface-raised)]" : "bg-[var(--color-bg)]/50 hover:bg-[var(--color-surface-raised)]/50"
               }`}
             >
-              <div
-                className={`text-xs mb-1 ${
+              <button
+                type="button"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onPickDay(d);
+                }}
+                aria-label={d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                className={`text-xs mb-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-full ${
                   isToday
                     ? "inline-grid place-items-center w-5 h-5 rounded-full bg-[var(--color-primary)] text-white font-semibold"
                     : inMonth
@@ -1035,28 +1544,30 @@ function MonthView({
                 }`}
               >
                 {d.getDate()}
-              </div>
+              </button>
               <div className="space-y-0.5">
                 {dayEvents.slice(0, 3).map((e) => {
                   const c = KIND_STYLE[e.kind];
                   return (
-                    <span
+                    <button
                       key={e.id}
+                      type="button"
+                      title={`${e.title} · ${fmtTime(e.startMinutes)}`}
                       onClick={(ev) => {
                         ev.stopPropagation();
                         onOpenEvent(e);
                       }}
-                      className={`block text-[10px] px-1.5 py-0.5 rounded truncate ${c.bg} ${c.text}`}
+                      className={`block w-full text-left text-[10px] px-1.5 py-0.5 rounded truncate focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${c.bg} ${c.text}`}
                     >
                       {e.title}
-                    </span>
+                    </button>
                   );
                 })}
                 {dayEvents.length > 3 && (
                   <div className="text-[10px] text-[var(--color-text-subtle)] px-1.5">+{dayEvents.length - 3} more</div>
                 )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

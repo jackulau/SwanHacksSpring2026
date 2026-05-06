@@ -105,7 +105,12 @@ export function AssignmentList({ userId, courseId, limit, showAll }: Props) {
             <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-3 px-2 hover:bg-[var(--color-surface-raised)] transition-colors">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm font-medium text-[var(--color-text)] truncate">{a.title}</p>
+                  <p
+                    className="text-sm font-medium text-[var(--color-text)] truncate"
+                    title={a.title}
+                  >
+                    {a.title}
+                  </p>
                   {a.canvas_url && (
                     <a
                       href={a.canvas_url}

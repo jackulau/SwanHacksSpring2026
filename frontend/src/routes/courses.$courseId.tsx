@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { FileText, ArrowLeft, Plus, ClipboardList, NotebookPen } from "lucide-react";
+import { FileText, ArrowLeft, Plus, ClipboardList, NotebookPen, Loader2 } from "lucide-react";
 import { pb } from "../lib/pocketbase";
-import type { Assignment, Course, Lecture, Note } from "../lib/types";
+import type { Course, Lecture, Note } from "../lib/types";
 import { PageHeader } from "../components/layout/PageHeader";
 import { EmptyState } from "../components/layout/EmptyState";
 import { Skeleton } from "../components/layout/Skeleton";
@@ -24,6 +24,22 @@ function CourseDetailPage() {
   const [tab, setTab] = useState<Tab>("lectures");
 
   useEffect(() => {
+    if (!course?.name) return;
+    const previous = document.title;
+    document.title = `${course.name} · Converge`;
+    return () => {
+      document.title = previous;
+    };
+  }, [course?.name]);
+
+  useEffect(() => {
+    // Reset state when switching between course IDs so the previous course's
+    // lectures/notes don't briefly flash on screen.
+    setCourse(null);
+    setLectures([]);
+    setNotes([]);
+    setAssignmentCount(0);
+    setLoading(true);
     let cancelled = false;
     async function run() {
       try {
@@ -119,7 +135,20 @@ function CourseDetailPage() {
     <>
       <PageHeader
         title={course.name}
-        eyebrow={course.code || course.semester || undefined}
+        eyebrow={
+          course.code || course.semester ? (
+            <span className="inline-flex items-center gap-2">
+              {course.color && (
+                <span
+                  aria-hidden="true"
+                  className="inline-block w-2 h-2 rounded-full"
+                  style={{ backgroundColor: course.color }}
+                />
+              )}
+              {course.code || course.semester}
+            </span>
+          ) : undefined
+        }
         actions={
           <Link
             to="/capture"
@@ -157,7 +186,7 @@ function CourseDetailPage() {
                 role="tab"
                 type="button"
                 aria-selected={active}
-                aria-controls={`tabpanel-${t.id}`}
+                aria-controls="course-panel"
                 id={`tab-${t.id}`}
                 onClick={() => setTab(t.id)}
                 className={`relative -mb-px py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-sm ${
@@ -172,7 +201,7 @@ function CourseDetailPage() {
                     active ? "text-[var(--color-text-muted)]" : "text-[var(--color-text-subtle)]"
                   }`}
                 >
-                  {t.count}
+                  {t.count.toLocaleString()}
                 </span>
               </button>
             );
@@ -181,7 +210,7 @@ function CourseDetailPage() {
 
         <div
           role="tabpanel"
-          id={`tabpanel-${tab}`}
+          id="course-panel"
           aria-labelledby={`tab-${tab}`}
           className="min-h-[12rem]"
         >
@@ -226,6 +255,7 @@ function LecturesPanel({ lectures }: { lectures: Lecture[] }) {
           <Link
             to="/lectures/$lectureId"
             params={{ lectureId: lec.id }}
+            title={lec.title}
             className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-3 px-2 hover:bg-[var(--color-surface-raised)] transition-colors focus:outline-none focus-visible:bg-[var(--color-surface-raised)] focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
           >
             <div className="min-w-0">
@@ -253,14 +283,41 @@ function LecturesPanel({ lectures }: { lectures: Lecture[] }) {
 }
 
 function StatusPill({ status }: { status: Lecture["status"] }) {
+  const inFlight =
+    status === "generating" ||
+    status === "transcribing" ||
+    status === "uploading" ||
+    status === "processing";
   const tone =
     status === "ready"
       ? "text-[var(--color-primary-strong)]"
       : status === "error"
         ? "text-[var(--color-record)]"
         : "text-amber-400";
+  const label =
+    status === "ready"
+      ? "Ready"
+      : status === "error"
+        ? "Failed"
+        : status === "generating"
+          ? "Generating…"
+          : status === "transcribing"
+            ? "Transcribing…"
+            : status === "uploading"
+              ? "Uploading…"
+              : status === "processing"
+                ? "Processing…"
+                : status;
   return (
-    <span className={`text-xs font-medium ${tone}`}>{status}</span>
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-medium ${tone}`}
+      title={status}
+    >
+      {inFlight && (
+        <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+      )}
+      {label}
+    </span>
   );
 }
 

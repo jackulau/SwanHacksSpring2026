@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { FileText } from 'lucide-react';
 import { EmptyState } from '../layout/EmptyState';
 import type { TranscriptSegment, Speaker } from '../../lib/types';
@@ -47,6 +47,32 @@ export function TranscriptViewer({
   const hasSegments = Array.isArray(segments) && segments.length > 0;
   const fallbackText = cleanText || rawText;
 
+  // Active segment index — gently scroll into view during playback so the
+  // student doesn't have to chase the active line by hand.
+  const activeIdx = useMemo(() => {
+    if (!hasSegments) return -1;
+    return segments!.findIndex(
+      (s) => currentTime >= s.start && currentTime < s.end,
+    );
+  }, [hasSegments, segments, currentTime]);
+
+  const lastScrolledIdx = useRef<number>(-1);
+  const activeRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    if (activeIdx < 0 || activeIdx === lastScrolledIdx.current) return;
+    lastScrolledIdx.current = activeIdx;
+    // Respect prefers-reduced-motion: jump instead of smooth scroll so we
+    // don't trigger motion sickness for users with that pref.
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    activeRef.current?.scrollIntoView({
+      block: 'center',
+      behavior: prefersReduced ? 'auto' : 'smooth',
+    });
+  }, [activeIdx]);
+
   if (!hasSegments && !fallbackText) {
     return (
       <EmptyState
@@ -69,12 +95,12 @@ export function TranscriptViewer({
         <ol className="list-none p-0 m-0 space-y-4">
           {segments.map((seg, i) => {
             const label = speakerLabel(seg.speaker);
-            const isActive =
-              currentTime >= seg.start && currentTime < seg.end;
+            const isActive = i === activeIdx;
             return (
               <li
                 key={`${seg.start}-${i}`}
-                className="group grid grid-cols-[7rem_1fr] gap-4 items-baseline"
+                ref={isActive ? activeRef : undefined}
+                className="group grid grid-cols-[7rem_1fr] gap-4 items-baseline scroll-mt-24"
                 aria-current={isActive ? 'true' : undefined}
               >
                 <div className="flex flex-col items-start text-left">
@@ -99,9 +125,9 @@ export function TranscriptViewer({
                   )}
                 </div>
                 <p
-                  className={`leading-7 ${
+                  className={`leading-7 transition-colors ${
                     isActive
-                      ? 'text-[var(--color-text)]'
+                      ? 'text-[var(--color-text)] font-medium'
                       : 'text-[var(--color-text-muted)]'
                   }`}
                 >

@@ -16,7 +16,7 @@ export function ConvergeLogo({ className = "w-8 h-8" }: ConvergeLogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
-      role="img"
+      focusable="false"
     >
       {/* Three curved arc swooshes around the perimeter, rotated 120° apart. */}
       <g

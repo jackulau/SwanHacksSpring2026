@@ -97,11 +97,30 @@ export function usePomodoro(config: Partial<PomodoroConfig> = {}) {
   }, [cfg.workMinutes]);
 
   const skip = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      timeRemaining: 0,
-    }));
-  }, []);
+    // Immediately transition to the next phase regardless of running state.
+    // The previous implementation only set timeRemaining=0, which left a paused
+    // timer stuck at "0:00" until the user pressed Resume.
+    setState((s) => {
+      if (s.phase === 'idle') return s;
+      cfg.onPhaseChange?.(s.phase === 'work' ? 'break' : 'work');
+      if (s.phase === 'work') {
+        const newSession = s.currentSession + 1;
+        const isLongBreak = newSession % cfg.sessionsBeforeLongBreak === 0;
+        return {
+          ...s,
+          phase: 'break',
+          timeRemaining: (isLongBreak ? cfg.longBreakMinutes : cfg.breakMinutes) * 60,
+          totalSessions: s.totalSessions + 1,
+          currentSession: newSession,
+        };
+      }
+      return {
+        ...s,
+        phase: 'work',
+        timeRemaining: cfg.workMinutes * 60,
+      };
+    });
+  }, [cfg]);
 
   return { ...state, start, pause, reset, skip };
 }

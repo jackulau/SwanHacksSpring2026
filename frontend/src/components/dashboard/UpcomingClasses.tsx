@@ -13,7 +13,12 @@ import { Calendar } from "lucide-react";
 import { Skeleton } from "../layout/Skeleton";
 import { EmptyState } from "../layout/EmptyState";
 import { pb } from "../../lib/pocketbase";
-import type { Assignment, Course, Lecture } from "../../lib/types";
+import type {
+  Assignment,
+  Course,
+  Lecture,
+  CalendarEventRecord,
+} from "../../lib/types";
 
 interface UpcomingClassesProps {
   userId: string;
@@ -30,6 +35,8 @@ interface UpcomingItem {
   externalHref?: string;
   /** Internal lecture id — when set, links to /lectures/$lectureId. */
   lectureId?: string;
+  /** When set, this row links into /calendar (user-created event). */
+  calendarEvent?: boolean;
   /** True when this is a live/joinable meeting link. */
   isMeeting?: boolean;
 }
@@ -41,14 +48,21 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const nowIso = new Date().toISOString();
-    const weekAheadIso = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    // Anchor at start-of-day so something due at 10am still shows up in
+    // "Today" when the dashboard is opened at 2pm. Without this the user
+    // would lose visibility of earlier-today items as the day progressed.
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startIso = startOfToday.toISOString();
+    const weekAheadIso = new Date(
+      startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
     Promise.all([
       pb
         .collection("assignments")
         .getFullList<Assignment>({
-          filter: `user = "${userId}" && due_at >= "${nowIso}" && due_at <= "${weekAheadIso}"`,
+          filter: `user = "${userId}" && due_at >= "${startIso}" && due_at <= "${weekAheadIso}"`,
           sort: "due_at",
         })
         .catch(() => [] as Assignment[]),
@@ -59,11 +73,18 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
       pb
         .collection("lectures")
         .getFullList<Lecture>({
-          filter: `user = "${userId}" && recorded_at >= "${nowIso}" && recorded_at <= "${weekAheadIso}"`,
+          filter: `user = "${userId}" && recorded_at >= "${startIso}" && recorded_at <= "${weekAheadIso}"`,
           sort: "recorded_at",
         })
         .catch(() => [] as Lecture[]),
-    ]).then(([asg, courses, scheduledLectures]) => {
+      pb
+        .collection("calendar_events")
+        .getFullList<CalendarEventRecord>({
+          filter: `user = "${userId}" && start_at >= "${startIso}" && start_at <= "${weekAheadIso}"`,
+          sort: "start_at",
+        })
+        .catch(() => [] as CalendarEventRecord[]),
+    ]).then(([asg, courses, scheduledLectures, calEvents]) => {
       if (cancelled) return;
       const courseById = new Map(courses.map((c) => [c.id, c]));
 
@@ -96,7 +117,17 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
         };
       });
 
-      const merged = [...fromAssignments, ...fromLectures].sort(
+      const fromEvents: UpcomingItem[] = calEvents.map((e) => ({
+        id: `evt:${e.id}`,
+        title: e.title || "Untitled event",
+        meta: formatDueLine(e.start_at),
+        when: new Date(e.start_at).getTime(),
+        externalHref: e.external_href || undefined,
+        calendarEvent: !e.external_href,
+        isMeeting: isMeetingLike(e.external_href),
+      }));
+
+      const merged = [...fromAssignments, ...fromLectures, ...fromEvents].sort(
         (a, b) => a.when - b.when,
       );
 
@@ -177,8 +208,12 @@ function Section({
 }
 
 function UpcomingRow({ item }: { item: UpcomingItem }) {
+  const tooltip = `${item.title} · ${item.meta}`;
   const titleNode = (
-    <span className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
+    <span
+      className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors"
+      title={tooltip}
+    >
       {item.title}
       {item.isMeeting && (
         <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)] text-[10px] font-semibold uppercase tracking-wider">
@@ -198,7 +233,12 @@ function UpcomingRow({ item }: { item: UpcomingItem }) {
   if (item.externalHref) {
     return (
       <li>
-        <a href={item.externalHref} target="_blank" rel="noreferrer" className={rowClass}>
+        <a
+          href={item.externalHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={rowClass}
+        >
           {titleNode}
           {metaNode}
         </a>
@@ -213,6 +253,16 @@ function UpcomingRow({ item }: { item: UpcomingItem }) {
           params={{ lectureId: item.lectureId }}
           className={rowClass}
         >
+          {titleNode}
+          {metaNode}
+        </Link>
+      </li>
+    );
+  }
+  if (item.calendarEvent) {
+    return (
+      <li>
+        <Link to="/calendar" className={rowClass}>
           {titleNode}
           {metaNode}
         </Link>
@@ -251,8 +301,10 @@ function formatDueLine(iso?: string): string {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const startOfDayAfter = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000);
   const time = t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   if (t >= startOfToday && t < startOfTomorrow) return time;
+  if (t >= startOfTomorrow && t < startOfDayAfter) return `Tomorrow · ${time}`;
   const date = t.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   return `${date} · ${time}`;
 }

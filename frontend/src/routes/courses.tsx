@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate, Outlet, useMatch, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
-import { Plus, BookOpen, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { Plus, BookOpen, ChevronRight, Pencil, Trash2, Link2 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
 import { EmptyState } from "../components/layout/EmptyState";
 import { Skeleton } from "../components/layout/Skeleton";
+import { ConnectCanvasModal } from "../components/courses/ConnectCanvasModal";
 import { pb } from "../lib/pocketbase";
 import type { Course } from "../lib/types";
 
@@ -63,6 +64,7 @@ function CourseList({ userId }: { userId: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCanvasModal, setShowCanvasModal] = useState(false);
 
   async function fetchCourses() {
     try {
@@ -168,15 +170,25 @@ function CourseList({ userId }: { userId: string }) {
         title="Courses"
         subtitle="Lectures, assignments, and notes by class."
         actions={
-          <button
-            type="button"
-            onClick={() => setShowForm((s) => !s)}
-            aria-expanded={showForm}
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-            Add course
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCanvasModal(true)}
+              className="inline-flex items-center gap-2 border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] font-medium px-3 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            >
+              <Link2 className="w-4 h-4" aria-hidden="true" />
+              Connect Canvas
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm((s) => !s)}
+              aria-expanded={showForm}
+              className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Add course
+            </button>
+          </div>
         }
       />
 
@@ -265,8 +277,28 @@ function CourseList({ userId }: { userId: string }) {
           <EmptyState
             icon={BookOpen}
             title="No courses yet"
-            description="Add a course or sync from Canvas to get started."
+            description="Add one by hand, or connect Canvas to sync your existing courses and assignments."
             size="lg"
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCanvasModal(true)}
+                  className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+                >
+                  <Link2 className="w-4 h-4" aria-hidden="true" />
+                  Connect Canvas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(true)}
+                  className="inline-flex items-center gap-2 border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] font-medium px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+                >
+                  <Plus className="w-4 h-4" aria-hidden="true" />
+                  Add course manually
+                </button>
+              </div>
+            }
           />
         ) : (
           <ul
@@ -297,6 +329,10 @@ function CourseList({ userId }: { userId: string }) {
           </ul>
         )}
       </div>
+      <ConnectCanvasModal
+        open={showCanvasModal}
+        onClose={() => setShowCanvasModal(false)}
+      />
     </>
   );
 }
@@ -339,6 +375,7 @@ function CourseRow({
       <Link
         to="/courses/$courseId"
         params={{ courseId: course.id }}
+        title={course.name}
         className="group min-w-0 flex items-center gap-3 focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] rounded-sm"
       >
         <span
@@ -365,28 +402,31 @@ function CourseRow({
               {assignmentCount} {assignmentCount === 1 ? "assignment" : "assignments"}
             </span>
             {course.semester && <span>{course.semester}</span>}
-            {lastActivity && (
-              <span>
-                Active{" "}
-                {new Date(lastActivity).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
-            )}
+            {lastActivity && <span>Active {formatActivity(lastActivity)}</span>}
           </div>
         </div>
       </Link>
 
       {isConfirmingDelete ? (
-        <div className="flex items-center gap-3 text-xs">
-          <span className="text-[var(--color-text-muted)]">Delete this course?</span>
+        <div className="flex items-center gap-3 text-xs" role="alertdialog" aria-label={`Confirm delete ${course.name}`}>
+          <span className="text-[var(--color-text-muted)]">
+            Delete <span className="font-semibold text-[var(--color-text)]">{course.name}</span>
+            {(lectureCount > 0 || assignmentCount > 0) && (
+              <>
+                {" "}and its {lectureCount > 0 && `${lectureCount} ${lectureCount === 1 ? "lecture" : "lectures"}`}
+                {lectureCount > 0 && assignmentCount > 0 && " + "}
+                {assignmentCount > 0 && `${assignmentCount} ${assignmentCount === 1 ? "assignment" : "assignments"}`}
+              </>
+            )}
+            ?
+          </span>
           <button
             type="button"
             onClick={onConfirmDelete}
+            autoFocus
             className="text-[var(--color-record)] font-semibold px-2 py-1 rounded-md hover:bg-[var(--color-record)]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-record)]"
           >
-            Yes
+            Delete
           </button>
           <button
             type="button"
@@ -533,6 +573,17 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
 interface ColorPickerProps {
   value: string;
   onChange: (color: string) => void;
+}
+
+function formatActivity(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffMs = Date.now() - then;
+  const day = Math.floor(diffMs / 86_400_000);
+  if (day < 1) return "today";
+  if (day < 2) return "yesterday";
+  if (day < 7) return `${day} days ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function ColorPicker({ value, onChange }: ColorPickerProps) {

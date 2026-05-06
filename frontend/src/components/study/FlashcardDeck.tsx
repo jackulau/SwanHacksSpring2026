@@ -200,7 +200,7 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
               className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="Previous card"
             >
-              <ChevronLeft className="w-4 h-4" /> Prev
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" /> Prev
             </button>
             <button
               onClick={() => setIsFlipped(true)}
@@ -215,7 +215,7 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
               className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="Next card"
             >
-              Next <ChevronRight className="w-4 h-4" />
+              Next <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         )}

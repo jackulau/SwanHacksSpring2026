@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, Outlet, useMatch } from "@tanstack/react-router";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Hand, Mic, Upload } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
@@ -10,6 +10,7 @@ import { SignLanguageDetector } from "../components/capture/SignLanguageDetector
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useLocalWhisper, transcribeAudioFile } from "../hooks/useLocalWhisper";
+import { useAudioPlayer } from "../lib/audioPlayer";
 import { useMediaPipeHands } from "../hooks/useMediaPipeHands";
 import { useSignLanguage } from "../hooks/useSignLanguage";
 import { useWordSignRecognition } from "../hooks/useWordSignRecognition";
@@ -66,19 +67,35 @@ function RecordingInterface() {
   const [processing, setProcessing] = useState(false);
   const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
   const [pipelineError, setPipelineError] = useState('');
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [pipelineLectureId, setPipelineLectureId] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Mirror videoRef into state so hooks that need to react when the element
+  // mounts (e.g. the VLM frame sampler in useWordSignRecognition) get a
+  // re-render. Plain refs don't trigger one.
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
+  const handleVideoMount = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    setVideoEl(el);
+  }, []);
   const recordRegionRef = useRef<HTMLDivElement>(null);
 
   const signLanguage = useSignLanguage((word) => {
     stt.addSignCaption(word);
   });
 
-  // Word-level recognizer (DTW against bundled WLASL + personalized
-  // templates). Fires per signed word; results are emitted as ASL captions
-  // alongside the letter buffer.
-  const wordSign = useWordSignRecognition((label) => {
-    stt.addSignCaption(label.toUpperCase());
-  });
+  // Word-level recognizer: runs MediaPipe-driven motion segmentation, scores
+  // each segment locally with DTW (fast, offline) AND ships sampled frames to
+  // Gemini Vision via the backend proxy (slower but open-vocab and far more
+  // accurate). DTW emits captions instantly so the user sees the system
+  // reacting; VLM captions follow ~1.5s later and are tagged so they read as
+  // the canonical answer rather than duplicates of the DTW guess.
+  const wordSign = useWordSignRecognition(
+    (label, _distance, source) => {
+      const text = label.toUpperCase();
+      stt.addSignCaption(source === "vlm" ? `${text} (VLM)` : text);
+    },
+    { videoElement: videoEl },
+  );
 
   // Both letter and word recognition consume the same MediaPipe landmark
   // stream — combine the callbacks so we only call setOnLandmarks once.
@@ -90,7 +107,14 @@ function RecordingInterface() {
     [signLanguage, wordSign],
   );
 
+  const audioPlayer = useAudioPlayer();
   const handleStart = useCallback(async () => {
+    // Pause any currently-playing lecture audio so the mic doesn't capture
+    // it as user speech. The player keeps its position; the user can resume
+    // after recording finishes.
+    if (audioPlayer.playing) {
+      void audioPlayer.togglePlay();
+    }
     await audioControls.start();
     const stream = audioControls.getStream();
     if (stream) {
@@ -98,7 +122,7 @@ function RecordingInterface() {
     }
     // Move focus to the live region so AT users hear the new state.
     recordRegionRef.current?.focus();
-  }, [audioControls, stt]);
+  }, [audioControls, stt, audioPlayer]);
 
   const handleStop = useCallback(async () => {
     audioControls.stop();
@@ -182,6 +206,7 @@ function RecordingInterface() {
         lectureData.append('user', pb.authStore.record?.id || '');
 
         const lecture = await pb.collection('lectures').create(lectureData);
+        setPipelineLectureId(lecture.id);
 
         let fullTranscript = stt.captions
           .filter((c) => c.isFinal)
@@ -228,6 +253,67 @@ function RecordingInterface() {
   }, [audio.audioBlob, audio.duration, stt.captions]);
 
   const isRecording = audio.isRecording;
+
+  // Reflect the recording state in the browser tab so users with multiple
+  // tabs can find the active capture without hunting.
+  useEffect(() => {
+    const previous = document.title;
+    if (isRecording) {
+      document.title = `● Recording · Converge`;
+    } else if (processing) {
+      document.title = `Processing · Converge`;
+    }
+    return () => {
+      document.title = previous;
+    };
+  }, [isRecording, processing]);
+
+  // Warn before unload if the user has audio in flight — mid-recording or
+  // mid-pipeline navigation drops everything we captured. Only attaches the
+  // handler when something is actually at risk.
+  useEffect(() => {
+    if (!isRecording && !processing) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isRecording, processing]);
+
+  // Space toggles record on the capture page. Disabled while typing or while
+  // the post-record pipeline is running so we don't duplicate work.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const node = e.target as HTMLElement | null;
+      const tag = node?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON" || tag === "SELECT" || node?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.code !== "Space" && e.key !== " ") return;
+      e.preventDefault();
+      if (processing) return;
+      if (audio.isRecording) {
+        handleStop();
+      } else {
+        handleStart();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [audio.isRecording, processing, handleStart, handleStop]);
+  // Memoize the transcribed-word count so each re-render doesn't re-walk the
+  // whole captions array (cheap individually, but the array grows fast during
+  // a long recording and this re-runs on every render).
+  const transcribedWordCount = useMemo(
+    () =>
+      stt.captions.reduce(
+        (acc, c) =>
+          acc + (c.isFinal ? c.text.split(/\s+/).filter(Boolean).length : 0),
+        0,
+      ),
+    [stt.captions],
+  );
+
   const sttStatus = isRecording
     ? stt.isConnected
       ? 'Whisper transcribing'
@@ -247,7 +333,21 @@ function RecordingInterface() {
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
         {pipelineStage && !isRecording && (
           <div className="mb-8">
-            <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
+            <ProcessingStatus
+              currentStage={pipelineStage}
+              error={pipelineError}
+              finalAction={
+                pipelineLectureId ? (
+                  <Link
+                    to="/lectures/$lectureId"
+                    params={{ lectureId: pipelineLectureId }}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)]"
+                  >
+                    {pipelineStage === 'done' ? 'Open lecture →' : 'View partial result →'}
+                  </Link>
+                ) : null
+              }
+            />
           </div>
         )}
 
@@ -294,6 +394,16 @@ function RecordingInterface() {
               </div>
 
               {!isRecording && (
+                <p className="text-xs text-[var(--color-text-subtle)] -mt-3">
+                  Press{" "}
+                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)]">
+                    Space
+                  </kbd>{" "}
+                  to start, again to stop.
+                </p>
+              )}
+
+              {!isRecording && (
                 <div className="flex flex-col items-center gap-2">
                   <button
                     type="button"
@@ -332,15 +442,29 @@ function RecordingInterface() {
               </p>
             )}
 
-            {/* Transcript — continuous typographic body, no card chrome. */}
+            {/* Transcript — continuous typographic body, no card chrome.
+             * showConfidence flags uncertain words with a dotted underline so
+             * the user can spot mishears before the post-process pass. */}
             <div className="mt-12 border-t border-[var(--color-border)] pt-8">
-              <LiveCaptions captions={stt.captions} />
+              <LiveCaptions captions={stt.captions} showConfidence />
+              {stt.captions.length > 0 && (
+                <div className="mt-4 text-xs text-[var(--color-text-subtle)] flex items-center gap-3">
+                  <span className="tabular-nums">
+                    {transcribedWordCount.toLocaleString()} words transcribed
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-3 h-px decoration-dotted underline underline-offset-4 decoration-[var(--color-warning)] border-b border-dotted border-[var(--color-warning)]" aria-hidden="true" />
+                    Underlined = low-confidence; verify after stop.
+                  </span>
+                </div>
+              )}
             </div>
           </>
         )}
 
         {/* Hidden video element used by MediaPipe init when sign is enabled. */}
-        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
+        <video ref={handleVideoMount} className="hidden" autoPlay playsInline muted />
 
         {/* Sign-language detector floats in the bottom-right corner. */}
         {signEnabled && (
@@ -361,6 +485,8 @@ function RecordingInterface() {
                 lastWord: wordSign.lastWord,
                 lastDistance: wordSign.lastDistance,
                 lastCandidates: wordSign.lastCandidates,
+                lastReject: wordSign.lastReject,
+                vlm: wordSign.vlm,
               }}
             />
           </div>

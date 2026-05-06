@@ -17,6 +17,8 @@ export interface AudioPlayerContextValue {
   duration: number;
   playing: boolean;
   rate: number;
+  /** Set when the audio element fires `error` (file missing, network down, etc). */
+  error: string | null;
   setSrc: (src: string | null, title?: string) => void;
   seek: (time: number) => void;
   togglePlay: () => Promise<void>;
@@ -52,6 +54,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [rate, setRateState] = useState(1);
+  const [error, setError] = useState<string | null>(null);
 
   // Wire audio element events once the ref is attached.
   useEffect(() => {
@@ -67,9 +70,18 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setPlaying(false);
       setCurrentTime(audio.currentTime);
     };
-    const handlePlay = () => setPlaying(true);
+    const handlePlay = () => {
+      setPlaying(true);
+      setError(null);
+    };
     const handlePause = () => setPlaying(false);
     const handleRateChange = () => setRateState(audio.playbackRate);
+    const handleError = () => {
+      setPlaying(false);
+      // The audio element's MediaError doesn't carry a particularly useful
+      // message — keep the user-facing copy generic but actionable.
+      setError("Couldn't play this audio. The file may be missing or unsupported.");
+    };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
@@ -78,6 +90,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     audio.addEventListener("play", handlePlay);
     audio.addEventListener("pause", handlePause);
     audio.addEventListener("ratechange", handleRateChange);
+    audio.addEventListener("error", handleError);
 
     return () => {
       audio.removeEventListener("timeupdate", handleTimeUpdate);
@@ -87,6 +100,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ratechange", handleRateChange);
+      audio.removeEventListener("error", handleError);
     };
   }, []);
 
@@ -109,6 +123,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setCurrentTime(0);
       setDuration(0);
       setPlaying(false);
+      setError(null);
       return;
     }
 
@@ -127,6 +142,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setCurrentTime(0);
     setDuration(0);
     setPlaying(false);
+    setError(null);
   }, []);
 
   const seek = useCallback((time: number) => {
@@ -174,6 +190,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     duration,
     playing,
     rate,
+    error,
     setSrc,
     seek,
     togglePlay,

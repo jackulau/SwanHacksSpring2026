@@ -29,7 +29,11 @@ function HomePage() {
   if (!user) return <LandingPage />;
   return (
     <AppShell>
-      <Dashboard userId={user.id} email={user.email} />
+      <Dashboard
+        userId={user.id}
+        email={user.email}
+        displayName={user.display_name}
+      />
     </AppShell>
   );
 }
@@ -89,7 +93,7 @@ function LandingHeader() {
 
 function HeroSection() {
   return (
-    <section id="top" className="px-6 lg:px-10 pt-20 pb-24">
+    <section id="top" className="px-6 lg:px-10 pt-20 pb-24 scroll-mt-20">
       <div className="max-w-6xl mx-auto grid lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-7">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-subtle)] mb-6">
@@ -205,7 +209,7 @@ function WorkflowSection() {
   return (
     <section
       id="workflow"
-      className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)]/40"
+      className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)]/40 scroll-mt-20"
     >
       <div className="max-w-6xl mx-auto">
         <h2 className="text-4xl sm:text-5xl font-brand font-semibold tracking-tight max-w-3xl">
@@ -307,7 +311,7 @@ function FeatureGrid() {
   return (
     <section
       id="features"
-      className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)]"
+      className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] scroll-mt-20"
     >
       <div className="max-w-5xl mx-auto">
         <h2 className="text-4xl sm:text-5xl font-brand font-semibold tracking-tight">
@@ -340,7 +344,7 @@ function AccessibilityBlock() {
     { label: "ASL fingerspelling", body: "Sign letters into your webcam, see them in the live caption stream." },
   ];
   return (
-    <section id="accessibility" className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)]">
+    <section id="accessibility" className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] scroll-mt-20">
       <div className="max-w-5xl mx-auto grid lg:grid-cols-12 gap-12">
         <div className="lg:col-span-5">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-primary)] mb-5">
@@ -380,7 +384,7 @@ function AccessibilityBlock() {
 
 function DemoMockup() {
   return (
-    <section id="demo" className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)]/40">
+    <section id="demo" className="px-6 lg:px-10 py-24 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)]/40 scroll-mt-20">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
           <div>
@@ -583,9 +587,10 @@ function LandingFooter() {
 interface DashboardProps {
   userId: string;
   email: string;
+  displayName?: string;
 }
 
-function Dashboard({ userId, email }: DashboardProps) {
+function Dashboard({ userId, email, displayName }: DashboardProps) {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [dueCount, setDueCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -597,15 +602,21 @@ function Dashboard({ userId, email }: DashboardProps) {
     Promise.all([
       pb
         .collection("lectures")
-        .getFullList<Lecture>({
+        .getList<Lecture>(1, 8, {
           filter: `user = "${userId}"`,
           sort: "-recorded_at",
+          requestKey: "dash-recent-lectures",
         })
+        .then((r) => r.items)
         .catch(() => [] as Lecture[]),
       pb
         .collection("flashcards")
         .getList(1, 1, {
-          filter: `user = "${userId}" && next_review <= "${nowIso}"`,
+          // Match the rule used by useSM2.getDueCards — new cards (empty
+          // next_review) also count as due, otherwise the dashboard hides
+          // brand-new cards and the hub disagrees with the deck.
+          filter: `user = "${userId}" && (next_review <= "${nowIso}" || next_review = "")`,
+          requestKey: "dash-due-flashcards",
         })
         .then((r) => r.totalItems)
         .catch(() => 0),
@@ -621,12 +632,13 @@ function Dashboard({ userId, email }: DashboardProps) {
     };
   }, [userId]);
 
-  const displayName = email.split("@")[0];
+  const greetingName =
+    (displayName && displayName.trim()) || email.split("@")[0];
 
   return (
     <div>
       <HeroHeader
-        name={displayName}
+        name={greetingName}
         streak={streak.streak}
         todayCompleted={streak.todayCompleted}
         streakLoading={streak.loading}

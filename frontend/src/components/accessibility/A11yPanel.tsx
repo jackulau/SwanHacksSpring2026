@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { usePreferences, type Preferences } from '../../lib/preferences';
 
 interface A11yPanelProps {
@@ -18,6 +19,7 @@ interface A11yPanelProps {
 export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
   const { prefs, update } = usePreferences();
   const liveRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
 
   function announce(msg: string) {
     if (liveRef.current) liveRef.current.textContent = msg;
@@ -25,6 +27,9 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
 
   useEffect(() => {
     if (!isOpen) return;
+    // Move focus into the panel so screen readers and keyboard users land here
+    // instead of on the now-hidden A11y trigger button.
+    closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
@@ -57,11 +62,12 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
             Accessibility
           </h2>
           <button
+            ref={closeRef}
             onClick={onClose}
             className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
             aria-label="Close accessibility panel"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </header>
 
@@ -155,7 +161,15 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
           />
 
           <p className="py-4 text-xs text-[var(--color-text-subtle)]">
-            More options in Settings → Accessibility.
+            More options in{" "}
+            <Link
+              to="/settings/accessibility"
+              onClick={onClose}
+              className="underline underline-offset-2 hover:text-[var(--color-text)]"
+            >
+              Settings → Accessibility
+            </Link>
+            .
           </p>
         </div>
       </div>

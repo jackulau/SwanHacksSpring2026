@@ -101,9 +101,13 @@ function StudyHub({ userId }: { userId: string }) {
             meta="Today"
           />
           <LauncherRow
-            to="/study"
+            to="/courses"
             label="Quizzes"
-            description="Test recall before exams"
+            description={
+              counts !== null && counts.quizzes === 0
+                ? "Generate a study set on a lecture to create your first quiz"
+                : "Open a lecture to take its quiz"
+            }
             meta={
               counts === null
                 ? '…'
@@ -111,7 +115,7 @@ function StudyHub({ userId }: { userId: string }) {
                   ? 'None yet'
                   : `${counts.quizzes} available`
             }
-            disabled={counts !== null && counts.quizzes === 0}
+            metaActive={counts !== null && counts.quizzes > 0}
           />
         </ul>
       </div>

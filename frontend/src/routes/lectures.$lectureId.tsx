@@ -52,15 +52,39 @@ function LectureDetailPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   // Auth gate
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
   }, [authLoading, user, navigate]);
 
+  // Reflect the lecture title in the browser tab so multi-tab users can find it.
+  useEffect(() => {
+    const previous = document.title;
+    if (lecture?.title) {
+      document.title = `${lecture.title} · Converge`;
+    }
+    return () => {
+      document.title = previous;
+    };
+  }, [lecture?.title]);
+
   // Load all lecture-scoped data from PocketBase
   useEffect(() => {
     if (!user) return;
+    // Reset stale state on navigation between lectures so the previous
+    // lecture's transcript / notes / cards don't flash before the fetch
+    // resolves.
+    setLecture(null);
+    setCourse(null);
+    setTranscript(null);
+    setNotes(null);
+    setNotesLoaded(false);
+    setFlashcards([]);
+    setQuiz(null);
+    setLoading(true);
+    setView("transcript");
     let cancelled = false;
 
     async function fetchData() {
@@ -184,6 +208,7 @@ function LectureDetailPage() {
   const handleGenerateStudySet = async () => {
     if (!lecture || generating) return;
     setGenerating(true);
+    setGenerateError(null);
     try {
       await pb.collection("lectures").update(lecture.id, {
         status: "generating",
@@ -192,12 +217,38 @@ function LectureDetailPage() {
         .collection("lectures")
         .getOne<Lecture>(lecture.id);
       setLecture(fresh);
-    } catch {
-      /* surfaced via lecture status next refresh */
+    } catch (err) {
+      setGenerateError(
+        err instanceof Error
+          ? `Couldn't kick off generation: ${err.message}`
+          : "Couldn't kick off generation. Check your connection and try again.",
+      );
     } finally {
       setGenerating(false);
     }
   };
+
+  // 1/2/3/4 jumps between tabs when not typing — but yields to the inner
+  // surface when the user is already on Flashcards or Quiz, where 1-4 are
+  // bound to rating/answer choices. Without this guard, pressing "1" to
+  // mark a card "Again" would also kick the user back to the transcript.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const node = e.target as HTMLElement | null;
+      const tag = node?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || node?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (view === "flashcards" || view === "quiz") return;
+      const map: Record<string, View> = { "1": "transcript", "2": "notes", "3": "flashcards", "4": "quiz" };
+      const next = map[e.key];
+      if (next) {
+        e.preventDefault();
+        setView(next);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [view]);
 
   const handlePersonalNotesChange = async (next: string) => {
     if (!user || !lecture) return;
@@ -253,8 +304,24 @@ function LectureDetailPage() {
       <AppShell>
         <PageHeader
           title="Lecture not found"
-          subtitle="We couldn't find that lecture in your library."
+          subtitle="It may have been deleted, or the link is from a different account."
         />
+        <div className="px-4 sm:px-6 lg:px-8 pb-16">
+          <div className="max-w-3xl mx-auto mt-6 flex flex-wrap items-center gap-4 text-sm">
+            <Link
+              to="/courses"
+              className="inline-flex items-center gap-1.5 font-medium text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)]"
+            >
+              ← Back to courses
+            </Link>
+            <Link
+              to="/capture"
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            >
+              Record a new lecture
+            </Link>
+          </div>
+        </div>
       </AppShell>
     );
   }
@@ -269,8 +336,24 @@ function LectureDetailPage() {
   const durationMin = lecture.duration_secs
     ? `${Math.ceil(lecture.duration_secs / 60)} min`
     : "";
-  const subtitleParts = [recordedDate, durationMin].filter(Boolean);
-  const eyebrow = course ? `${course.code} · ${course.name}` : undefined;
+  const inFlightStatus =
+    lecture.status === "transcribing"
+      ? "Transcribing…"
+      : lecture.status === "generating"
+        ? "Generating notes & flashcards…"
+        : lecture.status === "uploading"
+          ? "Uploading audio…"
+          : lecture.status === "processing"
+            ? "Processing…"
+            : lecture.status === "error"
+              ? "Last run failed — generate again to retry."
+              : null;
+  const subtitleParts = [recordedDate, durationMin, inFlightStatus].filter(
+    Boolean,
+  );
+  const eyebrow = course
+    ? [course.code, course.name].filter(Boolean).join(" · ") || undefined
+    : undefined;
 
   const blocks = (notes?.content as NoteBlock[]) || [];
   const segments = transcript?.segments;
@@ -287,6 +370,11 @@ function LectureDetailPage() {
       type="button"
       onClick={handleGenerateStudySet}
       disabled={generating || lecture.status === "generating"}
+      title={
+        lecture.status === "generating"
+          ? "A generation run is already in progress for this lecture."
+          : "Re-run the AI pipeline: cleans the transcript and regenerates notes, flashcards, and a quiz."
+      }
       className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
     >
       <Sparkles className="w-4 h-4" aria-hidden="true" />
@@ -306,6 +394,14 @@ function LectureDetailPage() {
       />
 
       <div className="px-4 sm:px-6 lg:px-8 pb-16">
+        {generateError && (
+          <div
+            role="alert"
+            className="max-w-3xl mx-auto mt-4 px-3 py-2 text-xs text-[var(--color-record)] border-l-2 border-[var(--color-record)] bg-[var(--color-record)]/10"
+          >
+            {generateError}
+          </div>
+        )}
         {/* Course breadcrumb — single-click back to course view. */}
         {course && (
           <nav
@@ -339,6 +435,21 @@ function LectureDetailPage() {
         <div
           role="tablist"
           aria-label="Lecture content"
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+            const order: View[] = ["transcript", "notes", "flashcards", "quiz"];
+            const idx = order.indexOf(view);
+            const next =
+              e.key === "ArrowRight"
+                ? order[(idx + 1) % order.length]
+                : order[(idx - 1 + order.length) % order.length];
+            e.preventDefault();
+            setView(next);
+            // Move focus to the freshly-activated tab so the focus ring follows.
+            window.setTimeout(() => {
+              document.getElementById(`tab-${next}`)?.focus();
+            }, 0);
+          }}
           className="max-w-3xl mx-auto mb-8 flex items-center gap-1 border-b border-[var(--color-border)]"
         >
           <ViewTab
@@ -373,7 +484,7 @@ function LectureDetailPage() {
 
         {/* The reading surface itself — one calm column. */}
         <main
-          id={`panel-${view}`}
+          id="lecture-panel"
           role="tabpanel"
           aria-labelledby={`tab-${view}`}
           tabIndex={-1}
@@ -406,6 +517,8 @@ function LectureDetailPage() {
               // queue. Lecture-scoped filtering can be added by extending the
               // study route's validateSearch + getDueCards filter.
               onStart={() => navigate({ to: "/study/flashcards" })}
+              onGenerate={handleGenerateStudySet}
+              generating={generating || lecture.status === "generating"}
             />
           )}
           {view === "quiz" && (
@@ -414,6 +527,8 @@ function LectureDetailPage() {
               onStart={(quizId) =>
                 navigate({ to: "/study/quiz/$quizId", params: { quizId } })
               }
+              onGenerate={handleGenerateStudySet}
+              generating={generating || lecture.status === "generating"}
             />
           )}
         </main>
@@ -437,7 +552,7 @@ function ViewTab({ id, label, icon: Icon, active, onSelect }: ViewTabProps) {
       role="tab"
       id={`tab-${id}`}
       aria-selected={active}
-      aria-controls={`panel-${id}`}
+      aria-controls="lecture-panel"
       tabIndex={active ? 0 : -1}
       onClick={onSelect}
       className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] focus-visible:outline-offset-2 rounded-sm ${
@@ -457,17 +572,32 @@ interface FlashcardsTabProps {
   due: number;
   lectureId: string;
   onStart: () => void;
+  onGenerate?: () => void;
+  generating?: boolean;
 }
 
-function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
+function FlashcardsTab({ total, due, onStart, onGenerate, generating }: FlashcardsTabProps) {
   if (total === 0) {
     return (
       <div className="max-w-3xl mx-auto">
         <EmptyState
           icon={Brain}
           title="No flashcards yet"
-          description="Generate a study set from this lecture to create flashcards."
+          description="Run a study-set generation to turn this lecture into spaced-repetition cards."
           size="md"
+          action={
+            onGenerate && (
+              <button
+                type="button"
+                onClick={onGenerate}
+                disabled={generating}
+                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-3.5 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              >
+                <Sparkles className="w-4 h-4" aria-hidden="true" />
+                {generating ? "Generating…" : "Generate study set"}
+              </button>
+            )
+          }
         />
       </div>
     );
@@ -478,7 +608,7 @@ function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
         <div className="flex items-center gap-6 mb-6">
           <div>
             <p className="text-3xl font-semibold text-[var(--color-text)] tabular-nums">
-              {total}
+              {total.toLocaleString()}
             </p>
             <p className="text-sm text-[var(--color-text-muted)]">
               {total === 1 ? "card" : "cards"} in deck
@@ -487,22 +617,29 @@ function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
           <div className="h-10 w-px bg-[var(--color-border)]" aria-hidden="true" />
           <div>
             <p className="text-3xl font-semibold text-[var(--color-text)] tabular-nums">
-              {due}
+              {due.toLocaleString()}
             </p>
             <p className="text-sm text-[var(--color-text-muted)]">
               due now
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onStart}
-          disabled={due === 0}
-          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
-        >
-          <Play className="w-4 h-4" aria-hidden="true" />
-          {due === 0 ? "Nothing due" : "Start review"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={due === 0}
+            className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+          >
+            <Play className="w-4 h-4" aria-hidden="true" />
+            {due === 0 ? "All caught up" : "Start review"}
+          </button>
+          {due === 0 && total > 0 && (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Next cards become due as their interval expires.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -511,17 +648,32 @@ function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
 interface QuizTabProps {
   quiz: Quiz | null;
   onStart: (quizId: string) => void;
+  onGenerate?: () => void;
+  generating?: boolean;
 }
 
-function QuizTab({ quiz, onStart }: QuizTabProps) {
+function QuizTab({ quiz, onStart, onGenerate, generating }: QuizTabProps) {
   if (!quiz) {
     return (
       <div className="max-w-3xl mx-auto">
         <EmptyState
           icon={FileQuestion}
           title="No quiz yet"
-          description="Generate a study set from this lecture to create a quiz."
+          description="Run a study-set generation to turn this lecture into a quiz."
           size="md"
+          action={
+            onGenerate && (
+              <button
+                type="button"
+                onClick={onGenerate}
+                disabled={generating}
+                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-3.5 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              >
+                <Sparkles className="w-4 h-4" aria-hidden="true" />
+                {generating ? "Generating…" : "Generate study set"}
+              </button>
+            )
+          }
         />
       </div>
     );
@@ -542,11 +694,17 @@ function QuizTab({ quiz, onStart }: QuizTabProps) {
         <button
           type="button"
           onClick={() => onStart(quiz.id)}
-          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+          disabled={questionCount === 0}
+          className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
         >
           <Play className="w-4 h-4" aria-hidden="true" />
-          Take quiz
+          {questionCount === 0 ? "Empty quiz" : "Take quiz"}
         </button>
+        {questionCount === 0 && (
+          <p className="text-xs text-[var(--color-text-muted)] mt-2">
+            Generation produced no questions. Re-run the study set from the page header.
+          </p>
+        )}
       </div>
     </div>
   );

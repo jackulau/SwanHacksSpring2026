@@ -18,6 +18,7 @@ function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -59,8 +60,21 @@ function LoginPage() {
       }
       navigate({ to: "/" });
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Authentication failed";
+      // Surface a human-readable message instead of the raw PocketBase one
+      // ("Failed to authenticate."). The cases we actually see are: invalid
+      // credentials, account exists, network down, weak password.
+      const raw = err instanceof Error ? err.message : "Authentication failed";
+      const lower = raw.toLowerCase();
+      let msg = raw;
+      if (lower.includes("failed to authenticate")) {
+        msg = "That email and password don't match. Try again or create an account.";
+      } else if (lower.includes("network") || lower.includes("fetch")) {
+        msg = "Couldn't reach Converge. Check your connection and try again.";
+      } else if (lower.includes("validation") && lower.includes("email")) {
+        msg = "That email is already in use. Try signing in instead.";
+      } else if (lower.includes("password")) {
+        msg = "Password must be at least 8 characters. Pick a stronger one.";
+      }
       setError(msg);
       // Focus the email field on auth failure so the user can correct.
       emailRef.current?.focus();
@@ -99,7 +113,7 @@ function LoginPage() {
             <div
               role="alert"
               aria-live="assertive"
-              className="bg-red-50 border border-red-200 rounded-md px-3 py-2 mb-6 text-red-700 text-sm"
+              className="border-l-2 border-[var(--color-record)] bg-[var(--color-record)]/10 rounded-sm px-3 py-2 mb-6 text-sm text-[var(--color-record)]"
             >
               {error}
             </div>
@@ -129,25 +143,41 @@ function LoginPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-medium text-[var(--color-text-muted)] mb-2"
-              >
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="password"
+                  className="text-xs font-medium text-[var(--color-text-muted)]"
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="text-[11px] font-medium text-[var(--color-text-subtle)] hover:text-[var(--color-text)] transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
               <input
                 id="password"
                 ref={passwordRef}
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete={isSignup ? "new-password" : "current-password"}
                 required
                 minLength={8}
                 aria-invalid={!!error}
+                aria-describedby={isSignup ? "password-hint" : undefined}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
               />
+              {isSignup && (
+                <p id="password-hint" className="mt-1.5 text-[11px] text-[var(--color-text-subtle)]">
+                  At least 8 characters. We never email you about your password.
+                </p>
+              )}
             </div>
 
             <button
