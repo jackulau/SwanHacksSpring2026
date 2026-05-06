@@ -25,6 +25,7 @@ export function AudioPlayer() {
     duration,
     playing,
     rate,
+    error,
     seek,
     togglePlay,
     setRate,
@@ -66,6 +67,14 @@ export function AudioPlayer() {
       {title && (
         <span className="hidden sm:inline truncate max-w-48 text-sm text-[var(--color-text-muted)]">
           {title}
+        </span>
+      )}
+      {error && (
+        <span
+          role="alert"
+          className="hidden sm:inline truncate text-xs text-[var(--color-record)] max-w-72"
+        >
+          {error}
         </span>
       )}
 
