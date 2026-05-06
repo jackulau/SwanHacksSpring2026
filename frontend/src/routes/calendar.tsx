@@ -1224,10 +1224,10 @@ function MiniMonth({
         <span className="text-sm font-semibold text-[var(--color-text)]">{monthLabel}</span>
         <div className="flex items-center">
           <button onClick={onPrev} className="w-6 h-6 rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] grid place-items-center" aria-label="Previous month">
-            <ChevronUp className="w-3.5 h-3.5" />
+            <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button onClick={onNext} className="w-6 h-6 rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] grid place-items-center" aria-label="Next month">
-            <ChevronDown className="w-3.5 h-3.5" />
+            <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>
