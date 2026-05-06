@@ -265,7 +265,7 @@ export function AppShell({ children }: AppShellProps) {
               aria-label="Open command palette"
               className="w-10 h-10 grid place-items-center rounded-md text-white/70 hover:text-white hover:bg-white/[0.12] transition-colors"
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-4 h-4" aria-hidden="true" />
             </button>
             <UserMenu
               email={user?.email}
