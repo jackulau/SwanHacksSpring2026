@@ -312,7 +312,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
                       <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
                     )}
                   </span>
-                  <span className="text-[var(--color-text)] text-base">{opt}</span>
+                  <span className="text-[var(--color-text)] text-base">{renderInlineMarkdown(opt)}</span>
                 </label>
               );
             })}
