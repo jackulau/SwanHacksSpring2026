@@ -939,21 +939,22 @@ function ToolbarToggle({
           : "hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
       }`}
     >
-      <Icon className="w-3.5 h-3.5" />
+      <Icon className="w-3.5 h-3.5" aria-hidden="true" />
       {label}
     </button>
   );
 }
 
-function SidebarLink({ icon: Icon, label, disabled }: { icon: React.ComponentType<{ className?: string }>; label: string; disabled?: boolean }) {
+function SidebarLink({ icon: Icon, label, disabled }: { icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>; label: string; disabled?: boolean }) {
   return (
     <button
+      type="button"
       disabled={disabled}
       className={`flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-sm transition-colors ${
         disabled ? "text-[var(--color-text-subtle)] cursor-not-allowed" : "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
       }`}
     >
-      <Icon className="w-4 h-4 text-[var(--color-text-muted)]" />
+      <Icon className="w-4 h-4 text-[var(--color-text-muted)]" aria-hidden />
       {label}
     </button>
   );
