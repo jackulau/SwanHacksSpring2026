@@ -1475,11 +1475,11 @@ function DraftEventBlock({
           placeholder="Event name"
           className="flex-1 bg-transparent text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none min-w-0"
         />
-        <button onClick={onCommit} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Save">
-          <Check className="w-3 h-3" />
+        <button type="button" onClick={onCommit} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Save">
+          <Check className="w-3 h-3" aria-hidden="true" />
         </button>
-        <button onClick={onCancel} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Cancel">
-          <X className="w-3 h-3" />
+        <button type="button" onClick={onCancel} className="w-5 h-5 rounded grid place-items-center hover:bg-[var(--color-primary)]/40 text-[var(--color-text)]" aria-label="Cancel">
+          <X className="w-3 h-3" aria-hidden="true" />
         </button>
       </div>
     </div>
