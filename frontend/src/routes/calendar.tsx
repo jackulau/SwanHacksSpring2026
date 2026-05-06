@@ -1433,7 +1433,7 @@ function EventBlock({ event, onOpen }: { event: CalendarEvent; onOpen: () => voi
       <div className="pl-2.5 pr-2 py-1">
         <div className={`text-xs font-medium ${c.text} truncate flex items-center gap-1`}>
           {event.title}
-          {event.externalHref && <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />}
+          {event.externalHref && <ExternalLink className="w-3 h-3 opacity-60 shrink-0" aria-hidden="true" />}
         </div>
         {!isShort && (
           <div className={`text-[10px] ${c.sub} truncate`}>

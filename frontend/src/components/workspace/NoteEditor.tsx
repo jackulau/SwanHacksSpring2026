@@ -246,7 +246,7 @@ export function NoteEditor({
             <span>
               {showSaveLabel ? (
                 <span className="inline-flex items-center gap-1">
-                  {saveState === "saved" && <Check className="w-3 h-3 text-[var(--color-success)]" />}
+                  {saveState === "saved" && <Check className="w-3 h-3 text-[var(--color-success)]" aria-hidden="true" />}
                   {saveLabel[saveState]}
                 </span>
               ) : (

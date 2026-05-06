@@ -212,7 +212,7 @@ function StudyPlannerPage() {
                           : "border-[var(--color-border-strong)] hover:border-[var(--color-primary)]"
                       }`}
                     >
-                      {done && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                      {done && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} aria-hidden="true" />}
                     </button>
 
                     {isEditing ? (
