@@ -124,6 +124,28 @@ function isMacPlatform(): boolean {
   return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 }
 
+/**
+ * Format a yyyy-mm-dd ISO date into a friendly preview label:
+ * "Today", "Tomorrow", or "Mon, May 6". Used by the natural-language bar.
+ */
+function humanizePreviewDate(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  if (!y || !m || !d) return date;
+  const target = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round(
+    (target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  return target.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /** Convert ISO date (yyyy-mm-dd) + minute-of-day into an ISO timestamp. */
 function localDateTimeToIso(date: string, minutes: number): string {
   const [y, m, d] = date.split("-").map(Number);
@@ -862,7 +884,7 @@ function NaturalLanguageBar({
         >
           → <strong className="text-[var(--color-text-muted)] font-medium">{preview.title}</strong>
           {" · "}
-          {preview.date} {fmtTime(preview.startMinutes)}
+          {humanizePreviewDate(preview.date)} {fmtTime(preview.startMinutes)}
           {preview.inferredTime && <span className="ml-1 text-[var(--color-warning)]">(time guess)</span>}
         </span>
       )}
