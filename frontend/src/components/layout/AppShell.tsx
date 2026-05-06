@@ -507,7 +507,7 @@ function UserMenu({
               onClick={onClose}
               className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4" aria-hidden="true" />
               Settings
             </Link>
             <Link
@@ -516,7 +516,7 @@ function UserMenu({
               onClick={onClose}
               className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
-              <Mic className="w-4 h-4" />
+              <Mic className="w-4 h-4" aria-hidden="true" />
               Start recording
             </Link>
             <button
@@ -528,7 +528,7 @@ function UserMenu({
               }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4" aria-hidden="true" />
               Sign out
             </button>
           </div>
