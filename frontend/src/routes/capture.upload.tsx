@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { FileUpload } from "../components/capture/FileUpload";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -24,6 +24,22 @@ function UploadPage() {
   const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
   const [pipelineError, setPipelineError] = useState('');
   const [pipelineLectureId, setPipelineLectureId] = useState<string | null>(null);
+
+  // Block accidental tab close while upload + pipeline are in flight.
+  const inFlight =
+    isUploading ||
+    (pipelineStage !== null &&
+      pipelineStage !== 'done' &&
+      pipelineStage !== 'error');
+  useEffect(() => {
+    if (!inFlight) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [inFlight]);
 
   const handleUpload = useCallback(async (file: File) => {
     setIsUploading(true);
