@@ -65,8 +65,7 @@ const GROUPS: ShortcutGroup[] = [
   {
     title: "Audio playback",
     rows: [
-      { keys: ["Space"], label: "Play / pause" },
-      { keys: ["K"], label: "Play / pause (alt)" },
+      { keys: ["K"], label: "Play / pause" },
       { keys: ["J"], label: "Skip back 10s" },
       { keys: ["L"], label: "Skip forward 10s" },
     ],
