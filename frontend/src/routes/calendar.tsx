@@ -1304,15 +1304,22 @@ function WeekGrid({
             const isToday = isoDate(d) === isoDate(today);
             return (
               <div key={key} className="relative border-l border-[var(--color-border)]">
-                {hours.map((h) => (
-                  <button
-                    key={h}
-                    onClick={() => onSlotClick(key, h)}
-                    className="block w-full border-b border-[var(--color-border)]/60 hover:bg-[var(--color-surface-raised)]/40 transition-colors"
-                    style={{ height: HOUR_HEIGHT }}
-                    aria-label={`Create event ${key} ${fmtTime(h * 60)}`}
-                  />
-                ))}
+                {hours.map((h) => {
+                  const dayLabel = d.toLocaleDateString(undefined, {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  });
+                  return (
+                    <button
+                      key={h}
+                      onClick={() => onSlotClick(key, h)}
+                      className="block w-full border-b border-[var(--color-border)]/60 hover:bg-[var(--color-surface-raised)]/40 transition-colors"
+                      style={{ height: HOUR_HEIGHT }}
+                      aria-label={`Create event on ${dayLabel} at ${fmtTime(h * 60)}`}
+                    />
+                  );
+                })}
                 {isToday && <NowLine />}
                 {eventsByDay[key]?.map((e) => (
                   <EventBlock key={e.id} event={e} onOpen={() => onOpenEvent(e)} />
