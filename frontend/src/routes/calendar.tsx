@@ -1240,6 +1240,21 @@ function WeekGrid({
 }) {
   const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => DAY_START_HOUR + i);
   const dayKeys = days.map(isoDate);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Initial scroll: anchor to current hour (or DAY_START_HOUR if before window)
+  // so today's calendar opens with "now" visible instead of starting at 8 AM.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const nowHour = new Date().getHours();
+    const targetHour = Math.max(DAY_START_HOUR, Math.min(DAY_END_HOUR - 2, nowHour - 1));
+    const top = (targetHour - DAY_START_HOUR) * HOUR_HEIGHT;
+    el.scrollTop = top;
+    // Run only on first mount of the grid; subsequent view changes shouldn't
+    // jump the user's scroll position back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const eventsByDay = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
     for (const k of dayKeys) map[k] = [];
@@ -1248,7 +1263,7 @@ function WeekGrid({
   }, [events, dayKeys]);
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div ref={scrollRef} className="flex-1 overflow-auto">
       <div className="min-w-fit">
         <div
           className="grid sticky top-0 z-20 bg-[var(--color-bg)] border-b border-[var(--color-border)]"
