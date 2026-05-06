@@ -104,7 +104,7 @@ export function SignLanguageDetector({
           aria-label="Disable sign language detection"
           className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-md transition-colors"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       </header>
 

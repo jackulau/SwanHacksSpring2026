@@ -912,7 +912,7 @@ function NaturalLanguageBar({
         aria-label="Close quick-add"
         className="w-7 h-7 grid place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-elevated)] shrink-0"
       >
-        <X className="w-3.5 h-3.5" />
+        <X className="w-3.5 h-3.5" aria-hidden="true" />
       </button>
     </div>
   );
