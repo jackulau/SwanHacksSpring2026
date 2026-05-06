@@ -260,7 +260,7 @@ export function AppShell({ children }: AppShellProps) {
               type="button"
               onClick={() => setPaletteOpen(true)}
               aria-label="Open command palette"
-              className="w-8 h-8 grid place-items-center rounded-md text-white/70 hover:text-white hover:bg-white/[0.12] transition-colors"
+              className="w-10 h-10 grid place-items-center rounded-md text-white/70 hover:text-white hover:bg-white/[0.12] transition-colors"
             >
               <Search className="w-4 h-4" />
             </button>
