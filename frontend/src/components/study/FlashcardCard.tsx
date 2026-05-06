@@ -21,7 +21,9 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
       style={{ minHeight: 360 }}
       onClick={onFlip}
       onKeyDown={(e) => {
-        if (e.key === ' ' || e.key === 'Enter') {
+        // Only Enter — Space is handled by FlashcardDeck's global shortcut.
+        // Handling both here would double-fire and cancel out the toggle.
+        if (e.key === 'Enter') {
           e.preventDefault();
           onFlip();
         }
