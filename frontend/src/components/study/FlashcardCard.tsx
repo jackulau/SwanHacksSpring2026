@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
+import { renderInlineMarkdown } from '../workspace/markdown';
 
 interface FlashcardCardProps {
   front: string;
@@ -44,7 +45,7 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
           style={{ backfaceVisibility: 'hidden' }}
         >
           <p className="text-3xl sm:text-4xl text-[var(--color-text)] text-center leading-snug font-medium tracking-tight">
-            {front}
+            {renderInlineMarkdown(front)}
           </p>
         </div>
 
@@ -53,7 +54,7 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           <p className="text-3xl sm:text-4xl text-[var(--color-text)] text-center leading-snug font-medium tracking-tight">
-            {back}
+            {renderInlineMarkdown(back)}
           </p>
         </div>
       </motion.div>
