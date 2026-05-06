@@ -5,6 +5,7 @@ import {
   SkipForward,
   X,
 } from "lucide-react";
+import { useLocation } from "@tanstack/react-router";
 import { useAudioPlayer } from "../../lib/audioPlayer";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 
@@ -34,10 +35,14 @@ export function AudioPlayer() {
   } = useAudioPlayer();
 
   const active = src !== null;
+  const { pathname } = useLocation();
+  // Capture page already binds Space to record-toggle. Letting the audio
+  // player also handle Space there would fire two actions for one key.
+  const captureOwnsSpace = pathname.startsWith("/capture");
 
   useKeyboardShortcuts(
     [
-      { key: " ", handler: () => { void togglePlay(); } },
+      ...(captureOwnsSpace ? [] : [{ key: " ", handler: () => { void togglePlay(); } }]),
       { key: "k", handler: () => { void togglePlay(); } },
       { key: "j", handler: () => skip(-10) },
       { key: "l", handler: () => skip(10) },
