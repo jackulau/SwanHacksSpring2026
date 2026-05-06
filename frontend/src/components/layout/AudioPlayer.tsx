@@ -90,7 +90,7 @@ export function AudioPlayer() {
         className="hidden sm:inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
         aria-label="Skip back 10 seconds"
       >
-        <SkipBack className="w-4 h-4" />
+        <SkipBack className="w-4 h-4" aria-hidden="true" />
       </button>
 
       <button
@@ -100,7 +100,7 @@ export function AudioPlayer() {
         aria-label={playing ? "Pause" : "Play"}
         aria-pressed={playing}
       >
-        {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        {playing ? <Pause className="w-4 h-4" aria-hidden="true" /> : <Play className="w-4 h-4" aria-hidden="true" />}
       </button>
 
       <button
@@ -109,7 +109,7 @@ export function AudioPlayer() {
         className="hidden sm:inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
         aria-label="Skip forward 10 seconds"
       >
-        <SkipForward className="w-4 h-4" />
+        <SkipForward className="w-4 h-4" aria-hidden="true" />
       </button>
 
       <span className="hidden sm:inline w-10 text-right text-xs text-[var(--color-text-subtle)] tabular-nums">
