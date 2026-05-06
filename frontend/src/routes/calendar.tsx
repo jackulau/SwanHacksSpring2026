@@ -445,6 +445,18 @@ function CalendarPage() {
     return Array.from({ length: 5 }, (_, i) => addDays(mon, i));
   }, [anchor, view]);
 
+  // Keep the mini-month in sync with the visible anchor month so navigating
+  // weeks/days across a month boundary doesn't leave the sidebar stale.
+  useEffect(() => {
+    if (
+      anchor.getFullYear() !== miniMonth.getFullYear() ||
+      anchor.getMonth() !== miniMonth.getMonth()
+    ) {
+      setMiniMonth(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchor]);
+
   const rangeLabel = useMemo(() => {
     if (view === "day") {
       return `${MONTHS[anchor.getMonth()]} ${anchor.getDate()}, ${anchor.getFullYear()}`;
