@@ -125,9 +125,9 @@ export function TranscriptViewer({
                   )}
                 </div>
                 <p
-                  className={`leading-7 ${
+                  className={`leading-7 transition-colors ${
                     isActive
-                      ? 'text-[var(--color-text)]'
+                      ? 'text-[var(--color-text)] font-medium'
                       : 'text-[var(--color-text-muted)]'
                   }`}
                 >
