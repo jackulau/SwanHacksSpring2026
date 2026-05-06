@@ -639,6 +639,7 @@ function CalendarPage() {
           return;
         case "n":
           e.preventDefault();
+          if (view === "month") setView("day");
           handleSlotClick(isoDate(anchor), new Date().getHours());
           return;
         case "/":
@@ -685,7 +686,12 @@ function CalendarPage() {
               <kbd className="hidden sm:inline px-1 py-0.5 text-[10px] font-mono rounded bg-white/15 text-white/85">/</kbd>
             </button>
             <button
-              onClick={() => handleSlotClick(isoDate(anchor), new Date().getHours())}
+              onClick={() => {
+                // The draft block only renders inside WeekGrid, so jump out of
+                // month view first — otherwise "Blank slot" silently no-ops.
+                if (view === "month") setView("day");
+                handleSlotClick(isoDate(anchor), new Date().getHours());
+              }}
               className="px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-elevated)] text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0"
               title="Drop a blank event at the current hour (n)"
             >
