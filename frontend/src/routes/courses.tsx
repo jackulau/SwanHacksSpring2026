@@ -339,6 +339,7 @@ function CourseRow({
       <Link
         to="/courses/$courseId"
         params={{ courseId: course.id }}
+        title={course.name}
         className="group min-w-0 flex items-center gap-3 focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] rounded-sm"
       >
         <span
