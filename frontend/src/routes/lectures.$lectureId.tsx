@@ -84,6 +84,7 @@ function LectureDetailPage() {
     setFlashcards([]);
     setQuiz(null);
     setLoading(true);
+    setView("transcript");
     let cancelled = false;
 
     async function fetchData() {
