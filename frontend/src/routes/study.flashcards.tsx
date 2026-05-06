@@ -65,8 +65,8 @@ function FlashcardsPage() {
         <div className="px-6 lg:px-8 py-12 max-w-2xl mx-auto">
           <EmptyState
             icon={Brain}
-            title="No cards due"
-            description="Record or upload a lecture to generate flashcards, then return here when they're ready for review."
+            title="No cards due right now"
+            description="Either you're caught up for today, or you haven't generated cards yet. New cards appear here as their review intervals come around."
             size="lg"
             action={
               <div className="flex items-center gap-3">
