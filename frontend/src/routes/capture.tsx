@@ -10,6 +10,7 @@ import { SignLanguageDetector } from "../components/capture/SignLanguageDetector
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useLocalWhisper, transcribeAudioFile } from "../hooks/useLocalWhisper";
+import { useAudioPlayer } from "../lib/audioPlayer";
 import { useMediaPipeHands } from "../hooks/useMediaPipeHands";
 import { useSignLanguage } from "../hooks/useSignLanguage";
 import { useWordSignRecognition } from "../hooks/useWordSignRecognition";
@@ -106,7 +107,14 @@ function RecordingInterface() {
     [signLanguage, wordSign],
   );
 
+  const audioPlayer = useAudioPlayer();
   const handleStart = useCallback(async () => {
+    // Pause any currently-playing lecture audio so the mic doesn't capture
+    // it as user speech. The player keeps its position; the user can resume
+    // after recording finishes.
+    if (audioPlayer.playing) {
+      void audioPlayer.togglePlay();
+    }
     await audioControls.start();
     const stream = audioControls.getStream();
     if (stream) {
@@ -114,7 +122,7 @@ function RecordingInterface() {
     }
     // Move focus to the live region so AT users hear the new state.
     recordRegionRef.current?.focus();
-  }, [audioControls, stt]);
+  }, [audioControls, stt, audioPlayer]);
 
   const handleStop = useCallback(async () => {
     audioControls.stop();
