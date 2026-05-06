@@ -255,6 +255,7 @@ function LecturesPanel({ lectures }: { lectures: Lecture[] }) {
           <Link
             to="/lectures/$lectureId"
             params={{ lectureId: lec.id }}
+            title={lec.title}
             className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-3 px-2 hover:bg-[var(--color-surface-raised)] transition-colors focus:outline-none focus-visible:bg-[var(--color-surface-raised)] focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
           >
             <div className="min-w-0">
