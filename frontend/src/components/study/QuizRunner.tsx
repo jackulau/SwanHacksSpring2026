@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
 import { useStudySession } from '../../hooks/useStudySession';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { renderInlineMarkdown } from '../workspace/markdown';
 import type { QuizQuestion } from '../../lib/types';
 
 interface QuizRunnerProps {
@@ -211,10 +212,10 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
                   />
                 )}
                 <div className="min-w-0">
-                  <p className="text-[var(--color-text)]">{q.question}</p>
+                  <p className="text-[var(--color-text)]">{renderInlineMarkdown(q.question)}</p>
                   {q.explanation && (
                     <p className="text-[var(--color-text-muted)] text-sm mt-2">
-                      {q.explanation}
+                      {renderInlineMarkdown(q.explanation)}
                     </p>
                   )}
                 </div>
@@ -272,7 +273,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
 
       <div className="flex-1 flex flex-col justify-center py-12 max-w-2xl mx-auto w-full">
         <h2 className="text-2xl sm:text-3xl text-[var(--color-text)] font-medium tracking-tight leading-snug mb-8">
-          {question.question}
+          {renderInlineMarkdown(question.question)}
         </h2>
 
         {question.type === 'multiple_choice' && (
