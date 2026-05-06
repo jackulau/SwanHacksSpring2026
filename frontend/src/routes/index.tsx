@@ -605,6 +605,7 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
         .getList<Lecture>(1, 8, {
           filter: `user = "${userId}"`,
           sort: "-recorded_at",
+          requestKey: "dash-recent-lectures",
         })
         .then((r) => r.items)
         .catch(() => [] as Lecture[]),
@@ -615,6 +616,7 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
           // next_review) also count as due, otherwise the dashboard hides
           // brand-new cards and the hub disagrees with the deck.
           filter: `user = "${userId}" && (next_review <= "${nowIso}" || next_review = "")`,
+          requestKey: "dash-due-flashcards",
         })
         .then((r) => r.totalItems)
         .catch(() => 0),

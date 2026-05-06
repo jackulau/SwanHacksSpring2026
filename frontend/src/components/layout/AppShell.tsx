@@ -178,6 +178,9 @@ export function AppShell({ children }: AppShellProps) {
       .getList<Lecture>(1, 6, {
         filter: `user = "${user.id}"`,
         sort: "-recorded_at",
+        // Distinct key keeps PB's auto-cancellation from dropping the
+        // sidebar's fetch when the dashboard is also fetching lectures.
+        requestKey: "shell-recent-lectures",
       })
       .then((res) => {
         if (cancelled) return;
