@@ -715,7 +715,7 @@ function CalendarPage() {
               className="flex items-center gap-2 px-3 h-8 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-sm font-medium transition-colors shrink-0"
               title="New event — try natural language like 'Bio review tomorrow 3pm'"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" aria-hidden="true" />
               New event
               <kbd className="hidden sm:inline px-1 py-0.5 text-[10px] font-mono rounded bg-white/15 text-white/85">/</kbd>
             </button>
@@ -796,14 +796,14 @@ function CalendarPage() {
               onClick={goToday}
               className="flex items-center gap-1.5 px-2.5 h-7 rounded-md bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text)] text-xs font-medium transition-colors"
             >
-              <CalendarIcon className="w-3.5 h-3.5" />
+              <CalendarIcon className="w-3.5 h-3.5" aria-hidden="true" />
               Today
             </button>
             <button onClick={() => navigateRange(-1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] grid place-items-center" aria-label="Previous">
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
             <button onClick={() => navigateRange(1)} className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] grid place-items-center" aria-label="Next">
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
             <h1 className="text-base font-semibold text-[var(--color-text)] ml-1">{rangeLabel}</h1>
 
