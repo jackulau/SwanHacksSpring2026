@@ -482,7 +482,7 @@ function UserMenu({
               className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
               <Mic className="w-4 h-4" />
-              New recording
+              Start recording
             </Link>
             <button
               type="button"
