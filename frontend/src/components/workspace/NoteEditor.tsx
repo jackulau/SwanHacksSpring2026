@@ -200,7 +200,7 @@ export function NoteEditor({
                     : "text-[var(--color-text-subtle)] hover:text-[var(--color-text)]"
                 }`}
               >
-                <Pencil className="w-3 h-3" />
+                <Pencil className="w-3 h-3" aria-hidden="true" />
                 Write
               </button>
               <button
@@ -214,7 +214,7 @@ export function NoteEditor({
                 }`}
                 disabled={!draft.trim()}
               >
-                <Eye className="w-3 h-3" />
+                <Eye className="w-3 h-3" aria-hidden="true" />
                 Read
               </button>
             </div>

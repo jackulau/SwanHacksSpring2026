@@ -45,7 +45,7 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
           className="hidden md:inline-flex items-center gap-1.5 text-xs text-[var(--color-text-subtle)]"
           aria-hidden="true"
         >
-          <Search className="w-3 h-3" />
+          <Search className="w-3 h-3" aria-hidden="true" />
           Press
           <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]">
             {cmdKey}
