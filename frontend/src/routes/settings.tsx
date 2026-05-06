@@ -535,6 +535,8 @@ function AIModelSection() {
               value={config.apiKey}
               onChange={(e) => updateConfig({ apiKey: e.target.value })}
               placeholder="sk-..."
+              autoComplete="off"
+              spellCheck={false}
               className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm font-mono text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
             />
           </Row>
