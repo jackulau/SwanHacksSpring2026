@@ -52,6 +52,7 @@ function LectureDetailPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   // Auth gate
   useEffect(() => {
@@ -195,6 +196,7 @@ function LectureDetailPage() {
   const handleGenerateStudySet = async () => {
     if (!lecture || generating) return;
     setGenerating(true);
+    setGenerateError(null);
     try {
       await pb.collection("lectures").update(lecture.id, {
         status: "generating",
@@ -203,8 +205,12 @@ function LectureDetailPage() {
         .collection("lectures")
         .getOne<Lecture>(lecture.id);
       setLecture(fresh);
-    } catch {
-      /* surfaced via lecture status next refresh */
+    } catch (err) {
+      setGenerateError(
+        err instanceof Error
+          ? `Couldn't kick off generation: ${err.message}`
+          : "Couldn't kick off generation. Check your connection and try again.",
+      );
     } finally {
       setGenerating(false);
     }
@@ -371,6 +377,14 @@ function LectureDetailPage() {
       />
 
       <div className="px-4 sm:px-6 lg:px-8 pb-16">
+        {generateError && (
+          <div
+            role="alert"
+            className="max-w-3xl mx-auto mt-4 px-3 py-2 text-xs text-[var(--color-record)] border-l-2 border-[var(--color-record)] bg-[var(--color-record)]/10"
+          >
+            {generateError}
+          </div>
+        )}
         {/* Course breadcrumb — single-click back to course view. */}
         {course && (
           <nav
