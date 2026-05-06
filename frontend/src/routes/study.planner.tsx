@@ -244,7 +244,8 @@ function StudyPlannerPage() {
 
                     <button
                       onClick={() => deleteTask(task.id)}
-                      aria-label="Delete task"
+                      aria-label={`Delete task: ${task.title}`}
+                      title={`Delete "${task.title}"`}
                       className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 text-[var(--color-text-subtle)] hover:text-[var(--color-record)] transition-opacity"
                     >
                       <Trash2 className="w-4 h-4" />
