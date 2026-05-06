@@ -333,7 +333,7 @@ export function AppShell({ children }: AppShellProps) {
         aria-label="Accessibility settings"
         aria-expanded={a11yOpen}
       >
-        <Accessibility className="w-5 h-5" />
+        <Accessibility className="w-5 h-5" aria-hidden="true" />
       </button>
     </div>
   );

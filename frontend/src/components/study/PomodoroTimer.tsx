@@ -173,12 +173,12 @@ export function PomodoroTimer({
         >
           {timer.isRunning ? (
             <>
-              <Pause className="w-4 h-4" />
+              <Pause className="w-4 h-4" aria-hidden="true" />
               Pause
             </>
           ) : (
             <>
-              <Play className="w-4 h-4" />
+              <Play className="w-4 h-4" aria-hidden="true" />
               {timer.phase === 'idle' ? 'Start' : 'Resume'}
             </>
           )}
@@ -189,7 +189,7 @@ export function PomodoroTimer({
           className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           aria-label="Skip phase"
         >
-          <SkipForward className="w-4 h-4" />
+          <SkipForward className="w-4 h-4" aria-hidden="true" />
           Skip
         </button>
       </div>

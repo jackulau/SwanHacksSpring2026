@@ -127,7 +127,7 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
             aria-label="Close"
             className="w-7 h-7 grid place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)]"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 px-5 py-5 max-h-[70vh] overflow-y-auto">
