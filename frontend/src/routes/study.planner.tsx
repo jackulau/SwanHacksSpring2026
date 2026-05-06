@@ -232,6 +232,7 @@ function StudyPlannerPage() {
                     ) : (
                       <button
                         onClick={() => startEdit(task)}
+                        title={task.title}
                         className={`flex-1 text-left text-base ${
                           done
                             ? "text-[var(--color-text-subtle)] line-through"
