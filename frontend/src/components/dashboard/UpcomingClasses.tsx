@@ -233,7 +233,12 @@ function UpcomingRow({ item }: { item: UpcomingItem }) {
   if (item.externalHref) {
     return (
       <li>
-        <a href={item.externalHref} target="_blank" rel="noreferrer" className={rowClass}>
+        <a
+          href={item.externalHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={rowClass}
+        >
           {titleNode}
           {metaNode}
         </a>
