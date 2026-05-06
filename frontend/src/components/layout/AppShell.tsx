@@ -425,7 +425,7 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
           aria-hidden="true"
         />
       )}
-      <Icon className="w-[18px] h-[18px] shrink-0" />
+      <Icon className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />
       <span className="flex-1">{label}</span>
     </Link>
   );
