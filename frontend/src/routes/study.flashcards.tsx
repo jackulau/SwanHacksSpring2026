@@ -108,7 +108,7 @@ function FlashcardsPage() {
             onClick={() => setStage("reviewing")}
             className="w-full h-12 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors flex items-center justify-center gap-2"
           >
-            <Play className="w-4 h-4" /> Start review
+            <Play className="w-4 h-4" aria-hidden="true" /> Start review
           </button>
         </div>
       </>

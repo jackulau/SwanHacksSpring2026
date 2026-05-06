@@ -127,7 +127,7 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
                 aria-label="Remove file"
                 className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-2 rounded-md hover:bg-[var(--color-primary-soft)] transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 type="button"

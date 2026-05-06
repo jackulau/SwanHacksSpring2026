@@ -100,7 +100,7 @@ function QuizPage() {
                 onClick={() => navigate({ to: "/study" })}
                 className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] text-sm flex items-center gap-1"
               >
-                <ArrowLeft className="w-4 h-4" /> Back to Study
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to Study
               </button>
             }
           />
@@ -123,7 +123,7 @@ function QuizPage() {
           }}
           className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to {quiz.lecture ? "lecture" : "study"}
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to {quiz.lecture ? "lecture" : "study"}
         </button>
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}

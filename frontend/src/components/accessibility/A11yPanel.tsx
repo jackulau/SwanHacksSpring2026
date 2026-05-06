@@ -67,7 +67,7 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
             className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
             aria-label="Close accessibility panel"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </header>
 

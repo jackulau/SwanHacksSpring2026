@@ -173,7 +173,7 @@ function StudyPlannerPage() {
               disabled={!draft.trim()}
               className="h-10 px-4 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
             >
-              <Plus className="w-4 h-4" /> Add
+              <Plus className="w-4 h-4" aria-hidden="true" /> Add
             </button>
           </form>
 
@@ -249,7 +249,7 @@ function StudyPlannerPage() {
                       title={`Delete "${task.title}"`}
                       className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 text-[var(--color-text-subtle)] hover:text-[var(--color-record)] transition-opacity"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </li>
                 );
