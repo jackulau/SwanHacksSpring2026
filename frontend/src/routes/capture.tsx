@@ -246,6 +246,20 @@ function RecordingInterface() {
 
   const isRecording = audio.isRecording;
 
+  // Reflect the recording state in the browser tab so users with multiple
+  // tabs can find the active capture without hunting.
+  useEffect(() => {
+    const previous = document.title;
+    if (isRecording) {
+      document.title = `● Recording · Converge`;
+    } else if (processing) {
+      document.title = `Processing · Converge`;
+    }
+    return () => {
+      document.title = previous;
+    };
+  }, [isRecording, processing]);
+
   // Warn before unload if the user has audio in flight — mid-recording or
   // mid-pipeline navigation drops everything we captured. Only attaches the
   // handler when something is actually at risk.
