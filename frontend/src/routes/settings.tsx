@@ -446,7 +446,7 @@ function PreferencesSection({ userId }: { userId: string }) {
       <div className="pt-8">
         <h3 className="text-sm font-semibold text-[var(--color-text)] mb-1">Canvas integration</h3>
         <p className="text-xs text-[var(--color-text-muted)] mb-4">
-          Import your courses, assignments, and announcements from Canvas.
+          Import your courses and assignments from Canvas. Sync runs on demand.
         </p>
         <CanvasConnect
           connected={canvas.connected}
