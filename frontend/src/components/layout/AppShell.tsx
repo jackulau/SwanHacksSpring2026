@@ -144,6 +144,7 @@ export function AppShell({ children }: AppShellProps) {
           r: "/capture",
           t: "/study/planner",
           o: "/courses",
+          n: "/notes",
         };
         const target = map[k];
         if (target) {

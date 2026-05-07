@@ -106,6 +106,8 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
       { id: "go-home", label: "Go to Home", icon: Home, group: "Go", run: () => navigate({ to: "/" }) },
       { id: "go-record", label: "Start a recording", keywords: "record capture audio mic", icon: Mic, group: "Action", run: () => navigate({ to: "/capture" }) },
       { id: "go-courses", label: "Go to Courses", icon: BookOpen, group: "Go", run: () => navigate({ to: "/courses" }) },
+      { id: "go-notes", label: "Go to Notes", keywords: "pages docs writing", icon: FileText, group: "Go", run: () => navigate({ to: "/notes" }) },
+      { id: "act-new-note", label: "New note page", keywords: "page create blank", icon: Plus, group: "Action", run: () => navigate({ to: "/notes" }) },
       { id: "go-calendar", label: "Go to Calendar", icon: Calendar, group: "Go", run: () => navigate({ to: "/calendar" }) },
       { id: "go-study", label: "Go to Study", keywords: "flashcards quiz", icon: Glasses, group: "Go", run: () => navigate({ to: "/study" }) },
       { id: "go-flashcards", label: "Review flashcards", keywords: "due cards spaced repetition", icon: Glasses, group: "Action", run: () => navigate({ to: "/study/flashcards" }) },
