@@ -39,6 +39,7 @@ import type {
   PageRefBlock,
 } from "../../lib/types";
 import { SlashMenu } from "./SlashMenu";
+import { MentionMenu, type Mentionable } from "./MentionMenu";
 import {
   BLOCK_SPECS,
   filterSpecs,
@@ -53,6 +54,8 @@ interface PageEditorProps {
   readOnly?: boolean;
   /** Called when the user clicks an internal page reference. */
   onNavigatePage?: (pageId: string) => void;
+  /** Items shown when the user types "@" — pages, lectures, courses. */
+  mentionables?: Mentionable[];
 }
 
 interface SlashState {
@@ -84,10 +87,17 @@ export function PageEditor({
   onChange,
   readOnly = false,
   onNavigatePage,
+  mentionables = [],
 }: PageEditorProps) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [slash, setSlash] = useState<SlashState | null>(null);
+  const [mention, setMention] = useState<{
+    blockId: string;
+    query: string;
+    anchor: { x: number; y: number };
+    selectedIndex: number;
+  } | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
@@ -238,6 +248,72 @@ export function PageEditor({
 
   const closeSlashMenu = useCallback(() => setSlash(null), []);
 
+  const openMentionMenu = useCallback((blockId: string) => {
+    const sel = window.getSelection();
+    let x = 200;
+    let y = 200;
+    if (sel && sel.rangeCount > 0) {
+      const r = sel.getRangeAt(0).getBoundingClientRect();
+      if (r.width > 0 || r.height > 0) {
+        x = r.left;
+        y = r.bottom + 6;
+      }
+    }
+    setMention({ blockId, query: "", anchor: { x, y }, selectedIndex: 0 });
+  }, []);
+
+  const closeMentionMenu = useCallback(() => setMention(null), []);
+
+  const runMentionSelect = useCallback(
+    (m: Mentionable) => {
+      if (!mention) return;
+      const targetId = mention.blockId;
+      const block = blocks.find((b) => b.id === targetId);
+      if (!block) {
+        setMention(null);
+        return;
+      }
+      // Strip the trailing "@query" out of the source block.
+      const t = blockText(block);
+      const at = t.lastIndexOf("@" + mention.query);
+      const stripped = applyText(block, at >= 0 ? t.slice(0, at) : t);
+      // Pages we can deep-link to. Lectures and courses we render as
+      // their canonical app paths via the embed block (cheap unfurl).
+      let inserted: NoteBlock;
+      if (m.kind === "page") {
+        inserted = {
+          id: newId(),
+          type: "page_ref",
+          pageId: m.id,
+          title: m.title,
+        } as NoteBlock;
+      } else if (m.kind === "lecture") {
+        inserted = {
+          id: newId(),
+          type: "embed",
+          url: `/lectures/${m.id}`,
+          title: m.title,
+        } as NoteBlock;
+      } else {
+        inserted = {
+          id: newId(),
+          type: "embed",
+          url: `/courses/${m.id}`,
+          title: m.title,
+        } as NoteBlock;
+      }
+      const sourceEmpty = blockText(stripped).trim() === "";
+      if (sourceEmpty) {
+        replaceBlock(targetId, { ...inserted, id: targetId } as NoteBlock, false);
+      } else {
+        onChange(blocks.map((b) => (b.id === targetId ? stripped : b)));
+        insertBlockAfter(targetId, (id) => ({ ...inserted, id }));
+      }
+      setMention(null);
+    },
+    [mention, blocks, onChange, replaceBlock, insertBlockAfter],
+  );
+
   const runSlashSelect = useCallback(
     (spec: BlockTypeSpec) => {
       if (!slash) return;
@@ -364,6 +440,29 @@ export function PageEditor({
       openSlashMenu(block.id);
     }
 
+    // Mention menu: open on "@" and keep its query in sync as the user types.
+    if (mention && mention.blockId === block.id) {
+      const atIdx = text.lastIndexOf("@");
+      if (atIdx === -1) {
+        setMention(null);
+      } else {
+        const query = text.slice(atIdx + 1);
+        const filtered = mentionables.filter((m) =>
+          query ? m.title.toLowerCase().includes(query.toLowerCase()) : true,
+        );
+        setMention({
+          ...mention,
+          query,
+          selectedIndex: Math.min(
+            mention.selectedIndex,
+            Math.max(0, filtered.length - 1),
+          ),
+        });
+      }
+    } else if (text.endsWith("@") && mentionables.length > 0) {
+      openMentionMenu(block.id);
+    }
+
     // Persist text into the canonical block model.
     if (
       block.type === "paragraph" ||
@@ -381,6 +480,37 @@ export function PageEditor({
   };
 
   const handleKeyDown = (block: NoteBlock, e: React.KeyboardEvent<HTMLElement>) => {
+    // Mention menu navigation has priority over editor keys.
+    if (mention && mention.blockId === block.id) {
+      const filtered = mentionables.filter((m) =>
+        mention.query ? m.title.toLowerCase().includes(mention.query.toLowerCase()) : true,
+      );
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMention({
+          ...mention,
+          selectedIndex: Math.min(filtered.length - 1, mention.selectedIndex + 1),
+        });
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMention({ ...mention, selectedIndex: Math.max(0, mention.selectedIndex - 1) });
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const m = filtered[mention.selectedIndex];
+        if (m) runMentionSelect(m);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMention(null);
+        return;
+      }
+    }
+
     // Slash menu navigation has priority over editor keys.
     if (slash && slash.blockId === block.id) {
       const filtered = filterSpecs(slash.query);
@@ -618,6 +748,18 @@ export function PageEditor({
           onSelect={runSlashSelect}
           onHover={(idx) => setSlash((s) => (s ? { ...s, selectedIndex: idx } : s))}
           onClose={closeSlashMenu}
+        />
+      )}
+
+      {mention && (
+        <MentionMenu
+          query={mention.query}
+          items={mentionables}
+          selectedIndex={mention.selectedIndex}
+          anchor={mention.anchor}
+          onSelect={runMentionSelect}
+          onHover={(idx) => setMention((s) => (s ? { ...s, selectedIndex: idx } : s))}
+          onClose={closeMentionMenu}
         />
       )}
     </div>

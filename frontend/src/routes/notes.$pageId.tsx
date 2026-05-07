@@ -26,11 +26,13 @@ import { pb } from "../lib/pocketbase";
 import type {
   Course,
   HeadingBlock,
+  Lecture,
   NoteBlock,
   NoteLink,
   NotePage,
   PageProperties,
 } from "../lib/types";
+import type { Mentionable } from "../components/notes/MentionMenu";
 import { PageEditor } from "../components/notes/PageEditor";
 import { PagePropertiesPanel } from "../components/notes/PageProperties";
 import { EmptyState } from "../components/layout/EmptyState";
@@ -70,6 +72,7 @@ function NotePageView() {
   const [findIndex, setFindIndex] = useState(0);
   const [backlinks, setBacklinks] = useState<NotePage[]>([]);
   const [allPages, setAllPages] = useState<NotePage[]>([]);
+  const [lectures, setLectures] = useState<Lecture[]>([]);
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const debounceRef = useRef<number | undefined>(undefined);
@@ -177,6 +180,81 @@ function NotePageView() {
       cancelled = true;
     };
   }, [user]);
+
+  // Lectures — used by the @-mention picker.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    pb.collection("lectures")
+      .getList<Lecture>(1, 30, {
+        filter: `user = "${user.id}"`,
+        sort: "-recorded_at",
+        requestKey: "note-page-lectures",
+      })
+      .then((r) => {
+        if (!cancelled) setLectures(r.items);
+      })
+      .catch(() => {
+        if (!cancelled) setLectures([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const mentionables = useMemo<Mentionable[]>(() => {
+    const items: Mentionable[] = [];
+    for (const p of allPages.filter((p) => p.id !== pageId)) {
+      items.push({ id: p.id, kind: "page", title: p.title || "Untitled" });
+    }
+    for (const l of lectures) {
+      items.push({ id: l.id, kind: "lecture", title: l.title || "Lecture" });
+    }
+    for (const c of courses) {
+      items.push({
+        id: c.id,
+        kind: "course",
+        title: c.code ? `${c.code} ${c.name}` : c.name,
+      });
+    }
+    return items;
+  }, [allPages, lectures, courses, pageId]);
+
+  // Persist note_links rows whenever the blocks change. Only diff against
+  // the page's last-saved state so we don't churn rows on every keystroke.
+  useEffect(() => {
+    if (!user || !page) return;
+    const targetIds = new Set<string>();
+    for (const b of blocks) {
+      if (b.type === "page_ref" && b.pageId) targetIds.add(b.pageId);
+    }
+    if (targetIds.size === 0) return;
+    let cancelled = false;
+    pb.collection("note_links")
+      .getFullList<NoteLink>({
+        filter: `source_page = "${page.id}"`,
+        requestKey: `note-links-source-${page.id}`,
+      })
+      .then(async (existing) => {
+        if (cancelled) return;
+        const existingTargets = new Set(existing.map((l) => l.target_page));
+        const toCreate = [...targetIds].filter((t) => !existingTargets.has(t));
+        for (const t of toCreate) {
+          await pb
+            .collection("note_links")
+            .create({ user: user.id, source_page: page.id, target_page: t })
+            .catch(() => undefined);
+        }
+        const toDelete = existing.filter((l) => !targetIds.has(l.target_page));
+        for (const l of toDelete) {
+          await pb.collection("note_links").delete(l.id).catch(() => undefined);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [blocks, page, user]);
 
   // Title pinned to document.title for browser-tab orientation.
   useEffect(() => {
@@ -507,6 +585,7 @@ function NotePageView() {
               blocks={blocks}
               onChange={setBlocks}
               readOnly={readingMode}
+              mentionables={mentionables}
               onNavigatePage={(id) => navigate({ to: "/notes/$pageId", params: { pageId: id } })}
             />
 
