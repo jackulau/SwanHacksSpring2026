@@ -11,6 +11,8 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
+  Copy,
+  Download,
   Eye,
   EyeOff,
   FileText,
@@ -485,6 +487,34 @@ function NotePageView() {
     }
   };
 
+  const [exportNoticed, setExportNoticed] = useState<"none" | "copied" | "downloaded">("none");
+
+  const exportMarkdown = () => blocksToMarkdown(title, blocks);
+
+  const copyMarkdown = async () => {
+    try {
+      await navigator.clipboard.writeText(exportMarkdown());
+      setExportNoticed("copied");
+      window.setTimeout(() => setExportNoticed("none"), 1400);
+    } catch {
+      // Clipboard blocked — fall back to download.
+      downloadMarkdown();
+    }
+  };
+
+  const downloadMarkdown = () => {
+    const md = exportMarkdown();
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(title || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportNoticed("downloaded");
+    window.setTimeout(() => setExportNoticed("none"), 1400);
+  };
+
   const archivePage = async () => {
     if (!page) return;
     if (!window.confirm("Archive this page? You can restore it from the index later.")) return;
@@ -584,6 +614,27 @@ function NotePageView() {
               <Eye className="w-3.5 h-3.5" aria-hidden="true" />
             )}
             <span className="hidden sm:inline">{readingMode ? "Edit" : "Read"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={copyMarkdown}
+            aria-label="Copy as markdown"
+            className="px-2 h-7 rounded inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+          >
+            {exportNoticed === "copied" ? (
+              <Check className="w-3.5 h-3.5 text-[var(--color-success)]" aria-hidden="true" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" aria-hidden="true" />
+            )}
+            <span className="hidden sm:inline">{exportNoticed === "copied" ? "Copied" : "Copy MD"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={downloadMarkdown}
+            aria-label="Download as markdown"
+            className="px-2 h-7 rounded inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+          >
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -987,6 +1038,90 @@ function StatusBar({
 
 function rid(): string {
   return Math.random().toString(36).slice(2, 11);
+}
+
+/**
+ * Convert the canonical block array into a markdown string. Used by the
+ * Copy / Download actions in the page editor toolbar. Only the most-used
+ * block types round-trip cleanly; embeds and page references render as
+ * readable links so the export is still useful pasted into Slack or a
+ * text editor.
+ */
+function blocksToMarkdown(title: string, blocks: NoteBlock[]): string {
+  const out: string[] = [];
+  if (title.trim()) out.push(`# ${title.trim()}`, "");
+  for (const b of blocks) {
+    switch (b.type) {
+      case "paragraph":
+        out.push(b.text || "");
+        break;
+      case "heading":
+        out.push(`${"#".repeat(Math.min(6, b.level + 1))} ${b.text}`);
+        break;
+      case "bullet_item":
+        out.push(`- ${b.text}`);
+        break;
+      case "numbered_item":
+        out.push(`1. ${b.text}`);
+        break;
+      case "todo":
+        out.push(`- [${b.checked ? "x" : " "}] ${b.text}`);
+        break;
+      case "toggle":
+        out.push(`> ${b.text}`);
+        break;
+      case "quote":
+        out.push(`> ${b.text}`);
+        break;
+      case "callout":
+        out.push(`> [!${b.variant.toUpperCase()}] ${b.text}`);
+        break;
+      case "code":
+        out.push("```" + (b.language || ""));
+        out.push(b.code);
+        out.push("```");
+        break;
+      case "divider":
+        out.push("---");
+        break;
+      case "image":
+        out.push(`![${b.alt ?? ""}](${b.url})`);
+        if (b.caption) out.push(`*${b.caption}*`);
+        break;
+      case "page_ref":
+        out.push(`[[${b.title || "page"}]]`);
+        break;
+      case "embed":
+        out.push(`<${b.url}>`);
+        break;
+      case "math":
+        out.push(`$$ ${b.expression} $$`);
+        break;
+      case "table": {
+        if (!b.rows || b.rows.length === 0) break;
+        const widths = b.rows[0].map((_, i) =>
+          Math.max(3, ...b.rows.map((r) => (r[i] ?? "").length)),
+        );
+        const fmt = (row: string[]) =>
+          "| " + row.map((c, i) => (c ?? "").padEnd(widths[i])).join(" | ") + " |";
+        out.push(fmt(b.rows[0]));
+        out.push("| " + widths.map((w) => "-".repeat(w)).join(" | ") + " |");
+        for (let i = 1; i < b.rows.length; i++) out.push(fmt(b.rows[i]));
+        break;
+      }
+      case "key_term":
+        out.push(`**${b.term}** — ${b.definition}`);
+        break;
+      case "example":
+        out.push(`*Example:* ${b.text}`);
+        break;
+      case "bullet_list":
+        for (const it of b.items) out.push(`- ${it}`);
+        break;
+    }
+    out.push("");
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
 function isEmpty(title: string, blocks: NoteBlock[]): boolean {
