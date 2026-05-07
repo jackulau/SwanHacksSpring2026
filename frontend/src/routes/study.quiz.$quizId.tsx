@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { ArrowLeft, FileQuestion } from "lucide-react";
+import { ArrowLeft, FileQuestion, Users } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -113,18 +114,28 @@ function QuizPage() {
     <AppShell>
       <PageHeader title={quiz.title} eyebrow="Quiz" />
       <div className="px-6 lg:px-8 pt-4 pb-8 max-w-2xl mx-auto">
-        <button
-          onClick={() => {
-            if (quiz.lecture) {
-              navigate({ to: "/lectures/$lectureId", params: { lectureId: quiz.lecture } });
-            } else {
-              navigate({ to: "/study" });
-            }
-          }}
-          className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to {quiz.lecture ? "lecture" : "study"}
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => {
+              if (quiz.lecture) {
+                navigate({ to: "/lectures/$lectureId", params: { lectureId: quiz.lecture } });
+              } else {
+                navigate({ to: "/study" });
+              }
+            }}
+            className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          >
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to {quiz.lecture ? "lecture" : "study"}
+          </button>
+          <Link
+            to="/study/quiz/$quizId/multiplayer"
+            params={{ quizId: quiz.id }}
+            className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs font-medium px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-raised)] hover:border-[var(--color-primary)]"
+          >
+            <Users className="w-3.5 h-3.5" aria-hidden="true" />
+            Play with friends
+          </Link>
+        </div>
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}
           onComplete={handleComplete}
