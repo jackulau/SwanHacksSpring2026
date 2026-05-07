@@ -24,12 +24,15 @@ import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
 import type {
+  Course,
   HeadingBlock,
   NoteBlock,
   NoteLink,
   NotePage,
+  PageProperties,
 } from "../lib/types";
 import { PageEditor } from "../components/notes/PageEditor";
+import { PagePropertiesPanel } from "../components/notes/PageProperties";
 import { EmptyState } from "../components/layout/EmptyState";
 
 export const Route = createFileRoute("/notes/$pageId")({
@@ -57,6 +60,9 @@ function NotePageView() {
   const [missing, setMissing] = useState(false);
   const [title, setTitle] = useState("");
   const [blocks, setBlocks] = useState<NoteBlock[]>([]);
+  const [properties, setProperties] = useState<PageProperties>({});
+  const [course, setCourse] = useState<string>("");
+  const [courses, setCourses] = useState<Course[]>([]);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [readingMode, setReadingMode] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
@@ -81,6 +87,12 @@ function NotePageView() {
         if (cancelled) return;
         setPage(p);
         setTitle(p.title || "");
+        setProperties(
+          (p.properties && typeof p.properties === "object"
+            ? p.properties
+            : {}) as PageProperties,
+        );
+        setCourse(p.course || "");
         setBlocks(
           Array.isArray(p.blocks) && p.blocks.length > 0
             ? p.blocks
@@ -124,6 +136,27 @@ function NotePageView() {
     };
   }, [user, page]);
 
+  // Courses — used by the properties panel.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    pb.collection("courses")
+      .getFullList<Course>({
+        filter: `user = "${user.id}"`,
+        sort: "name",
+        requestKey: "note-page-courses",
+      })
+      .then((c) => {
+        if (!cancelled) setCourses(c);
+      })
+      .catch(() => {
+        if (!cancelled) setCourses([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   // Sibling pages — used in the outline panel for quick jumps.
   useEffect(() => {
     if (!user) return;
@@ -157,13 +190,20 @@ function NotePageView() {
   /* ───── save ───── */
 
   const persist = useCallback(
-    async (nextTitle: string, nextBlocks: NoteBlock[]) => {
+    async (
+      nextTitle: string,
+      nextBlocks: NoteBlock[],
+      nextProperties: PageProperties,
+      nextCourse: string,
+    ) => {
       if (!page) return;
       setSaveState("saving");
       try {
         await pb.collection("note_pages").update(page.id, {
           title: nextTitle,
           blocks: nextBlocks,
+          properties: nextProperties,
+          course: nextCourse || null,
         });
         setSaveState("saved");
         window.setTimeout(() => {
@@ -176,19 +216,23 @@ function NotePageView() {
     [page],
   );
 
-  // Debounced autosave on title/blocks change.
+  // Debounced autosave on any persisted-field change.
   useEffect(() => {
     if (!page) return;
-    if (title === (page.title || "") && blocksEqual(blocks, page.blocks ?? [])) return;
+    const titleChanged = title !== (page.title || "");
+    const blocksChanged = !blocksEqual(blocks, page.blocks ?? []);
+    const propsChanged = JSON.stringify(properties) !== JSON.stringify(page.properties ?? {});
+    const courseChanged = course !== (page.course || "");
+    if (!titleChanged && !blocksChanged && !propsChanged && !courseChanged) return;
     setSaveState("dirty");
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
-      void persist(title, blocks);
+      void persist(title, blocks, properties, course);
     }, AUTOSAVE_MS);
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-  }, [title, blocks, page, persist]);
+  }, [title, blocks, properties, course, page, persist]);
 
   /* ───── shortcuts ───── */
 
@@ -436,7 +480,7 @@ function NotePageView() {
               rows={1}
               spellCheck
               disabled={readingMode}
-              className="w-full bg-transparent border-0 outline-none text-4xl font-bold tracking-tight text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] resize-none mb-6"
+              className="w-full bg-transparent border-0 outline-none text-4xl font-bold tracking-tight text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] resize-none mb-3"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -448,6 +492,16 @@ function NotePageView() {
                 }
               }}
             />
+
+            {!readingMode && (
+              <PagePropertiesPanel
+                properties={properties}
+                onChange={setProperties}
+                course={course}
+                onCourseChange={setCourse}
+                courses={courses}
+              />
+            )}
 
             <PageEditor
               blocks={blocks}
