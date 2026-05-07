@@ -268,6 +268,67 @@ export function PageEditor({
     [slash, blocks, replaceBlock, insertBlockAfter, onChange],
   );
 
+  const insertBlocksAfter = useCallback(
+    (id: string, fresh: NoteBlock[]) => {
+      if (fresh.length === 0) return;
+      const idx = blocks.findIndex((b) => b.id === id);
+      if (idx === -1) return;
+      const next = [...blocks];
+      next.splice(idx + 1, 0, ...fresh);
+      onChange(next);
+      pendingFocusRef.current = { id: fresh[fresh.length - 1].id, caret: "end" };
+    },
+    [blocks, onChange],
+  );
+
+  /* ───── paste handler ─────
+   * Handles three cases:
+   *   1. The clipboard is a single URL on its own line and the current
+   *      block is an empty paragraph → swap it for an embed block.
+   *   2. The clipboard contains multi-line markdown (with at least one
+   *      header / list / code marker) → parse and insert as blocks.
+   *   3. Otherwise let the browser handle the paste as plain text. */
+  const handlePaste = useCallback(
+    (block: NoteBlock, e: React.ClipboardEvent<HTMLElement>) => {
+      const text = e.clipboardData.getData("text/plain");
+      if (!text) return;
+      const trimmed = text.trim();
+      const isUrl = /^https?:\/\/\S+$/.test(trimmed);
+      const blockIsEmpty = blockText(block).trim() === "";
+      if (isUrl && blockIsEmpty && block.type === "paragraph") {
+        e.preventDefault();
+        replaceBlock(
+          block.id,
+          { id: block.id, type: "embed", url: trimmed } as NoteBlock,
+          false,
+        );
+        return;
+      }
+      if (looksLikeMarkdown(text)) {
+        e.preventDefault();
+        const parsed = parseMarkdownToBlocks(text);
+        if (parsed.length === 0) return;
+        if (blockIsEmpty) {
+          // Replace this block with the first parsed and append the rest.
+          const [first, ...rest] = parsed;
+          onChange([
+            ...blocks.slice(0, blocks.findIndex((b) => b.id === block.id)),
+            { ...first, id: block.id } as NoteBlock,
+            ...rest,
+            ...blocks.slice(blocks.findIndex((b) => b.id === block.id) + 1),
+          ]);
+          pendingFocusRef.current = {
+            id: rest.length > 0 ? rest[rest.length - 1].id : block.id,
+            caret: "end",
+          };
+        } else {
+          insertBlocksAfter(block.id, parsed);
+        }
+      }
+    },
+    [blocks, onChange, replaceBlock, insertBlocksAfter],
+  );
+
   /* ───── input + key handlers ───── */
 
   const handleInput = (block: NoteBlock, e: React.FormEvent<HTMLElement>) => {
@@ -354,6 +415,40 @@ export function PageEditor({
       e.preventDefault();
       duplicateBlock(block.id);
       return;
+    }
+    // Inline formatting — only meaningful inside contenteditable blocks.
+    // We rely on document.execCommand which still ships in every browser
+    // for our usage (bold/italic/underline). We do NOT use it for text
+    // input mutation; the input handler still owns that.
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === "b" || k === "i" || k === "u") {
+        const cmd = k === "b" ? "bold" : k === "i" ? "italic" : "underline";
+        e.preventDefault();
+        document.execCommand(cmd, false);
+        // Mirror back into model so re-render preserves formatting.
+        const el = e.currentTarget;
+        // Persist innerHTML into the text payload — wrapping markdown-style
+        // markers around the formatted run so the text round-trips even if
+        // it later renders through the markdown reader. For now we just
+        // store textContent; rich inline persistence is opt-in next pass.
+        if (block.type === "paragraph" || block.type === "heading") {
+          updateBlock(block.id, { text: el.textContent ?? "" } as Partial<NoteBlock>);
+        }
+        return;
+      }
+      if (k === "e") {
+        e.preventDefault();
+        // Inline code — wrap selection with backticks.
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+          const r = sel.getRangeAt(0);
+          const text = r.toString();
+          r.deleteContents();
+          r.insertNode(document.createTextNode("`" + text + "`"));
+        }
+        return;
+      }
     }
     // Cmd/Ctrl+Shift+ArrowUp/Down — move
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
@@ -496,6 +591,7 @@ export function PageEditor({
           onMouseLeave={() => setHoveredId((id) => (id === block.id ? null : id))}
           onInput={(e) => handleInput(block, e)}
           onKeyDown={(e) => handleKeyDown(block, e)}
+          onPaste={(e) => handlePaste(block, e)}
           onUpdate={(patch) => updateBlock(block.id, patch)}
           onInsertAfter={(factory) => insertBlockAfter(block.id, factory)}
           onRemove={() => removeBlock(block.id)}
@@ -548,6 +644,7 @@ interface BlockRowProps {
   onMouseLeave: () => void;
   onInput: (e: React.FormEvent<HTMLElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => void;
+  onPaste: (e: React.ClipboardEvent<HTMLElement>) => void;
   onUpdate: (patch: Partial<NoteBlock>) => void;
   onInsertAfter: (factory: (id: string) => NoteBlock) => void;
   onRemove: () => void;
@@ -578,6 +675,7 @@ function BlockRow(props: BlockRowProps) {
     onMouseLeave,
     onInput,
     onKeyDown,
+    onPaste,
     onUpdate,
     onInsertAfter,
     onRemove,
@@ -665,6 +763,7 @@ function BlockRow(props: BlockRowProps) {
           onBlur={onBlur}
           onInput={onInput}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
           onUpdate={onUpdate}
           onOpenSlash={onOpenSlash}
           onNavigatePage={onNavigatePage}
@@ -782,6 +881,7 @@ interface BlockSurfaceProps {
   onBlur: () => void;
   onInput: (e: React.FormEvent<HTMLElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => void;
+  onPaste: (e: React.ClipboardEvent<HTMLElement>) => void;
   onUpdate: (patch: Partial<NoteBlock>) => void;
   onOpenSlash: () => void;
   onNavigatePage?: (pageId: string) => void;
@@ -796,6 +896,7 @@ function BlockSurface({
   onBlur,
   onInput,
   onKeyDown,
+  onPaste,
   onUpdate,
   onNavigatePage,
 }: BlockSurfaceProps) {
@@ -813,6 +914,7 @@ function BlockSurface({
           onBlur={onBlur}
           onInput={onInput}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
         />
       );
 
@@ -836,6 +938,7 @@ function BlockSurface({
           onBlur={onBlur}
           onInput={onInput}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
         />
       );
     }
@@ -855,6 +958,7 @@ function BlockSurface({
             onBlur={onBlur}
             onInput={onInput}
             onKeyDown={onKeyDown}
+            onPaste={onPaste}
           />
         </div>
       );
@@ -876,6 +980,7 @@ function BlockSurface({
             onBlur={onBlur}
             onInput={onInput}
             onKeyDown={onKeyDown}
+            onPaste={onPaste}
           />
         </div>
       );
@@ -911,6 +1016,7 @@ function BlockSurface({
             onBlur={onBlur}
             onInput={onInput}
             onKeyDown={onKeyDown}
+            onPaste={onPaste}
           />
         </div>
       );
@@ -944,6 +1050,7 @@ function BlockSurface({
               onBlur={onBlur}
               onInput={onInput}
               onKeyDown={onKeyDown}
+              onPaste={onPaste}
             />
           </div>
           {t.open && t.children.length > 0 && (
@@ -973,6 +1080,7 @@ function BlockSurface({
           onBlur={onBlur}
           onInput={onInput}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
         />
       );
     }
@@ -1009,6 +1117,7 @@ function BlockSurface({
               onBlur={onBlur}
               onInput={onInput}
               onKeyDown={onKeyDown}
+              onPaste={onPaste}
             />
           </div>
         </div>
@@ -1041,6 +1150,7 @@ function BlockSurface({
           onFocus={onFocus}
           onBlur={onBlur}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
         >
           <hr className="border-0 border-t border-[var(--color-border-strong)]" />
         </div>
@@ -1101,6 +1211,7 @@ interface EditableProps {
   onBlur: () => void;
   onInput: (e: React.FormEvent<HTMLElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => void;
+  onPaste?: (e: React.ClipboardEvent<HTMLElement>) => void;
   style?: CSSProperties;
 }
 
@@ -1115,6 +1226,7 @@ function Editable({
   onBlur,
   onInput,
   onKeyDown,
+  onPaste,
   style,
 }: EditableProps) {
   const elRef = useRef<HTMLElement | null>(null);
@@ -1159,6 +1271,7 @@ function Editable({
     onBlur,
     onInput,
     onKeyDown,
+    onPaste,
     spellCheck: true,
   });
 }
@@ -1586,6 +1699,113 @@ function isCaretAtEnd(el: HTMLElement): boolean {
   test.selectNodeContents(el);
   test.setStart(r.endContainer, r.endOffset);
   return test.toString().length === 0;
+}
+
+/**
+ * Cheap heuristic — if a string contains any of the obvious markdown
+ * markers and at least one newline, treat it as markdown for paste
+ * purposes. We don't try to be a full CommonMark parser; we only need
+ * to do better than a wall-of-text paste.
+ */
+function looksLikeMarkdown(text: string): boolean {
+  if (!text.includes("\n")) return false;
+  return /^(#{1,3}\s|\s*[-*]\s|\s*\d+\.\s|>\s|```|---)/m.test(text);
+}
+
+/**
+ * Markdown-to-block parser used by paste. Supports the same shortcut
+ * vocabulary as the at-line-start markdown shortcuts: headings, bullet
+ * lists, numbered lists, todos, blockquotes, code fences, and dividers.
+ * Anything else is treated as a paragraph block (one block per blank-
+ * line-separated section).
+ */
+function parseMarkdownToBlocks(src: string): NoteBlock[] {
+  const lines = src.replace(/\r\n/g, "\n").split("\n");
+  const out: NoteBlock[] = [];
+  let i = 0;
+  let para: string[] = [];
+  const flushPara = () => {
+    if (para.length === 0) return;
+    out.push({ id: newId(), type: "paragraph", text: para.join(" ") });
+    para = [];
+  };
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === "") {
+      flushPara();
+      i++;
+      continue;
+    }
+    if (line.startsWith("```")) {
+      flushPara();
+      const lang = line.slice(3).trim() || "plaintext";
+      const code: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith("```")) {
+        code.push(lines[i]);
+        i++;
+      }
+      out.push({ id: newId(), type: "code", language: lang, code: code.join("\n") });
+      i++;
+      continue;
+    }
+    if (/^---+$/.test(line.trim())) {
+      flushPara();
+      out.push({ id: newId(), type: "divider" });
+      i++;
+      continue;
+    }
+    const h = line.match(/^(#{1,3})\s+(.*)$/);
+    if (h) {
+      flushPara();
+      out.push({
+        id: newId(),
+        type: "heading",
+        level: h[1].length as 1 | 2 | 3,
+        text: h[2],
+      });
+      i++;
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      flushPara();
+      out.push({ id: newId(), type: "bullet_item", text: line.replace(/^\s*[-*]\s+/, "") });
+      i++;
+      continue;
+    }
+    if (/^\s*\d+\.\s+/.test(line)) {
+      flushPara();
+      out.push({
+        id: newId(),
+        type: "numbered_item",
+        text: line.replace(/^\s*\d+\.\s+/, ""),
+      });
+      i++;
+      continue;
+    }
+    if (/^\s*\[[\sxX]\]\s+/.test(line)) {
+      flushPara();
+      const checked = /^\s*\[[xX]\]/.test(line);
+      out.push({
+        id: newId(),
+        type: "todo",
+        text: line.replace(/^\s*\[[\sxX]\]\s+/, ""),
+        checked,
+      });
+      i++;
+      continue;
+    }
+    if (/^>\s/.test(line)) {
+      flushPara();
+      out.push({ id: newId(), type: "quote", text: line.replace(/^>\s/, "") });
+      i++;
+      continue;
+    }
+    para.push(line);
+    i++;
+  }
+  flushPara();
+  return out;
 }
 
 function computeNumbering(blocks: NoteBlock[]): Record<number, number> {
