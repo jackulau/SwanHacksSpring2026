@@ -16,10 +16,12 @@ import {
   FileText,
   Hash,
   ListOrdered,
+  Mic,
   Search,
   Trash2,
   X,
 } from "lucide-react";
+import type { Note } from "../lib/types";
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
@@ -436,6 +438,49 @@ function NotePageView() {
 
   /* ───── handlers ───── */
 
+  const [lecturePickerOpen, setLecturePickerOpen] = useState(false);
+
+  const insertLectureBlocks = async (lectureId: string) => {
+    setLecturePickerOpen(false);
+    try {
+      const note = await pb
+        .collection("notes")
+        .getFirstListItem<Note>(`lecture = "${lectureId}"`, {
+          requestKey: `note-import-${lectureId}`,
+        });
+      const incoming = Array.isArray(note.content) ? note.content : [];
+      if (incoming.length === 0) return;
+      // Stamp fresh ids on imported blocks so they don't collide with the
+      // host page (which is keyed by id) and append them.
+      const fresh: NoteBlock[] = incoming.map((b) => ({
+        ...b,
+        id: rid(),
+      })) as NoteBlock[];
+      setBlocks((prev) => [...prev, ...fresh]);
+    } catch {
+      // No notes record yet; fall back to inserting a divider + heading
+      // so the user knows the import was attempted.
+      const lecture = lectures.find((l) => l.id === lectureId);
+      if (lecture) {
+        setBlocks((prev) => [
+          ...prev,
+          { id: rid(), type: "divider" },
+          {
+            id: rid(),
+            type: "heading",
+            level: 2,
+            text: lecture.title || "Lecture",
+          },
+          {
+            id: rid(),
+            type: "paragraph",
+            text: "Notes for this lecture haven't been generated yet.",
+          },
+        ]);
+      }
+    }
+  };
+
   const archivePage = async () => {
     if (!page) return;
     if (!window.confirm("Archive this page? You can restore it from the index later.")) return;
@@ -492,6 +537,26 @@ function NotePageView() {
           <span className="truncate text-[var(--color-text)] flex-1">{title || "Untitled"}</span>
 
           <SaveBadge state={saveState} />
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setLecturePickerOpen((v) => !v)}
+              aria-pressed={lecturePickerOpen}
+              aria-label="Insert from lecture"
+              className="px-2 h-7 rounded inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+            >
+              <Mic className="w-3.5 h-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">From lecture</span>
+            </button>
+            {lecturePickerOpen && (
+              <LecturePickerPopover
+                lectures={lectures}
+                onPick={insertLectureBlocks}
+                onClose={() => setLecturePickerOpen(false)}
+              />
+            )}
+          </div>
 
           <button
             type="button"
@@ -803,6 +868,73 @@ function BacklinksPanel({ pages }: { pages: NotePage[] }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+function LecturePickerPopover({
+  lectures,
+  onPick,
+  onClose,
+}: {
+  lectures: Lecture[];
+  onPick: (id: string) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    const onMouse = (e: MouseEvent) => {
+      if (!ref.current) return;
+      if (ref.current.contains(e.target as Node)) return;
+      onClose();
+    };
+    document.addEventListener("mousedown", onMouse);
+    return () => document.removeEventListener("mousedown", onMouse);
+  }, [onClose]);
+
+  const filtered = lectures.filter((l) =>
+    query ? (l.title || "").toLowerCase().includes(query.toLowerCase()) : true,
+  );
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 top-8 z-30 w-72 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_18px_36px_-22px_rgba(0,0,0,0.5)] py-1 text-sm"
+    >
+      <div className="px-3 py-2 border-b border-[var(--color-border)]">
+        <input
+          autoFocus
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Find a lecture"
+          className="w-full bg-transparent outline-none text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)]"
+        />
+      </div>
+      <div className="max-h-72 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <div className="px-3 py-3 text-xs text-[var(--color-text-subtle)]">
+            No lectures found.
+          </div>
+        ) : (
+          filtered.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => onPick(l.id)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+            >
+              <Mic className="w-3.5 h-3.5 text-[var(--color-text-subtle)]" aria-hidden="true" />
+              <span className="flex-1 min-w-0 truncate">{l.title || "Untitled lecture"}</span>
+              <span className="text-[10px] text-[var(--color-text-subtle)] uppercase tracking-wider">
+                {l.status}
+              </span>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 
