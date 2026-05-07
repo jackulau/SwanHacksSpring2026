@@ -15,9 +15,13 @@ import {
   EyeOff,
   FileText,
   Hash,
+  Heading1,
+  List,
+  ListChecks,
   ListOrdered,
   Mic,
   Search,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -646,6 +650,21 @@ function NotePageView() {
               />
             )}
 
+            {!readingMode && isEmpty(title, blocks) && (
+              <EmptyPageHints
+                onPick={(template) => {
+                  setBlocks(template);
+                  // Drop focus into the new first block on the next render.
+                  window.setTimeout(() => {
+                    const first = document.querySelector<HTMLElement>(
+                      '[data-page-editor] [data-block-content] [contenteditable="true"]',
+                    );
+                    first?.focus();
+                  }, 50);
+                }}
+              />
+            )}
+
             <PageEditor
               blocks={blocks}
               onChange={setBlocks}
@@ -968,6 +987,98 @@ function StatusBar({
 
 function rid(): string {
   return Math.random().toString(36).slice(2, 11);
+}
+
+function isEmpty(title: string, blocks: NoteBlock[]): boolean {
+  if (title.trim()) return false;
+  if (blocks.length > 1) return false;
+  const only = blocks[0];
+  if (!only) return true;
+  const text = (only as { text?: string }).text ?? "";
+  return only.type === "paragraph" && text.trim() === "";
+}
+
+function EmptyPageHints({
+  onPick,
+}: {
+  onPick: (blocks: NoteBlock[]) => void;
+}) {
+  const templates: Array<{
+    label: string;
+    icon: typeof FileText;
+    keywords: string;
+    blocks: () => NoteBlock[];
+  }> = [
+    {
+      label: "Empty page",
+      icon: FileText,
+      keywords: "Type / for blocks",
+      blocks: () => [{ id: rid(), type: "paragraph", text: "" }],
+    },
+    {
+      label: "Lecture summary",
+      icon: Heading1,
+      keywords: "Heading + key points",
+      blocks: () => [
+        { id: rid(), type: "heading", level: 1, text: "Lecture summary" },
+        { id: rid(), type: "heading", level: 2, text: "Key points" },
+        { id: rid(), type: "bullet_item", text: "" },
+        { id: rid(), type: "heading", level: 2, text: "Open questions" },
+        { id: rid(), type: "bullet_item", text: "" },
+      ],
+    },
+    {
+      label: "Reading notes",
+      icon: List,
+      keywords: "Citation + quotes",
+      blocks: () => [
+        { id: rid(), type: "heading", level: 1, text: "Reading notes" },
+        { id: rid(), type: "callout", variant: "tip", text: "Citation:" },
+        { id: rid(), type: "heading", level: 2, text: "Highlights" },
+        { id: rid(), type: "quote", text: "" },
+        { id: rid(), type: "heading", level: 2, text: "My takeaways" },
+        { id: rid(), type: "paragraph", text: "" },
+      ],
+    },
+    {
+      label: "Study plan",
+      icon: ListChecks,
+      keywords: "To-dos with deadlines",
+      blocks: () => [
+        { id: rid(), type: "heading", level: 1, text: "Study plan" },
+        { id: rid(), type: "todo", text: "Review notes", checked: false },
+        { id: rid(), type: "todo", text: "Build flashcards", checked: false },
+        { id: rid(), type: "todo", text: "Take a practice quiz", checked: false },
+      ],
+    },
+  ];
+  return (
+    <div className="border border-dashed border-[var(--color-border)] rounded-md p-4 mb-6 bg-[var(--color-surface-raised)]/30">
+      <div className="flex items-center gap-2 mb-3 text-xs text-[var(--color-text-subtle)]">
+        <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+        Start from a template, or just type. Press <kbd className="font-mono px-1 py-0.5 rounded border border-[var(--color-border)] bg-[var(--color-surface)]">/</kbd> for blocks.
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {templates.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.label}
+              type="button"
+              onClick={() => onPick(t.blocks())}
+              className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left hover:border-[var(--color-primary)] transition-colors"
+            >
+              <Icon className="w-4 h-4 text-[var(--color-text-muted)] mb-2" aria-hidden="true" />
+              <div className="text-sm font-medium text-[var(--color-text)]">{t.label}</div>
+              <div className="text-[11px] text-[var(--color-text-subtle)] mt-0.5">
+                {t.keywords}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function blocksEqual(a: NoteBlock[], b: NoteBlock[]): boolean {
