@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrashRouteImport } from './routes/trash'
 import { Route as StudyRouteImport } from './routes/study'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as CaptureRouteImport } from './routes/capture'
@@ -20,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudyPlannerRouteImport } from './routes/study.planner'
 import { Route as StudyFlashcardsRouteImport } from './routes/study.flashcards'
 import { Route as SettingsAccessibilityRouteImport } from './routes/settings.accessibility'
+import { Route as NotesPageIdRouteImport } from './routes/notes.$pageId'
 import { Route as LecturesLectureIdRouteImport } from './routes/lectures.$lectureId'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as CaptureUploadRouteImport } from './routes/capture.upload'
@@ -38,6 +40,11 @@ const StudyRoute = StudyRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotesRoute = NotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -80,6 +87,11 @@ const SettingsAccessibilityRoute = SettingsAccessibilityRouteImport.update({
   path: '/accessibility',
   getParentRoute: () => SettingsRoute,
 } as any)
+const NotesPageIdRoute = NotesPageIdRouteImport.update({
+  id: '/$pageId',
+  path: '/$pageId',
+  getParentRoute: () => NotesRoute,
+} as any)
 const LecturesLectureIdRoute = LecturesLectureIdRouteImport.update({
   id: '/lectures/$lectureId',
   path: '/lectures/$lectureId',
@@ -107,12 +119,14 @@ export interface FileRoutesByFullPath {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
+  '/notes': typeof NotesRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
+  '/notes/$pageId': typeof NotesPageIdRoute
   '/settings/accessibility': typeof SettingsAccessibilityRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
@@ -124,12 +138,14 @@ export interface FileRoutesByTo {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
+  '/notes': typeof NotesRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
+  '/notes/$pageId': typeof NotesPageIdRoute
   '/settings/accessibility': typeof SettingsAccessibilityRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
@@ -142,12 +158,14 @@ export interface FileRoutesById {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/login': typeof LoginRoute
+  '/notes': typeof NotesRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
+  '/notes/$pageId': typeof NotesPageIdRoute
   '/settings/accessibility': typeof SettingsAccessibilityRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
@@ -161,12 +179,14 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/login'
+    | '/notes'
     | '/settings'
     | '/study'
     | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
+    | '/notes/$pageId'
     | '/settings/accessibility'
     | '/study/flashcards'
     | '/study/planner'
@@ -178,12 +198,14 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/login'
+    | '/notes'
     | '/settings'
     | '/study'
     | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
+    | '/notes/$pageId'
     | '/settings/accessibility'
     | '/study/flashcards'
     | '/study/planner'
@@ -195,12 +217,14 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/login'
+    | '/notes'
     | '/settings'
     | '/study'
     | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/lectures/$lectureId'
+    | '/notes/$pageId'
     | '/settings/accessibility'
     | '/study/flashcards'
     | '/study/planner'
@@ -213,6 +237,7 @@ export interface RootRouteChildren {
   CaptureRoute: typeof CaptureRouteWithChildren
   CoursesRoute: typeof CoursesRouteWithChildren
   LoginRoute: typeof LoginRoute
+  NotesRoute: typeof NotesRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
   StudyRoute: typeof StudyRouteWithChildren
   TrashRoute: typeof TrashRoute
@@ -240,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notes': {
+      id: '/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof NotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -298,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsAccessibilityRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/notes/$pageId': {
+      id: '/notes/$pageId'
+      path: '/$pageId'
+      fullPath: '/notes/$pageId'
+      preLoaderRoute: typeof NotesPageIdRouteImport
+      parentRoute: typeof NotesRoute
+    }
     '/lectures/$lectureId': {
       id: '/lectures/$lectureId'
       path: '/lectures/$lectureId'
@@ -351,6 +390,16 @@ const CoursesRouteChildren: CoursesRouteChildren = {
 const CoursesRouteWithChildren =
   CoursesRoute._addFileChildren(CoursesRouteChildren)
 
+interface NotesRouteChildren {
+  NotesPageIdRoute: typeof NotesPageIdRoute
+}
+
+const NotesRouteChildren: NotesRouteChildren = {
+  NotesPageIdRoute: NotesPageIdRoute,
+}
+
+const NotesRouteWithChildren = NotesRoute._addFileChildren(NotesRouteChildren)
+
 interface SettingsRouteChildren {
   SettingsAccessibilityRoute: typeof SettingsAccessibilityRoute
 }
@@ -383,6 +432,7 @@ const rootRouteChildren: RootRouteChildren = {
   CaptureRoute: CaptureRouteWithChildren,
   CoursesRoute: CoursesRouteWithChildren,
   LoginRoute: LoginRoute,
+  NotesRoute: NotesRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,
   StudyRoute: StudyRouteWithChildren,
   TrashRoute: TrashRoute,

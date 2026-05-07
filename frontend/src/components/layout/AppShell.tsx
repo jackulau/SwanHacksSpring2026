@@ -40,6 +40,7 @@ import {
   Calendar,
   LogOut,
   Search,
+  FileText,
 } from "lucide-react";
 
 function isMacPlatform(): boolean {
@@ -60,6 +61,7 @@ interface NavItem {
 const TOP_NAV: readonly NavItem[] = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/capture", icon: Mic, label: "Record" },
+  { to: "/notes", icon: FileText, label: "Notes" },
 ];
 
 const BOTTOM_NAV: readonly NavItem[] = [

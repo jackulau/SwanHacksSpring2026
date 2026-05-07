@@ -132,10 +132,64 @@ export interface ImageBlock extends NoteBlockBase {
   caption?: string;
 }
 
+export interface TodoBlock extends NoteBlockBase {
+  type: "todo";
+  text: string;
+  checked: boolean;
+}
+
+export interface ToggleBlock extends NoteBlockBase {
+  type: "toggle";
+  text: string;
+  open: boolean;
+  children: NoteBlock[];
+}
+
+export interface NumberedItemBlock extends NoteBlockBase {
+  type: "numbered_item";
+  text: string;
+}
+
+export interface BulletItemBlock extends NoteBlockBase {
+  type: "bullet_item";
+  text: string;
+}
+
+export interface TableBlock extends NoteBlockBase {
+  type: "table";
+  rows: string[][];
+  hasHeader: boolean;
+}
+
+export interface MathBlock extends NoteBlockBase {
+  type: "math";
+  expression: string;
+}
+
+export interface EmbedBlock extends NoteBlockBase {
+  type: "embed";
+  url: string;
+  title?: string;
+}
+
+export interface PageRefBlock extends NoteBlockBase {
+  type: "page_ref";
+  pageId: string;
+  title: string;
+}
+
 export type NoteBlock =
   | HeadingBlock
   | ParagraphBlock
   | BulletListBlock
+  | BulletItemBlock
+  | NumberedItemBlock
+  | TodoBlock
+  | ToggleBlock
+  | TableBlock
+  | MathBlock
+  | EmbedBlock
+  | PageRefBlock
   | KeyTermBlock
   | ExampleBlock
   | CalloutBlock
@@ -358,6 +412,34 @@ export interface Assignment extends RecordModel {
   status: "upcoming" | "submitted" | "graded" | "missing";
   canvas_url: string;
   submission_types: string[];
+}
+
+// ──────────────────────────────────────────────
+// Note pages (rich, Notion-style standalone documents)
+// ──────────────────────────────────────────────
+
+export interface PageProperties {
+  tags?: string[];
+  status?: "draft" | "in_progress" | "done";
+  due_at?: string;
+}
+
+export interface NotePage extends RecordModel {
+  user: string;
+  title: string;
+  icon: string;
+  parent: string;
+  course: string;
+  lecture: string;
+  blocks: NoteBlock[];
+  properties: PageProperties;
+  archived: boolean;
+}
+
+export interface NoteLink extends RecordModel {
+  user: string;
+  source_page: string;
+  target_page: string;
 }
 
 export interface CalendarEventRecord extends RecordModel {

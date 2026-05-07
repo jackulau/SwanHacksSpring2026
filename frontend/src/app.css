@@ -489,3 +489,43 @@ body {
     animation: none;
   }
 }
+
+/* ── Block-editor placeholders ───────────────────────────────────────────
+ * The PageEditor's per-block contentEditable shows hint text via the
+ * data-placeholder attribute. We can't use ::placeholder (CE elements
+ * don't have one), so this is the standard :empty + ::before trick.
+ * The :is(:empty) check guards against stray <br> nodes still showing
+ * the hint, by also ensuring there's no rendered content.
+ */
+.editable-block[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-subtle);
+  pointer-events: none;
+}
+
+/* The page-editor's "+" / handle column is positioned outside the row's
+ * left edge. Make sure it's never clipped by the page wrapper's overflow. */
+[data-page-editor] {
+  overflow: visible;
+}
+
+/* Highlight matches inside a page when find-in-page is active. */
+.page-find-match {
+  background: rgba(245, 200, 100, 0.55);
+  border-radius: 2px;
+}
+.page-find-match.page-find-current {
+  background: rgba(245, 158, 11, 0.85);
+  color: #1a1a1a;
+}
+
+/* Reading-mode tweaks — center, widen, serif. */
+.page-reading-mode {
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.85;
+  font-size: 1.05rem;
+}
+.page-reading-mode .editable-block {
+  caret-color: transparent;
+}
+
