@@ -701,6 +701,26 @@ function ResultsScreen({
         >
           Back to study
         </Link>
+        <button
+          type="button"
+          onClick={async () => {
+            const lines = [
+              `Converge multiplayer · ${quiz.title}`,
+              ...sorted.map(
+                (p, i) =>
+                  `${i + 1}. ${p.display_name || "Player"} — ${p.score ?? 0}`,
+              ),
+            ];
+            try {
+              await navigator.clipboard.writeText(lines.join("\n"));
+            } catch {
+              // ignore
+            }
+          }}
+          className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-sm px-3 h-9 rounded-md hover:bg-[var(--color-surface-raised)]"
+        >
+          Copy results
+        </button>
         {isHost && (
           <button
             type="button"
