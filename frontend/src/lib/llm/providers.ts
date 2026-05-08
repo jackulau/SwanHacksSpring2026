@@ -42,6 +42,21 @@ export interface LlmProvider {
   readonly model: string;
   isAvailable(): Promise<boolean>;
   complete(messages: LlmMessage[], opts?: LlmCompleteOptions): Promise<LlmCompletion>;
+  /**
+   * Stream a chat completion as an async iterable of text deltas. Each yielded
+   * string is an incremental chunk; concatenating all yielded chunks yields
+   * the same text that `complete()` would have returned.
+   *
+   * Real providers parse Server-Sent Events from server-side streaming hooks
+   * (`/api/llm/{anthropic,openai}-stream`); when those hooks aren't deployed
+   * yet they fall back to running `complete()` and yielding the full text in
+   * one shot. Stub yields the deterministic answer in fake chunks so the UI
+   * exercises its typewriter path even on a fresh checkout.
+   */
+  completeStream(
+    messages: LlmMessage[],
+    opts?: LlmCompleteOptions,
+  ): AsyncIterable<string>;
 }
 
 export type LlmProviderId = "stub" | "anthropic" | "openai" | "ollama";
@@ -101,6 +116,23 @@ export class StubProvider implements LlmProvider {
       json: opts?.json ? payload : undefined,
       latencyMs: performance.now() - t0,
     };
+  }
+
+  async *completeStream(
+    messages: LlmMessage[],
+    opts?: LlmCompleteOptions,
+  ): AsyncIterable<string> {
+    // Synthesize the same deterministic answer `complete()` would return,
+    // then split it into ~24-char chunks emitted every ~80ms so the UI
+    // typewriter effect is visible without a real provider.
+    const full = await this.complete(messages, opts);
+    const text = full.text;
+    const chunkSize = 24;
+    for (let i = 0; i < text.length; i += chunkSize) {
+      if (opts?.abortSignal?.aborted) return;
+      yield text.slice(i, i + chunkSize);
+      await new Promise((r) => setTimeout(r, 80));
+    }
   }
 }
 
@@ -323,6 +355,80 @@ function truncate(s: string, n: number): string {
 }
 
 // ──────────────────────────────────────────────
+// Server-Sent Events parsing helper
+// ──────────────────────────────────────────────
+
+/**
+ * Stream `data: <chunk>` payloads from an SSE endpoint as text deltas.
+ *
+ * The Converge stream hooks emit a tiny SSE protocol:
+ *   - `data: { "delta": "<text>" }`        — incremental chunk
+ *   - `data: { "error": "<message>" }`     — upstream/transport error
+ *   - `data: [DONE]`                       — terminal sentinel
+ * Anything else is ignored. We yield each `delta` as a string. Errors throw
+ * so callers can fall back to `complete()`.
+ */
+async function* sseDeltaStream(
+  url: string,
+  body: unknown,
+  signal?: AbortSignal,
+): AsyncIterable<string> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: pbAuthedHeaders({ Accept: "text/event-stream" }),
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok) throw new Error(`stream: HTTP ${res.status}`);
+  if (!res.body) throw new Error("stream: response body missing");
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // SSE frames are separated by a blank line. Process complete frames,
+      // keep any tail in the buffer for the next read.
+      let sep = buffer.indexOf("\n\n");
+      while (sep >= 0) {
+        const frame = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        sep = buffer.indexOf("\n\n");
+        for (const line of frame.split("\n")) {
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === "[DONE]") continue;
+          try {
+            const obj = JSON.parse(payload) as {
+              delta?: string;
+              error?: string;
+            };
+            if (obj.error) throw new Error(`stream upstream: ${obj.error}`);
+            if (typeof obj.delta === "string" && obj.delta.length > 0) {
+              yield obj.delta;
+            }
+          } catch (err) {
+            // JSON.parse failure on a non-JSON `data:` payload — ignore;
+            // re-throw real upstream errors.
+            if (err instanceof Error && err.message.startsWith("stream upstream:")) {
+              throw err;
+            }
+          }
+        }
+      }
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // ignore — already released
+    }
+  }
+}
+
+// ──────────────────────────────────────────────
 // Real-API providers — server-hook routed
 // ──────────────────────────────────────────────
 
@@ -391,6 +497,33 @@ export class AnthropicProvider implements LlmProvider {
       latencyMs: performance.now() - t0,
     };
   }
+
+  async *completeStream(
+    messages: LlmMessage[],
+    opts?: LlmCompleteOptions,
+  ): AsyncIterable<string> {
+    // Try the server-side SSE hook. If it isn't deployed yet (404/503), fall
+    // back to a single-shot complete() so callers always get *something*.
+    const body = {
+      model: this.model,
+      messages,
+      max_tokens: opts?.maxTokens ?? 2048,
+      temperature: opts?.temperature ?? 0.4,
+      json: opts?.json ?? false,
+    };
+    try {
+      yield* sseDeltaStream(
+        "/api/llm/anthropic-stream",
+        body,
+        opts?.abortSignal,
+      );
+      return;
+    } catch {
+      // fall through to non-streaming path
+    }
+    const full = await this.complete(messages, opts);
+    if (full.text) yield full.text;
+  }
 }
 
 /** OpenAI mirror of AnthropicProvider; same hook pattern at /api/llm/openai. */
@@ -435,6 +568,31 @@ export class OpenAIProvider implements LlmProvider {
       json: opts?.json ? safeJsonParse(data.text ?? "") : undefined,
       latencyMs: performance.now() - t0,
     };
+  }
+
+  async *completeStream(
+    messages: LlmMessage[],
+    opts?: LlmCompleteOptions,
+  ): AsyncIterable<string> {
+    const body = {
+      model: this.model,
+      messages,
+      max_tokens: opts?.maxTokens ?? 2048,
+      temperature: opts?.temperature ?? 0.4,
+      json: opts?.json ?? false,
+    };
+    try {
+      yield* sseDeltaStream(
+        "/api/llm/openai-stream",
+        body,
+        opts?.abortSignal,
+      );
+      return;
+    } catch {
+      // fall through to non-streaming path
+    }
+    const full = await this.complete(messages, opts);
+    if (full.text) yield full.text;
   }
 }
 
@@ -492,6 +650,73 @@ export class OllamaProvider implements LlmProvider {
       json: opts?.json ? safeJsonParse(text) : undefined,
       latencyMs: performance.now() - t0,
     };
+  }
+
+  async *completeStream(
+    messages: LlmMessage[],
+    opts?: LlmCompleteOptions,
+  ): AsyncIterable<string> {
+    // Ollama's /api/chat returns newline-delimited JSON when stream=true.
+    // Each line is `{message:{content:"..."}, done:false}` until a final
+    // `{done:true}` summary frame.
+    try {
+      const res = await fetch(`${this.endpoint}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: this.model,
+          messages,
+          stream: true,
+          format: opts?.json ? "json" : undefined,
+          options: {
+            temperature: opts?.temperature ?? 0.4,
+            num_predict: opts?.maxTokens ?? 2048,
+          },
+        }),
+        signal: opts?.abortSignal,
+      });
+      if (!res.ok || !res.body) {
+        throw new Error(`ollama stream: HTTP ${res.status}`);
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let nl = buffer.indexOf("\n");
+          while (nl >= 0) {
+            const line = buffer.slice(0, nl).trim();
+            buffer = buffer.slice(nl + 1);
+            nl = buffer.indexOf("\n");
+            if (!line) continue;
+            try {
+              const obj = JSON.parse(line) as {
+                message?: { content?: string };
+                done?: boolean;
+              };
+              const delta = obj.message?.content ?? "";
+              if (delta) yield delta;
+            } catch {
+              // ignore malformed line
+            }
+          }
+        }
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch {
+          // ignore
+        }
+      }
+      return;
+    } catch {
+      // fall through
+    }
+    const full = await this.complete(messages, opts);
+    if (full.text) yield full.text;
   }
 }
 
