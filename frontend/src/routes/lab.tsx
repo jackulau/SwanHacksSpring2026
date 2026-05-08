@@ -46,7 +46,9 @@ const PROBE_HOOKS = [
   "/api/asl/recognize-anthropic",
   "/api/asl/recognize-openai",
   "/api/llm/anthropic",
+  "/api/llm/anthropic-stream",
   "/api/llm/openai",
+  "/api/llm/openai-stream",
   "/api/knowledge/ask",
 ];
 
