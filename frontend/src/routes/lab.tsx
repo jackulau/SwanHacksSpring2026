@@ -154,7 +154,11 @@ function LabPage() {
     <AppShell>
       <PageHeader
         title="Lab"
-        subtitle="System status — providers, collections, and the knowledge index."
+        subtitle={
+          counts === null
+            ? "Probing system status…"
+            : `${counts.total ?? 0} chunks · ${(hooks ?? []).filter((h) => h.ok).length}/${(hooks ?? []).length} hooks live.`
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-2">
