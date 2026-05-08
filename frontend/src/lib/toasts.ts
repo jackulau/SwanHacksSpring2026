@@ -6,6 +6,11 @@
 
 export type ToastVariant = "info" | "success" | "warning" | "error";
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface Toast {
   id: string;
   variant: ToastVariant;
@@ -13,6 +18,13 @@ export interface Toast {
   description?: string;
   durationMs: number;
   createdAt: number;
+  action?: ToastAction;
+}
+
+export interface ToastOptions {
+  description?: string;
+  durationMs?: number;
+  action?: ToastAction;
 }
 
 type Listener = (toasts: Toast[]) => void;
@@ -35,6 +47,7 @@ function push(
   title: string,
   description?: string,
   durationMs = 4000,
+  action?: ToastAction,
 ): string {
   const id = nextId();
   const t: Toast = {
@@ -44,6 +57,7 @@ function push(
     description,
     durationMs,
     createdAt: Date.now(),
+    action,
   };
   state.toasts = [...state.toasts, t];
   emit();
@@ -51,6 +65,25 @@ function push(
     window.setTimeout(() => dismiss(id), durationMs);
   }
   return id;
+}
+
+/**
+ * Resolve a (description?, durationMs?) | options-object call signature
+ * into the underlying primitive args. Lets callers either keep the
+ * legacy positional form or pass `{ action, description, durationMs }`.
+ */
+function resolveOpts(
+  descriptionOrOpts?: string | ToastOptions,
+  durationMs?: number,
+): { description?: string; durationMs?: number; action?: ToastAction } {
+  if (descriptionOrOpts && typeof descriptionOrOpts === "object") {
+    return {
+      description: descriptionOrOpts.description,
+      durationMs: descriptionOrOpts.durationMs,
+      action: descriptionOrOpts.action,
+    };
+  }
+  return { description: descriptionOrOpts, durationMs };
 }
 
 export function dismiss(id: string): void {
@@ -72,13 +105,21 @@ export function subscribeToasts(listener: Listener): () => void {
 }
 
 export const toast = {
-  info: (title: string, description?: string, durationMs?: number) =>
-    push("info", title, description, durationMs),
-  success: (title: string, description?: string, durationMs?: number) =>
-    push("success", title, description, durationMs),
-  warning: (title: string, description?: string, durationMs?: number) =>
-    push("warning", title, description, durationMs),
-  error: (title: string, description?: string, durationMs?: number) =>
-    push("error", title, description, durationMs ?? 6000),
+  info: (title: string, descriptionOrOpts?: string | ToastOptions, durationMs?: number) => {
+    const o = resolveOpts(descriptionOrOpts, durationMs);
+    return push("info", title, o.description, o.durationMs, o.action);
+  },
+  success: (title: string, descriptionOrOpts?: string | ToastOptions, durationMs?: number) => {
+    const o = resolveOpts(descriptionOrOpts, durationMs);
+    return push("success", title, o.description, o.durationMs, o.action);
+  },
+  warning: (title: string, descriptionOrOpts?: string | ToastOptions, durationMs?: number) => {
+    const o = resolveOpts(descriptionOrOpts, durationMs);
+    return push("warning", title, o.description, o.durationMs, o.action);
+  },
+  error: (title: string, descriptionOrOpts?: string | ToastOptions, durationMs?: number) => {
+    const o = resolveOpts(descriptionOrOpts, durationMs);
+    return push("error", title, o.description, o.durationMs ?? 6000, o.action);
+  },
   dismiss,
 };

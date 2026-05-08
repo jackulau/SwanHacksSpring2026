@@ -62,11 +62,36 @@ export function Toaster() {
               aria-hidden="true"
             />
             <div className="flex-1 min-w-0">
-              <div className="font-medium leading-tight">{t.title}</div>
+              {t.action ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    t.action?.onClick();
+                    dismiss(t.id);
+                  }}
+                  className="font-medium leading-tight text-left hover:underline focus:outline-none focus:underline"
+                >
+                  {t.title}
+                </button>
+              ) : (
+                <div className="font-medium leading-tight">{t.title}</div>
+              )}
               {t.description && (
                 <div className="text-xs text-[var(--color-text-muted)] mt-0.5 leading-relaxed">
                   {t.description}
                 </div>
+              )}
+              {t.action && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    t.action?.onClick();
+                    dismiss(t.id);
+                  }}
+                  className="mt-1.5 text-xs font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] focus:outline-none focus:underline"
+                >
+                  {t.action.label}
+                </button>
               )}
             </div>
             <button
