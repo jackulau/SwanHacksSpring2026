@@ -43,6 +43,7 @@ import type {
 import type { Mentionable } from "../components/notes/MentionMenu";
 import { PageEditor } from "../components/notes/PageEditor";
 import { PagePropertiesPanel } from "../components/notes/PageProperties";
+import { CommentThread } from "../components/notes/CommentThread";
 import { EmptyState } from "../components/layout/EmptyState";
 import { InlineAiMenu } from "../components/notes/InlineAiMenu";
 import { ingestNote } from "../lib/knowledge/ingest";
@@ -805,6 +806,10 @@ function NotePageView() {
             />
 
             <BacklinksPanel pages={backlinks} />
+
+            {!readingMode && (
+              <CommentThread pageId={page.id} userId={user.id} />
+            )}
           </div>
 
           <aside className="hidden lg:block sticky top-20 self-start space-y-6">
