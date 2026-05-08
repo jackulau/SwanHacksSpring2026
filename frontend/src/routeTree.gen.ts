@@ -24,6 +24,7 @@ import { Route as RandomRouteImport } from './routes/random'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as MeRouteImport } from './routes/me'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
@@ -131,6 +132,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -317,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/notes': typeof NotesRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
@@ -367,6 +374,7 @@ export interface FileRoutesByTo {
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/notes': typeof NotesRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
@@ -418,6 +426,7 @@ export interface FileRoutesById {
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/notes': typeof NotesRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
@@ -470,6 +479,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/lab'
     | '/login'
+    | '/me'
     | '/notes'
     | '/onboarding'
     | '/play'
@@ -520,6 +530,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/lab'
     | '/login'
+    | '/me'
     | '/notes'
     | '/onboarding'
     | '/play'
@@ -570,6 +581,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/lab'
     | '/login'
+    | '/me'
     | '/notes'
     | '/onboarding'
     | '/play'
@@ -621,6 +633,7 @@ export interface RootRouteChildren {
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
   LabRoute: typeof LabRoute
   LoginRoute: typeof LoginRoute
+  MeRoute: typeof MeRoute
   NotesRoute: typeof NotesRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   PlayRoute: typeof PlayRoute
@@ -746,6 +759,13 @@ declare module '@tanstack/react-router' {
       path: '/notes'
       fullPath: '/notes'
       preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1117,6 +1137,7 @@ const rootRouteChildren: RootRouteChildren = {
   KnowledgeRoute: KnowledgeRouteWithChildren,
   LabRoute: LabRoute,
   LoginRoute: LoginRoute,
+  MeRoute: MeRoute,
   NotesRoute: NotesRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   PlayRoute: PlayRoute,
