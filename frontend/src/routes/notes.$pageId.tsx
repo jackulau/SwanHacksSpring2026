@@ -48,8 +48,9 @@ import { CommentThread } from "../components/notes/CommentThread";
 import { EmptyState } from "../components/layout/EmptyState";
 import { InlineAiMenu } from "../components/notes/InlineAiMenu";
 import { ingestNote } from "../lib/knowledge/ingest";
-import { flashcardsFromNote } from "../lib/generate";
+import { flashcardsFromNote, quizFromNote } from "../lib/generate";
 import { getTts } from "../lib/tts";
+import { toast } from "../lib/toasts";
 
 export const Route = createFileRoute("/notes/$pageId")({
   component: () => (
@@ -649,6 +650,35 @@ function NotePageView() {
             <span className="hidden sm:inline">
               {genFlashState.kind === "running" ? "Generating…" : "Generate flashcards"}
             </span>
+          </button>
+          <button
+            type="button"
+            disabled={!page}
+            onClick={async () => {
+              if (!page) return;
+              try {
+                const quiz = await quizFromNote(page.id);
+                toast.success(
+                  "Quiz generated",
+                  `${(quiz.questions ?? []).length} questions`,
+                );
+                navigate({
+                  to: "/study/quiz/$quizId",
+                  params: { quizId: quiz.id },
+                });
+              } catch (err) {
+                toast.error(
+                  "Couldn't generate a quiz",
+                  err instanceof Error ? err.message : undefined,
+                );
+              }
+            }}
+            aria-label="Generate quiz from this page"
+            title="Build a multiple-choice quiz from this note"
+            className="px-2 h-7 rounded inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] disabled:opacity-60"
+          >
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Generate quiz</span>
           </button>
           {genFlashState.kind === "done" && (
             <Link

@@ -22,5 +22,7 @@ export type {
 } from "./flashcardsFromQuiz";
 export { quizFromLecture } from "./quizFromLecture";
 export type { QuizFromLectureOptions } from "./quizFromLecture";
+export { quizFromNote } from "./quizFromNote";
+export type { QuizFromNoteOptions } from "./quizFromNote";
 export { studyPlanFromCourse } from "./studyPlanFromCourse";
 export type { StudyPlanFromCourseOptions } from "./studyPlanFromCourse";
