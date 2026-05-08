@@ -139,7 +139,13 @@ function GoalsPage() {
     <AppShell>
       <PageHeader
         title="Goals"
-        subtitle="What are you trying to learn this season?"
+        subtitle={
+          goals === null
+            ? "Loading…"
+            : goals.length === 0
+              ? "What are you trying to learn this season?"
+              : `${summary.open} open, ${summary.done} completed.`
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-2xl mx-auto space-y-5">
         <form
