@@ -28,7 +28,6 @@ import {
   X,
 } from "lucide-react";
 import type { Note } from "../lib/types";
-import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
 import type {
@@ -54,11 +53,10 @@ import { flashcardsFromNote, quizFromNote } from "../lib/generate";
 import { toast } from "../lib/toasts";
 
 export const Route = createFileRoute("/notes/$pageId")({
-  component: () => (
-    <AppShell>
-      <NotePageView />
-    </AppShell>
-  ),
+  // The /notes parent route now mounts AppShell + Outlet, so the
+  // detail view skips its own AppShell wrapper here to avoid a
+  // double-sidebar render.
+  component: NotePageView,
 });
 
 const AUTOSAVE_MS = 700;

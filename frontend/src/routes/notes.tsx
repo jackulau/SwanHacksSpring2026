@@ -1,4 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   FileText,
@@ -16,12 +22,26 @@ import { pb } from "../lib/pocketbase";
 import type { Course, NotePage } from "../lib/types";
 
 export const Route = createFileRoute("/notes")({
-  component: () => (
-    <AppShell>
-      <NotesIndexPage />
-    </AppShell>
-  ),
+  component: NotesLayout,
 });
+
+/**
+ * Layout-style parent for the /notes tree. Renders the index when the
+ * URL is exactly `/notes`, otherwise hands off to the matched child
+ * route (e.g. `/notes/$pageId`) via <Outlet />. Without this, the
+ * file-based router would mount the parent's component on every
+ * /notes/* URL — and because the parent didn't expose an Outlet, the
+ * detail page never got a slot to render in.
+ */
+function NotesLayout() {
+  const location = useLocation();
+  const isIndex = location.pathname === "/notes" || location.pathname === "/notes/";
+  return (
+    <AppShell>
+      {isIndex ? <NotesIndexPage /> : <Outlet />}
+    </AppShell>
+  );
+}
 
 /**
  * Notes index — browse, create, and search the user's rich-text pages.
