@@ -243,7 +243,7 @@ export class AslPipeline {
   private async persistSegment(out: SegmentResult, durationMs: number) {
     if (!this.userId) return;
     try {
-      await pb.collection("asl_segments").create<AslSegmentRecord>({
+      const written = await pb.collection("asl_segments").create<AslSegmentRecord>({
         user: this.userId,
         session_id: this.sessionId,
         transcription: out.result.transcription,
@@ -257,6 +257,13 @@ export class AslPipeline {
         meta: { latencyMs: out.result.latencyMs },
         resigned: false,
       });
+      // Best-effort ingest into knowledge_chunks so this segment becomes
+      // searchable from /knowledge. Skip the unclear/empty ones —
+      // ingestAslSegment already filters those, but the dynamic import
+      // keeps the asl pipeline's first paint cheap.
+      void import("../knowledge/ingest")
+        .then((mod) => mod.ingestAslSegment(this.userId!, written))
+        .catch(() => undefined);
     } catch {
       // Persistence is best-effort; chat row is already on screen.
     }
