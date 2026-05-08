@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrashRouteImport } from './routes/trash'
 import { Route as StudyRouteImport } from './routes/study'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LoginRouteImport } from './routes/login'
@@ -48,6 +49,11 @@ const StudyRoute = StudyRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SessionsRoute = SessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayRoute = PlayRouteImport.update({
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
+  '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
+  '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
+  '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notes'
     | '/play'
+    | '/sessions'
     | '/settings'
     | '/study'
     | '/trash'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notes'
     | '/play'
+    | '/sessions'
     | '/settings'
     | '/study'
     | '/trash'
@@ -310,6 +321,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notes'
     | '/play'
+    | '/sessions'
     | '/settings'
     | '/study'
     | '/trash'
@@ -338,6 +350,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   NotesRoute: typeof NotesRouteWithChildren
   PlayRoute: typeof PlayRoute
+  SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   StudyRoute: typeof StudyRouteWithChildren
   TrashRoute: typeof TrashRoute
@@ -367,6 +380,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sessions': {
+      id: '/sessions'
+      path: '/sessions'
+      fullPath: '/sessions'
+      preLoaderRoute: typeof SessionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/play': {
@@ -620,6 +640,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   NotesRoute: NotesRouteWithChildren,
   PlayRoute: PlayRoute,
+  SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRouteWithChildren,
   StudyRoute: StudyRouteWithChildren,
   TrashRoute: TrashRoute,
