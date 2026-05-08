@@ -13,7 +13,7 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { EmptyState } from "../components/layout/EmptyState";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
-import type { NotePage } from "../lib/types";
+import type { Course, NotePage } from "../lib/types";
 
 export const Route = createFileRoute("/notes")({
   component: () => (
@@ -36,7 +36,27 @@ function NotesIndexPage() {
   const [pages, setPages] = useState<NotePage[] | null>(null);
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"all" | "recent" | "board">("recent");
+  const [courseFilter, setCourseFilter] = useState<string>("");
+  const [courses, setCourses] = useState<Course[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    pb.collection("courses")
+      .getFullList<Course>({
+        filter: `user = "${user.id}"`,
+        sort: "name",
+        requestKey: "notes-index-courses",
+      })
+      .then((rows) => {
+        if (!cancelled) setCourses(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -60,14 +80,18 @@ function NotesIndexPage() {
 
   const filtered = useMemo(() => {
     if (!pages) return null;
+    let out = pages;
+    if (courseFilter) {
+      out = out.filter((p) => p.course === courseFilter);
+    }
     const q = query.trim().toLowerCase();
-    if (!q) return pages;
-    return pages.filter(
+    if (!q) return out;
+    return out.filter(
       (p) =>
         (p.title || "").toLowerCase().includes(q) ||
         JSON.stringify(p.blocks ?? []).toLowerCase().includes(q),
     );
-  }, [pages, query]);
+  }, [pages, query, courseFilter]);
 
   const createPage = async () => {
     if (!user) return;
@@ -170,6 +194,38 @@ function NotesIndexPage() {
               Archived
             </Link>
           </div>
+
+          {courses.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              <button
+                type="button"
+                onClick={() => setCourseFilter("")}
+                className={`text-[11px] px-2.5 h-7 rounded-full border ${
+                  courseFilter === ""
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]"
+                    : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+                }`}
+              >
+                All courses
+              </button>
+              {courses.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() =>
+                    setCourseFilter((prev) => (prev === c.id ? "" : c.id))
+                  }
+                  className={`text-[11px] px-2.5 h-7 rounded-full border ${
+                    courseFilter === c.id
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]"
+                      : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+                  }`}
+                >
+                  {c.code || c.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {filtered === null ? (
             <div className="text-sm text-[var(--color-text-subtle)]">Loading pages…</div>
