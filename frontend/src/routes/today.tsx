@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   Circle,
   GraduationCap,
-  Hand,
-  HelpCircle,
   Layers,
   Loader2,
   Sparkles,
@@ -410,5 +408,3 @@ function Block({
   );
 }
 
-void Hand;
-void HelpCircle;

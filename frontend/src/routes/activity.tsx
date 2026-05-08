@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Calendar,
   FileText,
   GraduationCap,
   Hand,
@@ -318,5 +317,3 @@ function relativeTime(ts: number): string {
   return new Date(ts).toLocaleDateString();
 }
 
-// Date placeholder for upcoming features.
-void Calendar;

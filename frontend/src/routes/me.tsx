@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
-  AtSign,
   Award,
   Database,
   Loader2,
@@ -185,4 +184,3 @@ function Row({ to, label }: { to: string; label: string }) {
   );
 }
 
-void AtSign;
