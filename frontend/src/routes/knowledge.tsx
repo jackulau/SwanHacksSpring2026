@@ -121,10 +121,41 @@ function saveFilters(filters: Set<KnowledgeSourceType>): void {
   }
 }
 
+const RECENT_QUERIES_KEY = "converge:knowledge:recent";
+const RECENT_MAX = 6;
+
+function loadRecentQueries(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_QUERIES_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentQuery(q: string): string[] {
+  if (typeof window === "undefined") return [];
+  const current = loadRecentQueries();
+  const trimmed = q.trim();
+  if (!trimmed) return current;
+  const next = [
+    trimmed,
+    ...current.filter((s) => s !== trimmed),
+  ].slice(0, RECENT_MAX);
+  try {
+    window.localStorage.setItem(RECENT_QUERIES_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+  return next;
+}
+
 function KnowledgeSearchPage() {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Retrieved[]>([]);
+  const [recent, setRecent] = useState<string[]>(() => loadRecentQueries());
   const [loading, setLoading] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -193,7 +224,12 @@ function KnowledgeSearchPage() {
           expandGraph: true,
           sourceTypes,
         });
-        if (!cancelled) setResults(out);
+        if (!cancelled) {
+          setResults(out);
+          // Save the query to recent only if it produced anything —
+          // typing-in-progress queries shouldn't churn the recent list.
+          if (out.length > 0) setRecent(saveRecentQuery(query));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -318,12 +354,33 @@ function KnowledgeSearchPage() {
       )}
 
       {results.length === 0 && !query && (
-        <div className="rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-surface-raised)]/30 p-6 text-center text-sm text-[var(--color-text-muted)] flex flex-col items-center gap-2">
-          <Sparkles className="w-5 h-5" aria-hidden="true" />
-          <p>
-            Run "Backfill index" once to load everything you've already
-            captured. New content is indexed automatically as you create it.
-          </p>
+        <div className="space-y-3">
+          {recent.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-[var(--color-text-subtle)] mb-1.5">
+                Recent searches
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {recent.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setQuery(r)}
+                    className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 h-7 text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)]"
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-surface-raised)]/30 p-6 text-center text-sm text-[var(--color-text-muted)] flex flex-col items-center gap-2">
+            <Sparkles className="w-5 h-5" aria-hidden="true" />
+            <p>
+              Run "Backfill index" once to load everything you've already
+              captured. New content is indexed automatically as you create it.
+            </p>
+          </div>
         </div>
       )}
 
