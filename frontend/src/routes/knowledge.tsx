@@ -80,6 +80,45 @@ const SOURCE_META: Record<
   file: { label: "Files", icon: FileText },
 };
 
+const FILTER_TYPES: KnowledgeSourceType[] = [
+  "note",
+  "lecture_transcript",
+  "flashcard",
+  "quiz_question",
+  "calendar_event",
+  "asl_segment",
+];
+
+const FILTER_STORAGE_KEY = "converge:knowledge:filters";
+
+function loadFilters(): Set<KnowledgeSourceType> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(
+      arr.filter((s): s is KnowledgeSourceType =>
+        (FILTER_TYPES as string[]).includes(s),
+      ),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function saveFilters(filters: Set<KnowledgeSourceType>): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      FILTER_STORAGE_KEY,
+      JSON.stringify(Array.from(filters)),
+    );
+  } catch {
+    // ignore quota errors
+  }
+}
+
 function KnowledgeSearchPage() {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
@@ -88,6 +127,22 @@ function KnowledgeSearchPage() {
   const [backfilling, setBackfilling] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [stats, setStats] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Set<KnowledgeSourceType>>(() =>
+    loadFilters(),
+  );
+
+  useEffect(() => {
+    saveFilters(filters);
+  }, [filters]);
+
+  const toggleFilter = (t: KnowledgeSourceType) => {
+    setFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!user || !query.trim()) {
@@ -98,7 +153,13 @@ function KnowledgeSearchPage() {
     setLoading(true);
     const handle = window.setTimeout(async () => {
       try {
-        const out = await retrieve(user.id, query, { topK: 20, expandGraph: true });
+        const sourceTypes =
+          filters.size > 0 ? Array.from(filters) : undefined;
+        const out = await retrieve(user.id, query, {
+          topK: 20,
+          expandGraph: true,
+          sourceTypes,
+        });
         if (!cancelled) setResults(out);
       } finally {
         if (!cancelled) setLoading(false);
@@ -108,7 +169,7 @@ function KnowledgeSearchPage() {
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [user, query]);
+  }, [user, query, filters]);
 
   const grouped = useMemo(() => groupBySource(results), [results]);
 
@@ -149,6 +210,38 @@ function KnowledgeSearchPage() {
             />
           )}
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {FILTER_TYPES.map((t) => {
+          const meta = SOURCE_META[t];
+          const Icon = meta?.icon ?? FileText;
+          const active = filters.has(t);
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => toggleFilter(t)}
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 h-7 text-[11px] ${
+                active
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]"
+                  : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+              }`}
+            >
+              <Icon className="w-3 h-3" aria-hidden="true" />
+              {meta?.label ?? t}
+            </button>
+          );
+        })}
+        {filters.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilters(new Set())}
+            className="inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] text-[var(--color-text-muted)] px-2.5 h-7 text-[11px] hover:bg-[var(--color-surface-raised)]"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)]">
