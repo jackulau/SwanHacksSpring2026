@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -13,7 +12,6 @@ import {
   FilePlus,
   Hand,
   HelpCircle,
-  Loader2,
   Pause,
   Play,
   RefreshCw,
@@ -771,14 +769,6 @@ function ReplayModal({ row, onClose }: { row: ChatRow; onClose: () => void }) {
     </div>
   );
 }
-
-// Suppress unused-import if any in tight builds.
-function _useUnused(_v: ((...args: unknown[]) => void) | undefined) {
-  return _v;
-}
-void useMemo;
-void Loader2;
-void _useUnused;
 
 const ASL_PREF_PREFIX = "converge:asl:";
 
