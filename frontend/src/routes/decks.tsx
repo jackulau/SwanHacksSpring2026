@@ -135,7 +135,11 @@ function DecksPage() {
     <AppShell>
       <PageHeader
         title="Decks"
-        subtitle="Spaced-repetition decks across your library."
+        subtitle={
+          decks.length === 0
+            ? "Spaced-repetition decks across your library."
+            : `${decks.length} deck${decks.length === 1 ? "" : "s"} · ${cards?.length ?? 0} cards total.`
+        }
         actions={
           <Link
             to="/decks/import"
