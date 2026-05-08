@@ -22,6 +22,15 @@ function PlayJoinPage() {
   const [displayName, setDisplayName] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recentCodes, setRecentCodes] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem("converge:play:recent");
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -58,6 +67,19 @@ function PlayJoinPage() {
         userId: user.id,
         displayName: displayName.trim() || "Player",
       });
+      // Remember the code so the user can re-join from a list later.
+      try {
+        const next = [
+          trimmed,
+          ...recentCodes.filter((c) => c !== trimmed),
+        ].slice(0, 6);
+        window.localStorage.setItem(
+          "converge:play:recent",
+          JSON.stringify(next),
+        );
+      } catch {
+        // ignore
+      }
       navigate({ to: "/game/$sessionId", params: { sessionId: session.id } });
     } catch {
       setError("Could not join the session. Try again.");
@@ -140,6 +162,22 @@ function PlayJoinPage() {
           </a>{" "}
           and choose Multiplayer.
         </p>
+
+        {recentCodes.length > 0 && (
+          <div className="mt-4 flex items-center justify-center flex-wrap gap-1.5 text-[11px]">
+            <span className="text-[var(--color-text-subtle)]">Recent:</span>
+            {recentCodes.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCode(c)}
+                className="rounded-full border border-[var(--color-border)] px-2.5 h-6 font-mono tracking-widest text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)]"
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </AppShell>
   );
