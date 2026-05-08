@@ -459,6 +459,13 @@ export interface NoteVersionRecord extends RecordModel {
   title: string;
 }
 
+export interface NotePresenceRecord extends RecordModel {
+  user: string;
+  page: string;
+  display_name: string;
+  last_seen: string;
+}
+
 export interface CalendarEventRecord extends RecordModel {
   user: string;
   title: string;

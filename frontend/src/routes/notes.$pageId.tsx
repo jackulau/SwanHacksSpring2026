@@ -46,6 +46,7 @@ import { PageEditor } from "../components/notes/PageEditor";
 import { PagePropertiesPanel } from "../components/notes/PageProperties";
 import { CommentThread } from "../components/notes/CommentThread";
 import { HistoryPanel } from "../components/notes/HistoryPanel";
+import { PresenceIndicators } from "../components/notes/PresenceIndicators";
 import { EmptyState } from "../components/layout/EmptyState";
 import { InlineAiMenu } from "../components/notes/InlineAiMenu";
 import { ingestNote } from "../lib/knowledge/ingest";
@@ -696,6 +697,18 @@ function NotePageView() {
           </Link>
           <ChevronRight className="w-3.5 h-3.5 text-[var(--color-text-subtle)]" aria-hidden="true" />
           <span className="truncate text-[var(--color-text)] flex-1">{title || "Untitled"}</span>
+
+          {!readingMode && (
+            <PresenceIndicators
+              pageId={page.id}
+              userId={user.id}
+              displayName={
+                ((user as { display_name?: string; email?: string }).display_name?.trim() ||
+                  (user as { email?: string }).email?.split("@")[0] ||
+                  "Someone") as string
+              }
+            />
+          )}
 
           <SaveBadge state={saveState} />
 
