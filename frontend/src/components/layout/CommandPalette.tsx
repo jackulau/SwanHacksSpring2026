@@ -136,6 +136,7 @@ export function CommandPalette({
       { id: "go-sessions", label: "Multiplayer sessions", keywords: "history hosted joined games rounds", icon: History, group: "Go", run: () => navigate({ to: "/sessions" }) },
       { id: "go-export", label: "Export decks and courses", keywords: "download anki json bundle markdown", icon: Download, group: "Action", run: () => navigate({ to: "/export" }) },
       { id: "go-activity", label: "Activity feed", keywords: "recent everything notes lectures", icon: Activity, group: "Go", run: () => navigate({ to: "/activity" }) },
+      { id: "go-digest", label: "Weekly digest", keywords: "summary recap llm week recommendations", icon: Sparkles, group: "Go", run: () => navigate({ to: "/digest" }) },
       { id: "go-lab", label: "Lab — system status", keywords: "providers diagnostics counts collections", icon: TestTube, group: "Go", run: () => navigate({ to: "/lab" }) },
       { id: "go-tags", label: "Browse tags", keywords: "label categorize filter", icon: TagIcon, group: "Go", run: () => navigate({ to: "/tags" }) },
       { id: "go-templates", label: "Note templates", keywords: "scaffold skeleton starter", icon: FileText, group: "Go", run: () => navigate({ to: "/templates" }) },

@@ -24,6 +24,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as ExportRouteImport } from './routes/export'
+import { Route as DigestRouteImport } from './routes/digest'
 import { Route as DecksRouteImport } from './routes/decks'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as CaptureRouteImport } from './routes/capture'
@@ -121,6 +122,11 @@ const KnowledgeRoute = KnowledgeRouteImport.update({
 const ExportRoute = ExportRouteImport.update({
   id: '/export',
   path: '/export',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DigestRoute = DigestRouteImport.update({
+  id: '/digest',
+  path: '/digest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DecksRoute = DecksRouteImport.update({
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/decks': typeof DecksRoute
+  '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/decks': typeof DecksRoute
+  '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
@@ -329,6 +337,7 @@ export interface FileRoutesById {
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
   '/decks': typeof DecksRoute
+  '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
@@ -371,6 +380,7 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/decks'
+    | '/digest'
     | '/export'
     | '/knowledge'
     | '/lab'
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/decks'
+    | '/digest'
     | '/export'
     | '/knowledge'
     | '/lab'
@@ -451,6 +462,7 @@ export interface FileRouteTypes {
     | '/capture'
     | '/courses'
     | '/decks'
+    | '/digest'
     | '/export'
     | '/knowledge'
     | '/lab'
@@ -492,6 +504,7 @@ export interface RootRouteChildren {
   CaptureRoute: typeof CaptureRouteWithChildren
   CoursesRoute: typeof CoursesRouteWithChildren
   DecksRoute: typeof DecksRoute
+  DigestRoute: typeof DigestRoute
   ExportRoute: typeof ExportRoute
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
   LabRoute: typeof LabRoute
@@ -617,6 +630,13 @@ declare module '@tanstack/react-router' {
       path: '/export'
       fullPath: '/export'
       preLoaderRoute: typeof ExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/digest': {
+      id: '/digest'
+      path: '/digest'
+      fullPath: '/digest'
+      preLoaderRoute: typeof DigestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/decks': {
@@ -899,6 +919,7 @@ const rootRouteChildren: RootRouteChildren = {
   CaptureRoute: CaptureRouteWithChildren,
   CoursesRoute: CoursesRouteWithChildren,
   DecksRoute: DecksRoute,
+  DigestRoute: DigestRoute,
   ExportRoute: ExportRoute,
   KnowledgeRoute: KnowledgeRouteWithChildren,
   LabRoute: LabRoute,
