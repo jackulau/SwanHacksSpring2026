@@ -14,6 +14,7 @@ import {
 import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
+import { useOnlineStatus } from "../lib/pwa";
 import {
   advanceSession,
   bumpParticipantScore,
@@ -41,6 +42,7 @@ function GamePage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { sessionId } = Route.useParams();
+  const online = useOnlineStatus();
 
   const [session, setSession] = useState<QuizSessionRecord | null>(null);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -340,6 +342,12 @@ function GamePage() {
   return (
     <AppShell>
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto space-y-5">
+        {!online && (
+          <div className="rounded border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-3 py-2 text-xs text-[var(--color-warning)]">
+            You appear to be offline. Answers won't sync until your
+            connection returns; the game will resume automatically.
+          </div>
+        )}
         <div className="flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
           <span className="font-mono tabular-nums">
             Q {qIx + 1} / {questions.length}

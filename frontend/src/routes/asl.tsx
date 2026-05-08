@@ -39,6 +39,7 @@ import {
 } from "../lib/asl/pipeline";
 import { HandsOverlay } from "../lib/asl/handsOverlay";
 import type { AslSegmentRecord } from "../lib/types";
+import { toast } from "../lib/toasts";
 
 export const Route = createFileRoute("/asl")({
   component: AslPage,
@@ -159,8 +160,9 @@ function AslPage() {
       await videoRef.current.play().catch(() => undefined);
       setStreaming(true);
     } catch {
-      alert(
-        "Could not access the webcam. Grant camera permission and try again.",
+      toast.error(
+        "Camera blocked",
+        "Grant camera permission in your browser and try again.",
       );
     }
   };
