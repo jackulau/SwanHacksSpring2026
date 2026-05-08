@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Layers,
   ListChecks,
   ListTree,
   Loader2,
@@ -21,8 +22,16 @@ import {
 } from "lucide-react";
 import { resolveProvider } from "../../lib/llm/providers";
 import type { LlmProvider } from "../../lib/llm/providers";
+import { flashcardsFromText } from "../../lib/generate";
+import { pb } from "../../lib/pocketbase";
+import { toast } from "../../lib/toasts";
 
-type InlineAction = "improve" | "summarize" | "bullets" | "questions";
+type InlineAction =
+  | "improve"
+  | "summarize"
+  | "bullets"
+  | "questions"
+  | "flashcards";
 
 interface SelectionInfo {
   text: string;
@@ -43,6 +52,7 @@ const ACTION_LABELS: Record<InlineAction, string> = {
   summarize: "Summarize",
   bullets: "Convert to bullets",
   questions: "Extract questions",
+  flashcards: "Make flashcards",
 };
 
 const ACTION_ICONS: Record<InlineAction, typeof Wand2> = {
@@ -50,6 +60,7 @@ const ACTION_ICONS: Record<InlineAction, typeof Wand2> = {
   summarize: Sparkles,
   bullets: ListTree,
   questions: ListChecks,
+  flashcards: Layers,
 };
 
 const PROMPTS: Record<InlineAction, (input: string) => string> = {
@@ -61,6 +72,11 @@ const PROMPTS: Record<InlineAction, (input: string) => string> = {
     `Convert the following passage into a bulleted list. One bullet per idea. Use '-' as the bullet marker. Output only the list.\n\n${input}`,
   questions: (input) =>
     `Read the following passage and extract 3-6 study questions covering the key points. One question per line, no numbering. Output only the questions.\n\n${input}`,
+  // The flashcards branch doesn't go through the prompts map — it
+  // delegates to flashcardsFromText so it can write Flashcard rows
+  // straight to PB and ingest them. The prompt entry exists only so
+  // ACTION_LABELS/ACTION_ICONS keep their exhaustive type narrowing.
+  flashcards: () => "",
 };
 
 export function InlineAiMenu({ containerRef, readOnly }: InlineAiMenuProps) {
@@ -139,6 +155,22 @@ export function InlineAiMenu({ containerRef, readOnly }: InlineAiMenuProps) {
       if (!provider) setProvider(p);
       setPending(action);
       try {
+        if (action === "flashcards") {
+          const userId = pb.authStore.record?.id ?? "";
+          if (!userId) return;
+          const result = await flashcardsFromText(info.text, {
+            userId,
+            deckName: "Selection " + new Date().toLocaleDateString(),
+            provider: "anthropic",
+            maxCards: 6,
+          });
+          toast.success(
+            `Made ${result.cardsCreated} card${result.cardsCreated === 1 ? "" : "s"}`,
+            `Deck: ${result.deckName}`,
+          );
+          setInfo(null);
+          return;
+        }
         const completion = await p.complete(
           [
             {

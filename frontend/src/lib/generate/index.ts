@@ -10,6 +10,11 @@ export type {
   FlashcardsFromNoteOptions,
   FlashcardsFromNoteResult,
 } from "./flashcardsFromNote";
+export { flashcardsFromText } from "./flashcardsFromText";
+export type {
+  FlashcardsFromTextOptions,
+  FlashcardsFromTextResult,
+} from "./flashcardsFromText";
 export { quizFromLecture } from "./quizFromLecture";
 export type { QuizFromLectureOptions } from "./quizFromLecture";
 export { studyPlanFromCourse } from "./studyPlanFromCourse";
