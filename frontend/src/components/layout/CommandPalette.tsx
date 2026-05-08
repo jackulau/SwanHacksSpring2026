@@ -26,6 +26,7 @@ import {
   Upload,
   Dice5,
   BarChart3,
+  BookmarkPlus,
 } from "lucide-react";
 import { pb } from "../../lib/pocketbase";
 import { useAuth } from "../../lib/auth";
@@ -156,6 +157,7 @@ export function CommandPalette({
       { id: "go-decks-import", label: "Import deck", keywords: "import csv anki json deck", icon: Upload, group: "Action", run: () => navigate({ to: "/decks/import" }) },
       { id: "go-journal", label: "Journal", keywords: "diary daily entry today reflect", icon: FileText, group: "Action", run: () => navigate({ to: "/journal" }) },
       { id: "go-sandbox", label: "Sandbox", keywords: "playground generate paste text scratch", icon: Sparkles, group: "Action", run: () => navigate({ to: "/sandbox" }) },
+      { id: "go-concepts", label: "Extract concepts", keywords: "key terms definitions glossary llm important", icon: BookmarkPlus, group: "Action", run: () => navigate({ to: "/concepts" }) },
       { id: "go-me", label: "Account", keywords: "profile me settings logout sign out", icon: Settings, group: "Go", run: () => navigate({ to: "/me" }) },
       { id: "go-shortcuts", label: "Keyboard shortcuts page", keywords: "keys hotkey help reference", icon: Keyboard, group: "Go", run: () => navigate({ to: "/shortcuts" }) },
       { id: "go-goals", label: "Goals", keywords: "objective target plan season", icon: Sparkles, group: "Go", run: () => navigate({ to: "/goals" }) },
