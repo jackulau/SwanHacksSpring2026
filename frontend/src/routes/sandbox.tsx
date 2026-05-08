@@ -15,6 +15,9 @@ import { useAuth } from "../lib/auth";
 import { resolveProvider } from "../lib/llm/providers";
 import { flashcardsFromText } from "../lib/generate";
 import { toast } from "../lib/toasts";
+import { pb } from "../lib/pocketbase";
+import { ingestNote } from "../lib/knowledge/ingest";
+import type { NotePage } from "../lib/types";
 
 export const Route = createFileRoute("/sandbox")({
   component: SandboxPage,
@@ -148,11 +151,51 @@ function SandboxPage() {
         </div>
 
         {output && (
-          <pre className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm text-[var(--color-text)] whitespace-pre-wrap leading-relaxed font-sans">
-            {output}
-          </pre>
+          <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 space-y-3">
+            <pre className="text-sm text-[var(--color-text)] whitespace-pre-wrap leading-relaxed font-sans">
+              {output}
+            </pre>
+            {mode !== "flashcards" && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!user) return;
+                  try {
+                    const page = await pb.collection("note_pages").create<NotePage>({
+                      user: user.id,
+                      title: `Sandbox · ${mode}`,
+                      icon: "",
+                      parent: "",
+                      course: "",
+                      lecture: "",
+                      blocks: [
+                        { id: rid(), type: "heading" as const, level: 1 as const, text: `Sandbox · ${mode}` },
+                        { id: rid(), type: "paragraph" as const, text: text },
+                        { id: rid(), type: "divider" as const },
+                        { id: rid(), type: "paragraph" as const, text: output },
+                      ],
+                      properties: { tags: ["sandbox", mode] },
+                      archived: false,
+                    });
+                    toast.success("Saved as note", page.title);
+                    void ingestNote(user.id, page).catch(() => undefined);
+                    navigate({ to: "/notes/$pageId", params: { pageId: page.id } });
+                  } catch {
+                    toast.error("Save failed");
+                  }
+                }}
+                className="text-xs px-2 h-7 rounded border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+              >
+                Save as note
+              </button>
+            )}
+          </div>
         )}
       </div>
     </AppShell>
   );
+}
+
+function rid(): string {
+  return Math.random().toString(36).slice(2, 11);
 }
