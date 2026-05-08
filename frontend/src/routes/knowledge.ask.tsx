@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send, Sparkles } from "lucide-react";
+import { Loader2, Send, Sparkles, Trash2 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { retrieve, type Retrieved } from "../lib/knowledge/retrieve";
 import { sourceHref } from "./knowledge";
@@ -17,9 +17,42 @@ interface Turn {
   pending: boolean;
 }
 
+const HISTORY_STORAGE_KEY = "converge:knowledge:ask:history";
+const HISTORY_MAX = 20;
+
+function loadHistory(): Turn[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Turn[];
+    return parsed
+      .filter((t) => t && typeof t.question === "string")
+      .map((t) => ({ ...t, pending: false }));
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(turns: Turn[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    const trimmed = turns.slice(-HISTORY_MAX).map((t) => ({
+      ...t,
+      pending: false,
+    }));
+    window.localStorage.setItem(
+      HISTORY_STORAGE_KEY,
+      JSON.stringify(trimmed),
+    );
+  } catch {
+    // ignore quota
+  }
+}
+
 function AskPage() {
   const { user } = useAuth();
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const [turns, setTurns] = useState<Turn[]>(() => loadHistory());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -29,6 +62,13 @@ function AskPage() {
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
     });
+  }, [turns]);
+
+  // Persist conversation history so a refresh doesn't drop the
+  // user's recent threads. Keep it bounded so localStorage doesn't
+  // blow up on long sessions.
+  useEffect(() => {
+    saveHistory(turns);
   }, [turns]);
 
   const submit = async (e: React.FormEvent) => {
@@ -116,6 +156,18 @@ function AskPage() {
           )}
           Ask
         </button>
+        {turns.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("Clear the conversation?")) setTurns([]);
+            }}
+            aria-label="Clear conversation"
+            className="inline-flex items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:border-[var(--color-error)] text-sm w-10 h-10 rounded-md"
+          >
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
       </form>
     </div>
   );
