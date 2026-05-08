@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { pb } from "../../lib/pocketbase";
 import { useAuth } from "../../lib/auth";
-import type { Lecture, Course, Assignment } from "../../lib/types";
+import type { Lecture, Course, Assignment, NotePage } from "../../lib/types";
 
 function isMacPlatform(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -41,7 +41,7 @@ interface CommandItem {
   label: string;
   hint?: string;
   icon: typeof Home;
-  group: "Go" | "Action" | "Lecture" | "Course" | "Assignment";
+  group: "Go" | "Action" | "Lecture" | "Course" | "Assignment" | "Note";
   /** Searchable keywords. Concatenated with label for matching. */
   keywords?: string;
   run: () => void;
@@ -72,6 +72,7 @@ export function CommandPalette({
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [notePages, setNotePages] = useState<NotePage[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
@@ -106,11 +107,16 @@ export function CommandPalette({
       pb
         .collection("assignments")
         .getFullList<Assignment>({ filter: `user = "${user.id}"`, sort: "due_at", requestKey: "cmdk-asg" }),
+      pb
+        .collection("note_pages")
+        .getList<NotePage>(1, 30, { filter: `user = "${user.id}" && archived = false`, sort: "-updated", requestKey: "cmdk-notes" })
+        .then((r) => r.items),
     ]).then((res) => {
       if (cancelled) return;
       if (res[0].status === "fulfilled") setLectures(res[0].value);
       if (res[1].status === "fulfilled") setCourses(res[1].value);
       if (res[2].status === "fulfilled") setAssignments(res[2].value);
+      if (res[3].status === "fulfilled") setNotePages(res[3].value);
     });
     return () => {
       cancelled = true;
@@ -192,12 +198,23 @@ export function CommandPalette({
         group: "Assignment",
         run: () => {
           if (a.canvas_url) window.open(a.canvas_url, "_blank", "noopener,noreferrer");
-          else navigate({ to: "/study/planner" });
+          else navigate({ to: "/assignments/$assignmentId", params: { assignmentId: a.id } });
         },
       });
     }
+    for (const p of notePages.slice(0, 30)) {
+      list.push({
+        id: `np-${p.id}`,
+        label: p.title || "Untitled",
+        hint: p.updated ? new Date(p.updated).toLocaleDateString() : undefined,
+        keywords: `${p.title ?? ""} ${(p.properties?.tags ?? []).join(" ")}`,
+        icon: FileText,
+        group: "Note",
+        run: () => navigate({ to: "/notes/$pageId", params: { pageId: p.id } }),
+      });
+    }
     return list;
-  }, [lectures, courses, assignments, navigate, onShowShortcuts, onOpenQuickCapture]);
+  }, [lectures, courses, assignments, notePages, navigate, onShowShortcuts, onOpenQuickCapture]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
