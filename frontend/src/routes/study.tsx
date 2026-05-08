@@ -142,6 +142,24 @@ function StudyHub({ userId }: { userId: string }) {
             description="Hosted or joined rounds"
             meta="History"
           />
+          <LauncherRow
+            to="/decks"
+            label="Decks"
+            description="Per-deck stats, export, delete"
+            meta="Library"
+          />
+          <LauncherRow
+            to="/goals"
+            label="Goals"
+            description="Set and track learning targets"
+            meta="Plan"
+          />
+          <LauncherRow
+            to="/focus"
+            label="Focus"
+            description="Distraction-free pomodoro"
+            meta="25 min"
+          />
         </ul>
       </div>
     </>
