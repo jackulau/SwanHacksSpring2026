@@ -578,6 +578,16 @@ export interface CourseModuleRecord extends RecordModel {
   done: boolean;
 }
 
+export interface GoalRecord extends RecordModel {
+  user: string;
+  title: string;
+  description: string;
+  target_date: string;
+  completed: boolean;
+  completed_at: string;
+  meta: Record<string, unknown>;
+}
+
 export interface KnowledgeEdgeRecord extends RecordModel {
   user: string;
   from_chunk: string;

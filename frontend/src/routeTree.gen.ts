@@ -30,6 +30,7 @@ import { Route as LabRouteImport } from './routes/lab'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as ImportRouteImport } from './routes/import'
+import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as FocusRouteImport } from './routes/focus'
 import { Route as ExportRouteImport } from './routes/export'
 import { Route as DigestRouteImport } from './routes/digest'
@@ -162,6 +163,11 @@ const JournalRoute = JournalRouteImport.update({
 const ImportRoute = ImportRouteImport.update({
   id: '/import',
   path: '/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsRoute = GoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FocusRoute = FocusRouteImport.update({
@@ -318,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/focus': typeof FocusRoute
+  '/goals': typeof GoalsRoute
   '/import': typeof ImportRoute
   '/journal': typeof JournalRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/focus': typeof FocusRoute
+  '/goals': typeof GoalsRoute
   '/import': typeof ImportRoute
   '/journal': typeof JournalRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
@@ -421,6 +429,7 @@ export interface FileRoutesById {
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/focus': typeof FocusRoute
+  '/goals': typeof GoalsRoute
   '/import': typeof ImportRoute
   '/journal': typeof JournalRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
@@ -474,6 +483,7 @@ export interface FileRouteTypes {
     | '/digest'
     | '/export'
     | '/focus'
+    | '/goals'
     | '/import'
     | '/journal'
     | '/knowledge'
@@ -525,6 +535,7 @@ export interface FileRouteTypes {
     | '/digest'
     | '/export'
     | '/focus'
+    | '/goals'
     | '/import'
     | '/journal'
     | '/knowledge'
@@ -576,6 +587,7 @@ export interface FileRouteTypes {
     | '/digest'
     | '/export'
     | '/focus'
+    | '/goals'
     | '/import'
     | '/journal'
     | '/knowledge'
@@ -628,6 +640,7 @@ export interface RootRouteChildren {
   DigestRoute: typeof DigestRoute
   ExportRoute: typeof ExportRoute
   FocusRoute: typeof FocusRoute
+  GoalsRoute: typeof GoalsRoute
   ImportRoute: typeof ImportRoute
   JournalRoute: typeof JournalRoute
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
@@ -801,6 +814,13 @@ declare module '@tanstack/react-router' {
       path: '/import'
       fullPath: '/import'
       preLoaderRoute: typeof ImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals': {
+      id: '/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof GoalsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/focus': {
@@ -1132,6 +1152,7 @@ const rootRouteChildren: RootRouteChildren = {
   DigestRoute: DigestRoute,
   ExportRoute: ExportRoute,
   FocusRoute: FocusRoute,
+  GoalsRoute: GoalsRoute,
   ImportRoute: ImportRoute,
   JournalRoute: JournalRoute,
   KnowledgeRoute: KnowledgeRouteWithChildren,
