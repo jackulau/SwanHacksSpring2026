@@ -12,20 +12,27 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrashRouteImport } from './routes/trash'
 import { Route as StudyRouteImport } from './routes/study'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PlayRouteImport } from './routes/play'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AslRouteImport } from './routes/asl'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudyPlannerRouteImport } from './routes/study.planner'
 import { Route as StudyFlashcardsRouteImport } from './routes/study.flashcards'
+import { Route as StudyDueRouteImport } from './routes/study.due'
 import { Route as SettingsAccessibilityRouteImport } from './routes/settings.accessibility'
 import { Route as NotesPageIdRouteImport } from './routes/notes.$pageId'
 import { Route as LecturesLectureIdRouteImport } from './routes/lectures.$lectureId'
+import { Route as KnowledgeAskRouteImport } from './routes/knowledge.ask'
+import { Route as GameSessionIdRouteImport } from './routes/game.$sessionId'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as CaptureUploadRouteImport } from './routes/capture.upload'
 import { Route as StudyQuizQuizIdRouteImport } from './routes/study.quiz.$quizId'
+import { Route as StudyQuizQuizIdMultiplayerRouteImport } from './routes/study.quiz.$quizId.multiplayer'
 
 const TrashRoute = TrashRouteImport.update({
   id: '/trash',
@@ -42,6 +49,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -50,6 +62,11 @@ const NotesRoute = NotesRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeRoute = KnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoursesRoute = CoursesRouteImport.update({
@@ -67,6 +84,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AslRoute = AslRouteImport.update({
+  id: '/asl',
+  path: '/asl',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -80,6 +102,11 @@ const StudyPlannerRoute = StudyPlannerRouteImport.update({
 const StudyFlashcardsRoute = StudyFlashcardsRouteImport.update({
   id: '/flashcards',
   path: '/flashcards',
+  getParentRoute: () => StudyRoute,
+} as any)
+const StudyDueRoute = StudyDueRouteImport.update({
+  id: '/due',
+  path: '/due',
   getParentRoute: () => StudyRoute,
 } as any)
 const SettingsAccessibilityRoute = SettingsAccessibilityRouteImport.update({
@@ -97,6 +124,16 @@ const LecturesLectureIdRoute = LecturesLectureIdRouteImport.update({
   path: '/lectures/$lectureId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KnowledgeAskRoute = KnowledgeAskRouteImport.update({
+  id: '/ask',
+  path: '/ask',
+  getParentRoute: () => KnowledgeRoute,
+} as any)
+const GameSessionIdRoute = GameSessionIdRouteImport.update({
+  id: '/game/$sessionId',
+  path: '/game/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesCourseIdRoute = CoursesCourseIdRouteImport.update({
   id: '/$courseId',
   path: '/$courseId',
@@ -112,135 +149,187 @@ const StudyQuizQuizIdRoute = StudyQuizQuizIdRouteImport.update({
   path: '/quiz/$quizId',
   getParentRoute: () => StudyRoute,
 } as any)
+const StudyQuizQuizIdMultiplayerRoute =
+  StudyQuizQuizIdMultiplayerRouteImport.update({
+    id: '/multiplayer',
+    path: '/multiplayer',
+    getParentRoute: () => StudyQuizQuizIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/asl': typeof AslRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
+  '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
+  '/play': typeof PlayRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/game/$sessionId': typeof GameSessionIdRoute
+  '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
   '/notes/$pageId': typeof NotesPageIdRoute
   '/settings/accessibility': typeof SettingsAccessibilityRoute
+  '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
-  '/study/quiz/$quizId': typeof StudyQuizQuizIdRoute
+  '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
+  '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/asl': typeof AslRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
+  '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
+  '/play': typeof PlayRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/game/$sessionId': typeof GameSessionIdRoute
+  '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
   '/notes/$pageId': typeof NotesPageIdRoute
   '/settings/accessibility': typeof SettingsAccessibilityRoute
+  '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
-  '/study/quiz/$quizId': typeof StudyQuizQuizIdRoute
+  '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
+  '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/asl': typeof AslRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
+  '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
+  '/play': typeof PlayRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/game/$sessionId': typeof GameSessionIdRoute
+  '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
   '/notes/$pageId': typeof NotesPageIdRoute
   '/settings/accessibility': typeof SettingsAccessibilityRoute
+  '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
-  '/study/quiz/$quizId': typeof StudyQuizQuizIdRoute
+  '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
+  '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/asl'
     | '/calendar'
     | '/capture'
     | '/courses'
+    | '/knowledge'
     | '/login'
     | '/notes'
+    | '/play'
     | '/settings'
     | '/study'
     | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
+    | '/game/$sessionId'
+    | '/knowledge/ask'
     | '/lectures/$lectureId'
     | '/notes/$pageId'
     | '/settings/accessibility'
+    | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
     | '/study/quiz/$quizId'
+    | '/study/quiz/$quizId/multiplayer'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/asl'
     | '/calendar'
     | '/capture'
     | '/courses'
+    | '/knowledge'
     | '/login'
     | '/notes'
+    | '/play'
     | '/settings'
     | '/study'
     | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
+    | '/game/$sessionId'
+    | '/knowledge/ask'
     | '/lectures/$lectureId'
     | '/notes/$pageId'
     | '/settings/accessibility'
+    | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
     | '/study/quiz/$quizId'
+    | '/study/quiz/$quizId/multiplayer'
   id:
     | '__root__'
     | '/'
+    | '/asl'
     | '/calendar'
     | '/capture'
     | '/courses'
+    | '/knowledge'
     | '/login'
     | '/notes'
+    | '/play'
     | '/settings'
     | '/study'
     | '/trash'
     | '/capture/upload'
     | '/courses/$courseId'
+    | '/game/$sessionId'
+    | '/knowledge/ask'
     | '/lectures/$lectureId'
     | '/notes/$pageId'
     | '/settings/accessibility'
+    | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
     | '/study/quiz/$quizId'
+    | '/study/quiz/$quizId/multiplayer'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AslRoute: typeof AslRoute
   CalendarRoute: typeof CalendarRoute
   CaptureRoute: typeof CaptureRouteWithChildren
   CoursesRoute: typeof CoursesRouteWithChildren
+  KnowledgeRoute: typeof KnowledgeRouteWithChildren
   LoginRoute: typeof LoginRoute
   NotesRoute: typeof NotesRouteWithChildren
+  PlayRoute: typeof PlayRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   StudyRoute: typeof StudyRouteWithChildren
   TrashRoute: typeof TrashRoute
+  GameSessionIdRoute: typeof GameSessionIdRoute
   LecturesLectureIdRoute: typeof LecturesLectureIdRoute
 }
 
@@ -267,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notes': {
       id: '/notes'
       path: '/notes'
@@ -279,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge': {
+      id: '/knowledge'
+      path: '/knowledge'
+      fullPath: '/knowledge'
+      preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/courses': {
@@ -302,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/asl': {
+      id: '/asl'
+      path: '/asl'
+      fullPath: '/asl'
+      preLoaderRoute: typeof AslRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -321,6 +431,13 @@ declare module '@tanstack/react-router' {
       path: '/flashcards'
       fullPath: '/study/flashcards'
       preLoaderRoute: typeof StudyFlashcardsRouteImport
+      parentRoute: typeof StudyRoute
+    }
+    '/study/due': {
+      id: '/study/due'
+      path: '/due'
+      fullPath: '/study/due'
+      preLoaderRoute: typeof StudyDueRouteImport
       parentRoute: typeof StudyRoute
     }
     '/settings/accessibility': {
@@ -344,6 +461,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LecturesLectureIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/knowledge/ask': {
+      id: '/knowledge/ask'
+      path: '/ask'
+      fullPath: '/knowledge/ask'
+      preLoaderRoute: typeof KnowledgeAskRouteImport
+      parentRoute: typeof KnowledgeRoute
+    }
+    '/game/$sessionId': {
+      id: '/game/$sessionId'
+      path: '/game/$sessionId'
+      fullPath: '/game/$sessionId'
+      preLoaderRoute: typeof GameSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/courses/$courseId': {
       id: '/courses/$courseId'
       path: '/$courseId'
@@ -364,6 +495,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/study/quiz/$quizId'
       preLoaderRoute: typeof StudyQuizQuizIdRouteImport
       parentRoute: typeof StudyRoute
+    }
+    '/study/quiz/$quizId/multiplayer': {
+      id: '/study/quiz/$quizId/multiplayer'
+      path: '/multiplayer'
+      fullPath: '/study/quiz/$quizId/multiplayer'
+      preLoaderRoute: typeof StudyQuizQuizIdMultiplayerRouteImport
+      parentRoute: typeof StudyQuizQuizIdRoute
     }
   }
 }
@@ -390,6 +528,18 @@ const CoursesRouteChildren: CoursesRouteChildren = {
 const CoursesRouteWithChildren =
   CoursesRoute._addFileChildren(CoursesRouteChildren)
 
+interface KnowledgeRouteChildren {
+  KnowledgeAskRoute: typeof KnowledgeAskRoute
+}
+
+const KnowledgeRouteChildren: KnowledgeRouteChildren = {
+  KnowledgeAskRoute: KnowledgeAskRoute,
+}
+
+const KnowledgeRouteWithChildren = KnowledgeRoute._addFileChildren(
+  KnowledgeRouteChildren,
+)
+
 interface NotesRouteChildren {
   NotesPageIdRoute: typeof NotesPageIdRoute
 }
@@ -412,30 +562,48 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
   SettingsRouteChildren,
 )
 
+interface StudyQuizQuizIdRouteChildren {
+  StudyQuizQuizIdMultiplayerRoute: typeof StudyQuizQuizIdMultiplayerRoute
+}
+
+const StudyQuizQuizIdRouteChildren: StudyQuizQuizIdRouteChildren = {
+  StudyQuizQuizIdMultiplayerRoute: StudyQuizQuizIdMultiplayerRoute,
+}
+
+const StudyQuizQuizIdRouteWithChildren = StudyQuizQuizIdRoute._addFileChildren(
+  StudyQuizQuizIdRouteChildren,
+)
+
 interface StudyRouteChildren {
+  StudyDueRoute: typeof StudyDueRoute
   StudyFlashcardsRoute: typeof StudyFlashcardsRoute
   StudyPlannerRoute: typeof StudyPlannerRoute
-  StudyQuizQuizIdRoute: typeof StudyQuizQuizIdRoute
+  StudyQuizQuizIdRoute: typeof StudyQuizQuizIdRouteWithChildren
 }
 
 const StudyRouteChildren: StudyRouteChildren = {
+  StudyDueRoute: StudyDueRoute,
   StudyFlashcardsRoute: StudyFlashcardsRoute,
   StudyPlannerRoute: StudyPlannerRoute,
-  StudyQuizQuizIdRoute: StudyQuizQuizIdRoute,
+  StudyQuizQuizIdRoute: StudyQuizQuizIdRouteWithChildren,
 }
 
 const StudyRouteWithChildren = StudyRoute._addFileChildren(StudyRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AslRoute: AslRoute,
   CalendarRoute: CalendarRoute,
   CaptureRoute: CaptureRouteWithChildren,
   CoursesRoute: CoursesRouteWithChildren,
+  KnowledgeRoute: KnowledgeRouteWithChildren,
   LoginRoute: LoginRoute,
   NotesRoute: NotesRouteWithChildren,
+  PlayRoute: PlayRoute,
   SettingsRoute: SettingsRouteWithChildren,
   StudyRoute: StudyRouteWithChildren,
   TrashRoute: TrashRoute,
+  GameSessionIdRoute: GameSessionIdRoute,
   LecturesLectureIdRoute: LecturesLectureIdRoute,
 }
 export const routeTree = rootRouteImport
