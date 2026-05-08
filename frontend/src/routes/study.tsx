@@ -130,6 +130,18 @@ function StudyHub({ userId }: { userId: string }) {
             }
             metaActive={counts !== null && counts.quizzes > 0}
           />
+          <LauncherRow
+            to="/play"
+            label="Multiplayer"
+            description="Join a friend's quiz with a 6-character code"
+            meta="Open"
+          />
+          <LauncherRow
+            to="/sessions"
+            label="Sessions"
+            description="Hosted or joined rounds"
+            meta="History"
+          />
         </ul>
       </div>
     </>
