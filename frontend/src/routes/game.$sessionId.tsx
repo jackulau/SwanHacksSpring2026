@@ -255,6 +255,48 @@ function GamePage() {
     };
   }, [isHost, session, qIx, remainingMs, questions.length, advance]);
 
+  // Keyboard shortcuts during running questions:
+  //   1-4 / a-d  -> pick that multiple-choice option
+  //   t / f      -> true / false
+  //   space      -> show last result animation again (passive)
+  // Skip when the user is typing in the short-answer field — the
+  // submit form handles Enter on its own.
+  useEffect(() => {
+    if (!session || session.state !== "running" || !currentQuestion) return;
+    if (submittedFor === qIx) return;
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (currentQuestion.type === "multiple_choice") {
+        const aLow = e.key.toLowerCase();
+        let ix = -1;
+        if (e.key >= "1" && e.key <= "9") ix = Number(e.key) - 1;
+        else if (aLow >= "a" && aLow <= "z") ix = aLow.charCodeAt(0) - 97;
+        if (ix >= 0 && ix < currentQuestion.options.length) {
+          e.preventDefault();
+          void submit(ix);
+        }
+      } else if (currentQuestion.type === "true_false") {
+        if (e.key === "t" || e.key === "T") {
+          e.preventDefault();
+          void submit(true);
+        } else if (e.key === "f" || e.key === "F") {
+          e.preventDefault();
+          void submit(false);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [session, currentQuestion, qIx, submit, submittedFor]);
+
   // Host-only "everyone answered" early-advance trigger.
   useEffect(() => {
     if (!isHost || !session || session.state !== "running") return;
