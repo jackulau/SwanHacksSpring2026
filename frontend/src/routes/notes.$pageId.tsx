@@ -25,6 +25,7 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Volume2,
   X,
 } from "lucide-react";
 import type { Note } from "../lib/types";
@@ -48,6 +49,7 @@ import { EmptyState } from "../components/layout/EmptyState";
 import { InlineAiMenu } from "../components/notes/InlineAiMenu";
 import { ingestNote } from "../lib/knowledge/ingest";
 import { flashcardsFromNote } from "../lib/generate";
+import { getTts } from "../lib/tts";
 
 export const Route = createFileRoute("/notes/$pageId")({
   component: () => (
@@ -690,6 +692,24 @@ function NotePageView() {
               <Eye className="w-3.5 h-3.5" aria-hidden="true" />
             )}
             <span className="hidden sm:inline">{readingMode ? "Edit" : "Read"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const tts = getTts();
+              if (!tts.available) return;
+              if (tts.speaking) {
+                tts.cancel();
+              } else {
+                const md = exportMarkdown();
+                tts.speak(md);
+              }
+            }}
+            aria-label="Read aloud"
+            className="px-2 h-7 rounded inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+            title="Read aloud (browser TTS)"
+          >
+            <Volume2 className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button
             type="button"
