@@ -16,6 +16,7 @@ import { Route as TagsRouteImport } from './routes/tags'
 import { Route as StudyRouteImport } from './routes/study'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
+import { Route as RandomRouteImport } from './routes/random'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LoginRouteImport } from './routes/login'
@@ -79,6 +80,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SessionsRoute = SessionsRouteImport.update({
   id: '/sessions',
   path: '/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RandomRoute = RandomRouteImport.update({
+  id: '/random',
+  path: '/random',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayRoute = PlayRouteImport.update({
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
+  '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
@@ -280,6 +287,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
+  '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
@@ -319,6 +327,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
+  '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
@@ -359,6 +368,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notes'
     | '/play'
+    | '/random'
     | '/sessions'
     | '/settings'
     | '/study'
@@ -397,6 +407,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notes'
     | '/play'
+    | '/random'
     | '/sessions'
     | '/settings'
     | '/study'
@@ -435,6 +446,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notes'
     | '/play'
+    | '/random'
     | '/sessions'
     | '/settings'
     | '/study'
@@ -474,6 +486,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   NotesRoute: typeof NotesRouteWithChildren
   PlayRoute: typeof PlayRoute
+  RandomRoute: typeof RandomRoute
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   StudyRoute: typeof StudyRouteWithChildren
@@ -535,6 +548,13 @@ declare module '@tanstack/react-router' {
       path: '/sessions'
       fullPath: '/sessions'
       preLoaderRoute: typeof SessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/random': {
+      id: '/random'
+      path: '/random'
+      fullPath: '/random'
+      preLoaderRoute: typeof RandomRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/play': {
@@ -865,6 +885,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   NotesRoute: NotesRouteWithChildren,
   PlayRoute: PlayRoute,
+  RandomRoute: RandomRoute,
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRouteWithChildren,
   StudyRoute: StudyRouteWithChildren,
