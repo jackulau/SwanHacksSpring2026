@@ -10,6 +10,7 @@ import {
   Activity,
   Camera,
   CameraOff,
+  FilePlus,
   Hand,
   HelpCircle,
   Loader2,
@@ -38,6 +39,7 @@ import {
   type SegmentResult,
 } from "../lib/asl/pipeline";
 import { HandsOverlay } from "../lib/asl/handsOverlay";
+import { aslSessionToNotePage } from "../lib/asl/toNote";
 import type { AslSegmentRecord } from "../lib/types";
 import { toast } from "../lib/toasts";
 
@@ -403,6 +405,37 @@ function AslPage() {
             >
               <Hand className="w-4 h-4" aria-hidden="true" />
               Overlay
+            </button>
+            <button
+              type="button"
+              disabled={chat.length === 0}
+              title={
+                chat.length === 0
+                  ? "Sign at least one segment first."
+                  : "Save this session as a note page."
+              }
+              onClick={async () => {
+                if (!user || chat.length === 0) return;
+                try {
+                  const out = await aslSessionToNotePage(user.id, {
+                    sessionId: sessionIdRef.current,
+                  });
+                  toast.success(
+                    "Saved as note",
+                    `${out.segmentCount} segment${out.segmentCount === 1 ? "" : "s"} captured.`,
+                  );
+                  navigate({
+                    to: "/notes/$pageId",
+                    params: { pageId: out.pageId },
+                  });
+                } catch {
+                  toast.error("Couldn't save note", "Try again.");
+                }
+              }}
+              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-sm px-3 h-9 rounded-md hover:bg-[var(--color-surface-raised)] disabled:opacity-50"
+            >
+              <FilePlus className="w-4 h-4" aria-hidden="true" />
+              Save as note
             </button>
             <button
               type="button"
