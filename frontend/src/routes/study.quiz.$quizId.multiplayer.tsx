@@ -25,6 +25,7 @@ import {
   listParticipants,
   quizQuestions,
 } from "../lib/multiplayer";
+import { toast } from "../lib/toasts";
 import type {
   Quiz,
   QuizSessionParticipantRecord,
@@ -106,8 +107,13 @@ function MultiplayerLobbyPage() {
         userId: user.id,
         displayName: user.display_name || "Host",
       });
+      toast.success(
+        "Lobby created",
+        `Share code ${s.code} with your friends.`,
+      );
     } catch {
       setError("Could not create session. Try again.");
+      toast.error("Could not create lobby", "Try again in a moment.");
     } finally {
       setCreating(false);
     }
@@ -174,6 +180,7 @@ function MultiplayerLobbyPage() {
     if (!session) return;
     if (participants.length === 0) {
       setError("Wait for at least one player before starting.");
+      toast.warning("No players yet", "Wait for at least one to join.");
       return;
     }
     try {
@@ -184,9 +191,14 @@ function MultiplayerLobbyPage() {
         question_started_at: new Date().toISOString(),
       });
       setSession(next);
+      toast.success(
+        `Starting with ${participants.length} player${participants.length === 1 ? "" : "s"}`,
+        "Good luck.",
+      );
       navigate({ to: "/game/$sessionId", params: { sessionId: next.id } });
     } catch {
       setError("Failed to start the game.");
+      toast.error("Failed to start", "Try again.");
     }
   };
 
