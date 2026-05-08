@@ -149,6 +149,222 @@ routerAdd("POST", "/api/llm/openai", (e) => {
   }
 });
 
+// ───────────── Streaming proxies (SSE) ─────────────
+//
+// These endpoints return text/event-stream and emit one frame per
+// chunk, so the frontend can render a typewriter effect instead of
+// waiting for the full upstream response.
+//
+// PB JS hooks expose a synchronous `$http.send` (no upstream Reader),
+// so true server-side streaming pass-through isn't available. Instead
+// we call the upstream once, then chunk the result locally and write
+// SSE frames out with `e.response.write` + `e.flush` and short sleeps
+// between frames. The user-visible behavior is the same — text shows
+// up incrementally — and the protocol is identical to what real SSE
+// providers emit, so the frontend parser doesn't need a special path.
+//
+// Frame protocol:
+//   data: {"delta":"<chunk>"}
+//   data: {"error":"<msg>"}        (only on upstream failure)
+//   data: [DONE]
+//
+// Each frame is terminated by a blank line ("\n\n") per the SSE spec.
+
+function _sseInit(e) {
+  const h = e.response.header();
+  h.set("Content-Type", "text/event-stream");
+  h.set("Cache-Control", "no-cache, no-transform");
+  h.set("Connection", "keep-alive");
+  h.set("X-Accel-Buffering", "no");
+  e.response.writeHeader(200);
+  e.flush();
+}
+
+function _sseFrame(e, payload) {
+  e.response.write("data: " + JSON.stringify(payload) + "\n\n");
+  e.flush();
+}
+
+function _sseDone(e) {
+  e.response.write("data: [DONE]\n\n");
+  e.flush();
+}
+
+/**
+ * Split `text` into roughly `chunkChars`-sized segments, preferring word
+ * boundaries so partial frames render as readable prefixes during the
+ * typewriter animation. Returns an array of strings whose concat is text.
+ */
+function _chunkText(text, chunkChars) {
+  const out = [];
+  let i = 0;
+  const len = text.length;
+  while (i < len) {
+    let end = Math.min(i + chunkChars, len);
+    if (end < len) {
+      // Snap forward to the next whitespace within +12 chars so words
+      // don't tear in the middle. Falls back to the hard cut when the
+      // run is too long (e.g. URLs, code).
+      const window = Math.min(end + 12, len);
+      let snap = -1;
+      for (let j = end; j < window; j++) {
+        const c = text.charAt(j);
+        if (c === " " || c === "\n" || c === "\t") {
+          snap = j + 1;
+          break;
+        }
+      }
+      if (snap > 0) end = snap;
+    }
+    out.push(text.slice(i, end));
+    i = end;
+  }
+  return out;
+}
+
+routerAdd("POST", "/api/llm/anthropic-stream", (e) => {
+  const info = e.requestInfo();
+  if (!info || !info.auth) {
+    return e.json(401, { error: "auth required" });
+  }
+  const apiKey = $os.getenv("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    return e.json(503, { error: "ANTHROPIC_API_KEY not configured" });
+  }
+  const model = $os.getenv("ANTHROPIC_MODEL") || "claude-opus-4-7";
+
+  const body = info.body || {};
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  if (messages.length === 0) {
+    return e.json(400, { error: "messages[] required" });
+  }
+  const maxTokens = Number(body.max_tokens) > 0 ? Number(body.max_tokens) : 1024;
+  const temperature =
+    typeof body.temperature === "number" ? body.temperature : 0.7;
+
+  let systemText = "";
+  const cleaned = [];
+  for (const m of messages) {
+    if (m.role === "system") {
+      systemText = systemText
+        ? `${systemText}\n\n${m.content}`
+        : String(m.content || "");
+    } else {
+      cleaned.push({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: String(m.content || ""),
+      });
+    }
+  }
+
+  const payload = {
+    model: body.model || model,
+    max_tokens: Math.min(8192, maxTokens),
+    temperature,
+    system: systemText || undefined,
+    messages: cleaned,
+  };
+
+  // Once we start streaming we own the response — no more e.json() after.
+  _sseInit(e);
+  try {
+    const res = $http.send({
+      method: "POST",
+      url: "https://api.anthropic.com/v1/messages",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      timeout: 60,
+    });
+    if (res.statusCode >= 400) {
+      _sseFrame(e, { error: "anthropic upstream " + res.statusCode });
+      _sseDone(e);
+      return;
+    }
+    const data = JSON.parse(res.body);
+    const text = (data.content || [])
+      .filter((c) => c.type === "text")
+      .map((c) => c.text)
+      .join("\n");
+    const chunks = _chunkText(text, 24);
+    for (const c of chunks) {
+      _sseFrame(e, { delta: c });
+      sleep(40);
+    }
+    _sseDone(e);
+  } catch (err) {
+    _sseFrame(e, { error: String(err) });
+    _sseDone(e);
+  }
+});
+
+routerAdd("POST", "/api/llm/openai-stream", (e) => {
+  const info = e.requestInfo();
+  if (!info || !info.auth) {
+    return e.json(401, { error: "auth required" });
+  }
+  const apiKey = $os.getenv("OPENAI_API_KEY");
+  if (!apiKey) {
+    return e.json(503, { error: "OPENAI_API_KEY not configured" });
+  }
+  const model = $os.getenv("OPENAI_MODEL") || "gpt-5";
+
+  const body = info.body || {};
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  if (messages.length === 0) {
+    return e.json(400, { error: "messages[] required" });
+  }
+  const maxTokens = Number(body.max_tokens) > 0 ? Number(body.max_tokens) : 1024;
+  const temperature =
+    typeof body.temperature === "number" ? body.temperature : 0.7;
+
+  const payload = {
+    model: body.model || model,
+    max_tokens: Math.min(8192, maxTokens),
+    temperature,
+    messages: messages.map((m) => ({
+      role: m.role,
+      content: String(m.content || ""),
+    })),
+  };
+  if (body.response_format === "json") {
+    payload.response_format = { type: "json_object" };
+  }
+
+  _sseInit(e);
+  try {
+    const res = $http.send({
+      method: "POST",
+      url: "https://api.openai.com/v1/chat/completions",
+      headers: {
+        Authorization: "Bearer " + apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      timeout: 60,
+    });
+    if (res.statusCode >= 400) {
+      _sseFrame(e, { error: "openai upstream " + res.statusCode });
+      _sseDone(e);
+      return;
+    }
+    const data = JSON.parse(res.body);
+    const text = data?.choices?.[0]?.message?.content ?? "";
+    const chunks = _chunkText(text, 24);
+    for (const c of chunks) {
+      _sseFrame(e, { delta: c });
+      sleep(40);
+    }
+    _sseDone(e);
+  } catch (err) {
+    _sseFrame(e, { error: String(err) });
+    _sseDone(e);
+  }
+});
+
 // ───────────── Anthropic vision proxy for ASL frames ─────────────
 routerAdd("POST", "/api/asl/recognize-anthropic", (e) => {
   const info = e.requestInfo();
