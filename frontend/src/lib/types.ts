@@ -284,6 +284,7 @@ export interface Lecture extends RecordModel {
   status: LectureStatus;
   error_message: string;
   recorded_at: string;
+  tags: string[];
 }
 
 export interface Transcript extends RecordModel {
@@ -338,6 +339,7 @@ export interface Quiz extends RecordModel {
   questions: QuizQuestion[];
   total_points: number;
   source: QuizSource;
+  tags: string[];
 }
 
 export interface QuizAttempt extends RecordModel {
