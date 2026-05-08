@@ -82,6 +82,19 @@ function StudyHub({ userId }: { userId: string }) {
         {/* Typographic launcher rows — Things 3 / Linear style */}
         <ul className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
           <LauncherRow
+            to="/study/due"
+            label="Review due today"
+            description="Every deck, one queue"
+            meta={
+              counts === null
+                ? '…'
+                : counts.due === 0
+                  ? 'All caught up'
+                  : `${counts.due} due`
+            }
+            metaActive={counts !== null && counts.due > 0}
+          />
+          <LauncherRow
             to="/study/flashcards"
             label="Flashcards"
             description="Spaced repetition review"

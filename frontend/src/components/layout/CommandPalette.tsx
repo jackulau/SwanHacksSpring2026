@@ -113,6 +113,7 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
       { id: "act-new-note", label: "New note page", keywords: "page create blank", icon: Plus, group: "Action", run: () => navigate({ to: "/notes" }) },
       { id: "go-calendar", label: "Go to Calendar", icon: Calendar, group: "Go", run: () => navigate({ to: "/calendar" }) },
       { id: "go-study", label: "Go to Study", keywords: "flashcards quiz", icon: Glasses, group: "Go", run: () => navigate({ to: "/study" }) },
+      { id: "go-due", label: "Review due today", keywords: "due cards spaced repetition every deck unified queue", icon: Glasses, group: "Action", run: () => navigate({ to: "/study/due" }) },
       { id: "go-flashcards", label: "Review flashcards", keywords: "due cards spaced repetition", icon: Glasses, group: "Action", run: () => navigate({ to: "/study/flashcards" }) },
       { id: "go-planner", label: "To-do / planner", keywords: "tasks assignments", icon: ListTodo, group: "Go", run: () => navigate({ to: "/study/planner" }) },
       { id: "go-knowledge", label: "Search knowledge", keywords: "find chunks library", icon: Brain, group: "Go", run: () => navigate({ to: "/knowledge" }) },
