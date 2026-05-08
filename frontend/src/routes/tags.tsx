@@ -44,7 +44,13 @@ function TagsIndexPage() {
     <AppShell>
       <PageHeader
         title="Tags"
-        subtitle="Every tag across notes, lectures, decks, and quizzes."
+        subtitle={
+          tags === null
+            ? "Loading…"
+            : tags.length === 0
+              ? "Every tag across notes, lectures, decks, and quizzes."
+              : `${tags.length} tag${tags.length === 1 ? "" : "s"} in use.`
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto space-y-4">
         {tags && tags.length > 0 && (

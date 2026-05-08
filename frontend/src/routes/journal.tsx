@@ -125,7 +125,11 @@ function JournalPage() {
     <AppShell>
       <PageHeader
         title="Journal"
-        subtitle="One paragraph a day. Tags itself, lands as a note page."
+        subtitle={
+          recent.length === 0
+            ? "One paragraph a day. Tags itself, lands as a note page."
+            : `${recent.length} prior entr${recent.length === 1 ? "y" : "ies"}.`
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-2xl mx-auto space-y-5">
         <div className="text-xs text-[var(--color-text-muted)] inline-flex items-center gap-1.5">
