@@ -7,6 +7,7 @@ import {
   ClipboardList,
   NotebookPen,
   Loader2,
+  Search,
   Sparkles,
 } from "lucide-react";
 import { pb } from "../lib/pocketbase";
@@ -183,6 +184,15 @@ function CourseDetailPage() {
         }
         actions={
           <div className="inline-flex items-center gap-2">
+            <Link
+              to="/courses/$courseId/search"
+              params={{ courseId: course.id }}
+              title="Search across this course's notes, lectures, flashcards, and quizzes."
+              className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] transition-colors"
+            >
+              <Search className="w-4 h-4" aria-hidden="true" />
+              Search course
+            </Link>
             <button
               type="button"
               onClick={handleGeneratePlan}
