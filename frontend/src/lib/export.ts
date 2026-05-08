@@ -267,3 +267,60 @@ export function downloadText(filename: string, content: string): void {
     new Blob([content], { type: "text/markdown;charset=utf-8" }),
   );
 }
+
+export interface CourseJsonExport {
+  format: "converge.course.v1";
+  exported_at: string;
+  course: Course;
+  lectures: Lecture[];
+  transcripts: Transcript[];
+  notes: NotePage[];
+  flashcards: Flashcard[];
+  quizzes: Quiz[];
+}
+
+/**
+ * Full-fidelity per-course JSON. Mirrors exportCourseMarkdown but
+ * preserves block structure (instead of flattening to markdown), so
+ * the export can be re-imported elsewhere or piped into another
+ * tooling layer.
+ */
+export async function exportCourseJson(
+  userId: string,
+  courseId: string,
+): Promise<CourseJsonExport> {
+  const course = await pb.collection("courses").getOne<Course>(courseId);
+  const lectures = await pb.collection("lectures").getFullList<Lecture>({
+    filter: `user = "${userId}" && course = "${courseId}"`,
+    sort: "recorded_at",
+  });
+  const transcripts: Transcript[] = [];
+  for (const l of lectures) {
+    const t = await pb
+      .collection("transcripts")
+      .getFirstListItem<Transcript>(`lecture = "${l.id}"`)
+      .catch(() => null);
+    if (t) transcripts.push(t);
+  }
+  const notes = await pb.collection("note_pages").getFullList<NotePage>({
+    filter: `user = "${userId}" && course = "${courseId}" && archived = false`,
+  });
+  const flashcards = await pb
+    .collection("flashcards")
+    .getFullList<Flashcard>({
+      filter: `user = "${userId}" && lecture.course = "${courseId}"`,
+    });
+  const quizzes = await pb.collection("quizzes").getFullList<Quiz>({
+    filter: `user = "${userId}" && lecture.course = "${courseId}"`,
+  });
+  return {
+    format: "converge.course.v1",
+    exported_at: new Date().toISOString(),
+    course,
+    lectures,
+    transcripts,
+    notes,
+    flashcards,
+    quizzes,
+  };
+}

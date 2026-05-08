@@ -16,6 +16,7 @@ import { pb } from "../lib/pocketbase";
 import {
   downloadJson,
   downloadText,
+  exportCourseJson,
   exportCourseMarkdown,
   exportDeckJson,
 } from "../lib/export";
@@ -113,6 +114,27 @@ function ExportPage() {
     }
   };
 
+  const exportCourseFull = async (course: Course) => {
+    if (!user) return;
+    setBusy(`course-json:${course.id}`);
+    setFeedback(null);
+    try {
+      const out = await exportCourseJson(user.id, course.id);
+      const safe = (course.code || course.name)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-");
+      downloadJson(`${safe}.course.json`, out);
+      const msg = `Exported ${course.code || course.name} as a full JSON.`;
+      setFeedback(msg);
+      toast.success("Course exported", msg);
+    } catch {
+      setFeedback("Export failed.");
+      toast.error("Export failed", course.name);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   if (authLoading || !user) return null;
 
   return (
@@ -198,6 +220,7 @@ function ExportPage() {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => exportCourse(c)}
+                    title="Single concatenated markdown packet."
                     className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs px-2.5 h-7 rounded hover:bg-[var(--color-surface-raised)] disabled:opacity-50"
                   >
                     {busy === `course:${c.id}` ? (
@@ -205,7 +228,21 @@ function ExportPage() {
                     ) : (
                       <FileArchive className="w-3 h-3" aria-hidden="true" />
                     )}
-                    Bundle
+                    Bundle .md
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => exportCourseFull(c)}
+                    title="Full-fidelity JSON (lectures, transcripts, notes, flashcards, quizzes)."
+                    className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs px-2.5 h-7 rounded hover:bg-[var(--color-surface-raised)] disabled:opacity-50"
+                  >
+                    {busy === `course-json:${c.id}` ? (
+                      <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <FileText className="w-3 h-3" aria-hidden="true" />
+                    )}
+                    .json
                   </button>
                 </li>
               ))}
