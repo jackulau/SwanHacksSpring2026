@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Plus, Trash2, ListTodo } from "lucide-react";
+import { Check, Plus, Trash2, ListTodo, ArrowUpRight } from "lucide-react";
 import { PomodoroTimer } from "../components/study/PomodoroTimer";
 import { StudyStreak } from "../components/study/StudyStreak";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -230,17 +230,27 @@ function StudyPlannerPage() {
                         aria-label="Edit task"
                       />
                     ) : (
-                      <button
-                        onClick={() => startEdit(task)}
-                        title={task.title}
-                        className={`flex-1 text-left text-base ${
-                          done
-                            ? "text-[var(--color-text-subtle)] line-through"
-                            : "text-[var(--color-text)]"
-                        }`}
-                      >
-                        {task.title}
-                      </button>
+                      <div className="flex-1 flex items-center gap-2 min-w-0">
+                        <button
+                          onClick={() => startEdit(task)}
+                          title={task.title}
+                          className={`flex-1 text-left text-base truncate ${
+                            done
+                              ? "text-[var(--color-text-subtle)] line-through"
+                              : "text-[var(--color-text)]"
+                          }`}
+                        >
+                          {task.title}
+                        </button>
+                        <Link
+                          to="/assignments/$assignmentId"
+                          params={{ assignmentId: task.id }}
+                          aria-label={`Open assignment ${task.title}`}
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-opacity"
+                        >
+                          <ArrowUpRight className="w-4 h-4" aria-hidden="true" />
+                        </Link>
+                      </div>
                     )}
 
                     <button
