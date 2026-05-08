@@ -136,6 +136,14 @@ function DecksPage() {
       <PageHeader
         title="Decks"
         subtitle="Spaced-repetition decks across your library."
+        actions={
+          <Link
+            to="/decks/import"
+            className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs px-2.5 h-8 rounded hover:bg-[var(--color-surface-raised)]"
+          >
+            Import
+          </Link>
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
         {cards === null ? (
