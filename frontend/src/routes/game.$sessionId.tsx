@@ -395,8 +395,17 @@ function GamePage() {
             Q {qIx + 1} / {questions.length}
           </span>
           <span className="opacity-50">·</span>
-          <span className="inline-flex items-center gap-1">
-            <Timer className="w-3.5 h-3.5" aria-hidden="true" />
+          <span
+            className={`inline-flex items-center gap-1 tabular-nums ${
+              remainingSec <= 5 && session.state === "running"
+                ? "text-[var(--color-warning)] font-semibold"
+                : ""
+            }`}
+          >
+            <Timer
+              className={`w-3.5 h-3.5 ${remainingSec <= 5 && session.state === "running" ? "animate-pulse" : ""}`}
+              aria-hidden="true"
+            />
             {remainingSec}s
           </span>
           <span className="opacity-50">·</span>
