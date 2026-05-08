@@ -36,6 +36,7 @@ import { Route as ExportRouteImport } from './routes/export'
 import { Route as DigestRouteImport } from './routes/digest'
 import { Route as DecksRouteImport } from './routes/decks'
 import { Route as CoursesRouteImport } from './routes/courses'
+import { Route as ConceptsRouteImport } from './routes/concepts'
 import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BackupRouteImport } from './routes/backup'
@@ -195,6 +196,11 @@ const CoursesRoute = CoursesRouteImport.update({
   path: '/courses',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConceptsRoute = ConceptsRouteImport.update({
+  id: '/concepts',
+  path: '/concepts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CaptureRoute = CaptureRouteImport.update({
   id: '/capture',
   path: '/capture',
@@ -319,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
+  '/concepts': typeof ConceptsRoute
   '/courses': typeof CoursesRouteWithChildren
   '/decks': typeof DecksRouteWithChildren
   '/digest': typeof DigestRoute
@@ -371,6 +378,7 @@ export interface FileRoutesByTo {
   '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
+  '/concepts': typeof ConceptsRoute
   '/courses': typeof CoursesRouteWithChildren
   '/decks': typeof DecksRouteWithChildren
   '/digest': typeof DigestRoute
@@ -424,6 +432,7 @@ export interface FileRoutesById {
   '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
+  '/concepts': typeof ConceptsRoute
   '/courses': typeof CoursesRouteWithChildren
   '/decks': typeof DecksRouteWithChildren
   '/digest': typeof DigestRoute
@@ -478,6 +487,7 @@ export interface FileRouteTypes {
     | '/backup'
     | '/calendar'
     | '/capture'
+    | '/concepts'
     | '/courses'
     | '/decks'
     | '/digest'
@@ -530,6 +540,7 @@ export interface FileRouteTypes {
     | '/backup'
     | '/calendar'
     | '/capture'
+    | '/concepts'
     | '/courses'
     | '/decks'
     | '/digest'
@@ -582,6 +593,7 @@ export interface FileRouteTypes {
     | '/backup'
     | '/calendar'
     | '/capture'
+    | '/concepts'
     | '/courses'
     | '/decks'
     | '/digest'
@@ -635,6 +647,7 @@ export interface RootRouteChildren {
   BackupRoute: typeof BackupRoute
   CalendarRoute: typeof CalendarRoute
   CaptureRoute: typeof CaptureRouteWithChildren
+  ConceptsRoute: typeof ConceptsRoute
   CoursesRoute: typeof CoursesRouteWithChildren
   DecksRoute: typeof DecksRouteWithChildren
   DigestRoute: typeof DigestRoute
@@ -856,6 +869,13 @@ declare module '@tanstack/react-router' {
       path: '/courses'
       fullPath: '/courses'
       preLoaderRoute: typeof CoursesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/concepts': {
+      id: '/concepts'
+      path: '/concepts'
+      fullPath: '/concepts'
+      preLoaderRoute: typeof ConceptsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/capture': {
@@ -1147,6 +1167,7 @@ const rootRouteChildren: RootRouteChildren = {
   BackupRoute: BackupRoute,
   CalendarRoute: CalendarRoute,
   CaptureRoute: CaptureRouteWithChildren,
+  ConceptsRoute: ConceptsRoute,
   CoursesRoute: CoursesRouteWithChildren,
   DecksRoute: DecksRouteWithChildren,
   DigestRoute: DigestRoute,
