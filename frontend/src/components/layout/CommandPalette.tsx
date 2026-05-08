@@ -154,6 +154,7 @@ export function CommandPalette({
       { id: "go-onboarding", label: "Onboarding tour", keywords: "tour welcome introduction help getting-started", icon: Sparkles, group: "Go", run: () => navigate({ to: "/onboarding" }) },
       { id: "go-focus", label: "Focus mode", keywords: "pomodoro fullscreen distraction-free timer", icon: ListTodo, group: "Action", run: () => navigate({ to: "/focus" }) },
       { id: "go-decks-import", label: "Import deck", keywords: "import csv anki json deck", icon: Upload, group: "Action", run: () => navigate({ to: "/decks/import" }) },
+      { id: "go-journal", label: "Journal", keywords: "diary daily entry today reflect", icon: FileText, group: "Action", run: () => navigate({ to: "/journal" }) },
       { id: "go-templates", label: "Note templates", keywords: "scaffold skeleton starter", icon: FileText, group: "Go", run: () => navigate({ to: "/templates" }) },
       { id: "go-today", label: "Today", keywords: "dashboard daily focus today", icon: Sparkles, group: "Go", run: () => navigate({ to: "/today" }) },
       { id: "go-decks", label: "Decks", keywords: "flashcard library deck stats", icon: Glasses, group: "Go", run: () => navigate({ to: "/decks" }) },
