@@ -234,15 +234,26 @@ function OnboardingPage() {
             All done. Press Cmd/Ctrl + K to roam.
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setCompleted(new Set(STEPS.map((s) => s.id)));
-            }}
-            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] underline"
-          >
-            Skip tour — I know my way around
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setCompleted(new Set(STEPS.map((s) => s.id)));
+              }}
+              className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] underline"
+            >
+              Skip tour — I know my way around
+            </button>
+            {done > 0 && (
+              <button
+                type="button"
+                onClick={() => setCompleted(new Set())}
+                className="text-xs text-[var(--color-text-subtle)] hover:text-[var(--color-text)] underline"
+              >
+                Reset progress
+              </button>
+            )}
+          </div>
         )}
       </div>
     </AppShell>
