@@ -17,6 +17,7 @@ import { TranscriptViewer } from "../components/workspace/TranscriptViewer";
 import { NoteEditor } from "../components/workspace/NoteEditor";
 import { useAudioPlayer } from "../lib/audioPlayer";
 import { pb } from "../lib/pocketbase";
+import { quizFromLecture } from "../lib/generate";
 import type {
   Lecture,
   Transcript,
@@ -53,6 +54,13 @@ function LectureDetailPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  // Quiz-only generate flow state. Distinct from the broader "Generate
+  // study set" flow above, which also touches notes/flashcards via the
+  // legacy ai-pipeline. The Generate-quiz button is the spec'd entry
+  // point for the quiz-from-lecture pipeline and navigates to the new
+  // quiz on success.
+  const [quizGenerating, setQuizGenerating] = useState(false);
+  const [quizGenError, setQuizGenError] = useState<string | null>(null);
 
   // Auth gate
   useEffect(() => {
@@ -228,6 +236,25 @@ function LectureDetailPage() {
     }
   };
 
+  const handleGenerateQuiz = async () => {
+    if (!lecture || quizGenerating) return;
+    setQuizGenerating(true);
+    setQuizGenError(null);
+    try {
+      const created = await quizFromLecture(lecture.id);
+      setQuiz(created);
+      navigate({ to: "/study/quiz/$quizId", params: { quizId: created.id } });
+    } catch (err) {
+      setQuizGenError(
+        err instanceof Error
+          ? err.message
+          : "Couldn't generate a quiz. Make sure this lecture has a transcript.",
+      );
+    } finally {
+      setQuizGenerating(false);
+    }
+  };
+
   // 1/2/3/4 jumps between tabs when not typing — but yields to the inner
   // surface when the user is already on Flashcards or Quiz, where 1-4 are
   // bound to rating/answer choices. Without this guard, pressing "1" to
@@ -366,22 +393,34 @@ function LectureDetailPage() {
   ).length;
 
   const primaryAction = (
-    <button
-      type="button"
-      onClick={handleGenerateStudySet}
-      disabled={generating || lecture.status === "generating"}
-      title={
-        lecture.status === "generating"
-          ? "A generation run is already in progress for this lecture."
-          : "Re-run the AI pipeline: cleans the transcript and regenerates notes, flashcards, and a quiz."
-      }
-      className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
-    >
-      <Sparkles className="w-4 h-4" aria-hidden="true" />
-      {generating || lecture.status === "generating"
-        ? "Generating…"
-        : "Generate study set"}
-    </button>
+    <div className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        onClick={handleGenerateQuiz}
+        disabled={quizGenerating}
+        title="Build a fresh multiple-choice quiz from this lecture's transcript."
+        className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+      >
+        <FileQuestion className="w-4 h-4" aria-hidden="true" />
+        {quizGenerating ? "Generating…" : "Generate quiz"}
+      </button>
+      <button
+        type="button"
+        onClick={handleGenerateStudySet}
+        disabled={generating || lecture.status === "generating"}
+        title={
+          lecture.status === "generating"
+            ? "A generation run is already in progress for this lecture."
+            : "Re-run the AI pipeline: cleans the transcript and regenerates notes, flashcards, and a quiz."
+        }
+        className="inline-flex items-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-2 focus:outline-[var(--color-primary)] focus:outline-offset-2 transition-colors"
+      >
+        <Sparkles className="w-4 h-4" aria-hidden="true" />
+        {generating || lecture.status === "generating"
+          ? "Generating…"
+          : "Generate study set"}
+      </button>
+    </div>
   );
 
   return (
@@ -400,6 +439,14 @@ function LectureDetailPage() {
             className="max-w-3xl mx-auto mt-4 px-3 py-2 text-xs text-[var(--color-record)] border-l-2 border-[var(--color-record)] bg-[var(--color-record)]/10"
           >
             {generateError}
+          </div>
+        )}
+        {quizGenError && (
+          <div
+            role="alert"
+            className="max-w-3xl mx-auto mt-4 px-3 py-2 text-xs text-[var(--color-record)] border-l-2 border-[var(--color-record)] bg-[var(--color-record)]/10"
+          >
+            {quizGenError}
           </div>
         )}
         {/* Course breadcrumb — single-click back to course view. */}
