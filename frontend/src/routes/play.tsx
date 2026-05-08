@@ -92,7 +92,14 @@ function PlayJoinPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Join a game" subtitle="Enter the 6-character code" />
+      <PageHeader
+        title="Join a game"
+        subtitle={
+          recentCodes.length > 0
+            ? `Enter a 6-character code · ${recentCodes.length} recent.`
+            : "Enter the 6-character code your host shares."
+        }
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-12 max-w-md mx-auto">
         <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <div className="mb-5 inline-flex items-center gap-2 text-[var(--color-text-muted)] text-sm">
