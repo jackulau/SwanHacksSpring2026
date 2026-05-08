@@ -94,6 +94,12 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
         >
           Knowledge
         </Link>
+        <Link
+          to="/onboarding"
+          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+        >
+          Tour
+        </Link>
       </nav>
     </section>
   );
