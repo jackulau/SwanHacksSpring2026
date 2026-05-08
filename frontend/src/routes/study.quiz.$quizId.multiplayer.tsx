@@ -1,6 +1,17 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Crown, Loader2, Play, Users, Wifi } from "lucide-react";
+import {
+  Copy,
+  Crown,
+  Loader2,
+  Play,
+  Settings,
+  Users,
+  Wifi,
+  Clock,
+  History,
+  X,
+} from "lucide-react";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
 import { EmptyState } from "../components/layout/EmptyState";
@@ -9,6 +20,7 @@ import { pb } from "../lib/pocketbase";
 import {
   advanceSession,
   createSession,
+  DEFAULT_QUESTION_SECONDS,
   joinSession,
   listParticipants,
   quizQuestions,
@@ -17,6 +29,7 @@ import type {
   Quiz,
   QuizSessionParticipantRecord,
   QuizSessionRecord,
+  QuizSessionSettings,
 } from "../lib/types";
 
 export const Route = createFileRoute("/study/quiz/$quizId/multiplayer")({
@@ -36,6 +49,13 @@ function MultiplayerLobbyPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [settings, setSettings] = useState<Required<QuizSessionSettings>>({
+    question_seconds: DEFAULT_QUESTION_SECONDS,
+    speed_bonus: true,
+    shuffle: false,
+  });
+  const [pastSessions, setPastSessions] = useState<QuizSessionRecord[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -74,7 +94,11 @@ function MultiplayerLobbyPage() {
     setCreating(true);
     setError(null);
     try {
-      const s = await createSession({ hostUserId: user.id, quizId });
+      const s = await createSession({
+        hostUserId: user.id,
+        quizId,
+        settings,
+      });
       setSession(s);
       // Auto-join host so the host shows up on the leaderboard too.
       await joinSession({
@@ -88,6 +112,26 @@ function MultiplayerLobbyPage() {
       setCreating(false);
     }
   };
+
+  // Load this host's recently-played sessions for the past-sessions
+  // panel below the main lobby card.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    pb.collection("quiz_session")
+      .getList<QuizSessionRecord>(1, 8, {
+        filter: `host_user = "${user.id}" && quiz = "${quizId}"`,
+        sort: "-created",
+        requestKey: `qs-recent-${quizId}`,
+      })
+      .then((page) => {
+        if (!cancelled) setPastSessions(page.items);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, quizId, session]);
 
   // Live participant list — refresh on PB realtime events for the
   // session so joins appear without a page refresh.
@@ -175,30 +219,53 @@ function MultiplayerLobbyPage() {
         )}
 
         {!session ? (
-          <EmptyState
-            icon={Users}
-            title="Start a multiplayer round"
-            description={
-              quiz
-                ? `Generate a 6-character join code your friends can enter at /play to compete on this quiz (${questionCount} questions).`
-                : "Loading quiz details…"
-            }
-            action={
-              <button
-                type="button"
-                disabled={!quiz || creating}
-                onClick={startNewSession}
-                className="inline-flex items-center gap-1.5 bg-[var(--color-primary)] text-white text-sm font-semibold px-3 h-9 rounded-md disabled:opacity-50"
-              >
-                {creating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Play className="w-4 h-4" aria-hidden="true" />
-                )}
-                {creating ? "Creating…" : "Create lobby"}
-              </button>
-            }
-          />
+          <>
+            <EmptyState
+              icon={Users}
+              title="Start a multiplayer round"
+              description={
+                quiz
+                  ? `Generate a 6-character join code your friends can enter at /play to compete on this quiz (${questionCount} questions).`
+                  : "Loading quiz details…"
+              }
+              action={
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsOpen((v) => !v)}
+                    aria-pressed={settingsOpen}
+                    className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-sm px-3 h-9 rounded-md hover:bg-[var(--color-surface-raised)]"
+                  >
+                    <Settings className="w-4 h-4" aria-hidden="true" />
+                    Settings
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!quiz || creating}
+                    onClick={startNewSession}
+                    className="inline-flex items-center gap-1.5 bg-[var(--color-primary)] text-white text-sm font-semibold px-3 h-9 rounded-md disabled:opacity-50"
+                  >
+                    {creating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Play className="w-4 h-4" aria-hidden="true" />
+                    )}
+                    {creating ? "Creating…" : "Create lobby"}
+                  </button>
+                </div>
+              }
+            />
+            {settingsOpen && (
+              <SettingsCard
+                value={settings}
+                onChange={setSettings}
+                onClose={() => setSettingsOpen(false)}
+              />
+            )}
+            {pastSessions.length > 0 && (
+              <PastSessionsPanel sessions={pastSessions} />
+            )}
+          </>
         ) : (
           <>
             <section className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6">
@@ -283,5 +350,115 @@ function MultiplayerLobbyPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+function SettingsCard({
+  value,
+  onChange,
+  onClose,
+}: {
+  value: Required<QuizSessionSettings>;
+  onChange: (v: Required<QuizSessionSettings>) => void;
+  onClose: () => void;
+}) {
+  return (
+    <section className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-4 space-y-3 max-w-md mx-auto">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-[var(--color-text)] inline-flex items-center gap-1.5">
+          <Settings className="w-3.5 h-3.5" aria-hidden="true" />
+          Round settings
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close settings"
+          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+        >
+          <X className="w-4 h-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      <label className="block">
+        <span className="flex items-center justify-between text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
+          <span className="inline-flex items-center gap-1">
+            <Clock className="w-3 h-3" aria-hidden="true" />
+            Seconds per question
+          </span>
+          <span className="font-mono tabular-nums text-[var(--color-text)]">
+            {value.question_seconds}s
+          </span>
+        </span>
+        <input
+          type="range"
+          min={5}
+          max={120}
+          step={5}
+          value={value.question_seconds}
+          onChange={(e) =>
+            onChange({ ...value, question_seconds: Number(e.target.value) })
+          }
+          className="w-full"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={value.speed_bonus}
+          onChange={(e) => onChange({ ...value, speed_bonus: e.target.checked })}
+        />
+        <span className="text-[var(--color-text)]">Speed bonus</span>
+        <span className="text-xs text-[var(--color-text-muted)]">
+          Faster correct answers earn more points.
+        </span>
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={value.shuffle}
+          onChange={(e) => onChange({ ...value, shuffle: e.target.checked })}
+        />
+        <span className="text-[var(--color-text)]">Shuffle questions</span>
+        <span className="text-xs text-[var(--color-text-muted)]">
+          Random order for each game.
+        </span>
+      </label>
+    </section>
+  );
+}
+
+function PastSessionsPanel({ sessions }: { sessions: QuizSessionRecord[] }) {
+  return (
+    <section className="max-w-md mx-auto">
+      <h2 className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-2 inline-flex items-center gap-1.5">
+        <History className="w-3.5 h-3.5" aria-hidden="true" />
+        Recent rounds
+      </h2>
+      <ul className="space-y-1.5">
+        {sessions.map((s) => (
+          <li key={s.id}>
+            <Link
+              to="/game/$sessionId"
+              params={{ sessionId: s.id }}
+              className="flex items-center gap-3 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs hover:border-[var(--color-primary)]"
+            >
+              <span className="font-mono text-[var(--color-text)] tracking-widest">
+                {s.code}
+              </span>
+              <span className="text-[var(--color-text-muted)] flex-1 truncate">
+                {s.state}
+                {s.started_at &&
+                  ` · ${new Date(s.started_at).toLocaleTimeString()}`}
+              </span>
+              <span className="text-[var(--color-text-subtle)]">
+                {new Date(s.created).toLocaleDateString()}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
