@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrashRouteImport } from './routes/trash'
+import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TagsRouteImport } from './routes/tags'
 import { Route as StudyRouteImport } from './routes/study'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -46,6 +47,11 @@ import { Route as StudyQuizQuizIdMultiplayerRouteImport } from './routes/study.q
 const TrashRoute = TrashRouteImport.update({
   id: '/trash',
   path: '/trash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TagsRoute = TagsRouteImport.update({
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
+  '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
+  '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
+  '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
@@ -335,6 +344,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/study'
     | '/tags'
+    | '/templates'
     | '/trash'
     | '/assignments/$assignmentId'
     | '/capture/upload'
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/study'
     | '/tags'
+    | '/templates'
     | '/trash'
     | '/assignments/$assignmentId'
     | '/capture/upload'
@@ -405,6 +416,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/study'
     | '/tags'
+    | '/templates'
     | '/trash'
     | '/assignments/$assignmentId'
     | '/capture/upload'
@@ -441,6 +453,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRouteWithChildren
   StudyRoute: typeof StudyRouteWithChildren
   TagsRoute: typeof TagsRouteWithChildren
+  TemplatesRoute: typeof TemplatesRoute
   TrashRoute: typeof TrashRoute
   AssignmentsAssignmentIdRoute: typeof AssignmentsAssignmentIdRoute
   GameSessionIdRoute: typeof GameSessionIdRoute
@@ -454,6 +467,13 @@ declare module '@tanstack/react-router' {
       path: '/trash'
       fullPath: '/trash'
       preLoaderRoute: typeof TrashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tags': {
@@ -808,6 +828,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRouteWithChildren,
   StudyRoute: StudyRouteWithChildren,
   TagsRoute: TagsRouteWithChildren,
+  TemplatesRoute: TemplatesRoute,
   TrashRoute: TrashRoute,
   AssignmentsAssignmentIdRoute: AssignmentsAssignmentIdRoute,
   GameSessionIdRoute: GameSessionIdRoute,
