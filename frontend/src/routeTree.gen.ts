@@ -21,6 +21,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as SandboxRouteImport } from './routes/sandbox'
 import { Route as RandomRouteImport } from './routes/random'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotesRouteImport } from './routes/notes'
@@ -119,6 +120,11 @@ const SandboxRoute = SandboxRouteImport.update({
 const RandomRoute = RandomRouteImport.update({
   id: '/random',
   path: '/random',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayRoute = PlayRouteImport.update({
@@ -341,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/notes': typeof NotesRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
+  '/privacy': typeof PrivacyRoute
   '/random': typeof RandomRoute
   '/sandbox': typeof SandboxRoute
   '/sessions': typeof SessionsRoute
@@ -394,6 +401,7 @@ export interface FileRoutesByTo {
   '/notes': typeof NotesRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
+  '/privacy': typeof PrivacyRoute
   '/random': typeof RandomRoute
   '/sandbox': typeof SandboxRoute
   '/sessions': typeof SessionsRoute
@@ -448,6 +456,7 @@ export interface FileRoutesById {
   '/notes': typeof NotesRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
+  '/privacy': typeof PrivacyRoute
   '/random': typeof RandomRoute
   '/sandbox': typeof SandboxRoute
   '/sessions': typeof SessionsRoute
@@ -503,6 +512,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/onboarding'
     | '/play'
+    | '/privacy'
     | '/random'
     | '/sandbox'
     | '/sessions'
@@ -556,6 +566,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/onboarding'
     | '/play'
+    | '/privacy'
     | '/random'
     | '/sandbox'
     | '/sessions'
@@ -609,6 +620,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/onboarding'
     | '/play'
+    | '/privacy'
     | '/random'
     | '/sandbox'
     | '/sessions'
@@ -663,6 +675,7 @@ export interface RootRouteChildren {
   NotesRoute: typeof NotesRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   PlayRoute: typeof PlayRoute
+  PrivacyRoute: typeof PrivacyRoute
   RandomRoute: typeof RandomRoute
   SandboxRoute: typeof SandboxRoute
   SessionsRoute: typeof SessionsRoute
@@ -764,6 +777,13 @@ declare module '@tanstack/react-router' {
       path: '/random'
       fullPath: '/random'
       preLoaderRoute: typeof RandomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/play': {
@@ -1183,6 +1203,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotesRoute: NotesRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   PlayRoute: PlayRoute,
+  PrivacyRoute: PrivacyRoute,
   RandomRoute: RandomRoute,
   SandboxRoute: SandboxRoute,
   SessionsRoute: SessionsRoute,
