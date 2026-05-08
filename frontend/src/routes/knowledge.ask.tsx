@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send, Sparkles, Trash2 } from "lucide-react";
+import { Check, Copy, Loader2, Send, Sparkles, Trash2 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { retrieve, type Retrieved } from "../lib/knowledge/retrieve";
 import { sourceHref } from "./knowledge";
@@ -174,15 +174,25 @@ function AskPage() {
 }
 
 function TurnRow({ turn }: { turn: Turn }) {
+  const [copied, setCopied] = useState(false);
+  const copyAnswer = async () => {
+    try {
+      await navigator.clipboard.writeText(turn.answer);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      // ignore
+    }
+  };
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 group">
       <div className="rounded bg-[var(--color-surface-raised)]/60 px-3 py-2 text-sm text-[var(--color-text)]">
         <span className="text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] mr-2">
           You
         </span>
         {turn.question}
       </div>
-      <div className="rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)]">
+      <div className="rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] relative">
         <span className="text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] mr-2">
           Converge
         </span>
@@ -193,6 +203,20 @@ function TurnRow({ turn }: { turn: Turn }) {
           </span>
         ) : (
           <span className="whitespace-pre-wrap leading-relaxed">{turn.answer}</span>
+        )}
+        {!turn.pending && turn.answer && (
+          <button
+            type="button"
+            onClick={copyAnswer}
+            aria-label="Copy answer"
+            className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 inline-flex items-center justify-center w-6 h-6 rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+          >
+            {copied ? (
+              <Check className="w-3 h-3 text-[var(--color-success)]" aria-hidden="true" />
+            ) : (
+              <Copy className="w-3 h-3" aria-hidden="true" />
+            )}
+          </button>
         )}
       </div>
       {turn.citations.length > 0 && (
