@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { ArrowLeft, FileQuestion, Users } from "lucide-react";
+import { ArrowLeft, FileQuestion, Layers, Users } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { flashcardsFromQuiz } from "../lib/generate";
+import { toast } from "../lib/toasts";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -127,14 +129,34 @@ function QuizPage() {
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to {quiz.lecture ? "lecture" : "study"}
           </button>
-          <Link
-            to="/study/quiz/$quizId/multiplayer"
-            params={{ quizId: quiz.id }}
-            className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs font-medium px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-raised)] hover:border-[var(--color-primary)]"
-          >
-            <Users className="w-3.5 h-3.5" aria-hidden="true" />
-            Play with friends
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const out = await flashcardsFromQuiz(quiz.id);
+                  toast.success(
+                    `Made ${out.cardsCreated} card${out.cardsCreated === 1 ? "" : "s"}`,
+                    `Deck: ${out.deckName}`,
+                  );
+                } catch {
+                  toast.error("Couldn't make flashcards", "Try again later.");
+                }
+              }}
+              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs font-medium px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-raised)] hover:border-[var(--color-primary)]"
+            >
+              <Layers className="w-3.5 h-3.5" aria-hidden="true" />
+              Make flashcards
+            </button>
+            <Link
+              to="/study/quiz/$quizId/multiplayer"
+              params={{ quizId: quiz.id }}
+              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs font-medium px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-raised)] hover:border-[var(--color-primary)]"
+            >
+              <Users className="w-3.5 h-3.5" aria-hidden="true" />
+              Play with friends
+            </Link>
+          </div>
         </div>
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}
