@@ -18,6 +18,8 @@ import {
   Brain,
   Hand,
   Users,
+  Download,
+  History,
 } from "lucide-react";
 import { pb } from "../../lib/pocketbase";
 import { useAuth } from "../../lib/auth";
@@ -120,6 +122,8 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
       { id: "go-knowledge-ask", label: "Ask your knowledge", keywords: "ask qa rag question chat", icon: Sparkles, group: "Action", run: () => navigate({ to: "/knowledge/ask" }) },
       { id: "go-asl", label: "ASL chat", keywords: "sign language webcam", icon: Hand, group: "Go", run: () => navigate({ to: "/asl" }) },
       { id: "go-play", label: "Join a multiplayer game", keywords: "code multiplayer party", icon: Users, group: "Action", run: () => navigate({ to: "/play" }) },
+      { id: "go-sessions", label: "Multiplayer sessions", keywords: "history hosted joined games rounds", icon: History, group: "Go", run: () => navigate({ to: "/sessions" }) },
+      { id: "go-export", label: "Export decks and courses", keywords: "download anki json bundle markdown", icon: Download, group: "Action", run: () => navigate({ to: "/export" }) },
       { id: "go-trash", label: "Trash", icon: Trash2, group: "Go", run: () => navigate({ to: "/trash" }) },
       { id: "go-settings", label: "Settings", icon: Settings, group: "Go", run: () => navigate({ to: "/settings" }) },
       { id: "go-a11y", label: "Accessibility settings", keywords: "ruler focus mode contrast tts", icon: Accessibility, group: "Go", run: () => navigate({ to: "/settings/accessibility" }) },
