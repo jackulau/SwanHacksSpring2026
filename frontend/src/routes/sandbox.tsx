@@ -105,7 +105,11 @@ function SandboxPage() {
     <AppShell>
       <PageHeader
         title="Sandbox"
-        subtitle="Paste any text. Pick a mode. Generate."
+        subtitle={
+          text.trim().length > 0
+            ? `${text.split(/\s+/).filter(Boolean).length} words queued.`
+            : "Paste any text. Pick a mode. Generate."
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto space-y-4">
         <div className="rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-surface-raised)]/30 p-3 text-xs text-[var(--color-text-muted)] flex items-start gap-2">
