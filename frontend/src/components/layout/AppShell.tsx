@@ -164,6 +164,14 @@ export function AppShell({ children }: AppShellProps) {
           t: "/study/planner",
           o: "/courses",
           n: "/notes",
+          d: "/today",
+          k: "/knowledge",
+          a: "/asl",
+          l: "/lab",
+          v: "/voice",
+          p: "/play",
+          x: "/activity",
+          y: "/today",
         };
         const target = map[k];
         if (target) {
