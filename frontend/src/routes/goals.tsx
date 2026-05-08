@@ -19,6 +19,24 @@ export const Route = createFileRoute("/goals")({
   component: GoalsPage,
 });
 
+function daysUntil(dateIso: string): number {
+  if (!dateIso) return 0;
+  const t = new Date(dateIso).getTime();
+  if (!Number.isFinite(t)) return 0;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.round((t - today) / (1000 * 60 * 60 * 24));
+}
+
+function daysUntilLabel(dateIso: string): string {
+  const d = daysUntil(dateIso);
+  if (d === 0) return "today";
+  if (d === 1) return "tomorrow";
+  if (d === -1) return "yesterday";
+  if (d > 0) return `in ${d}d`;
+  return `${Math.abs(d)}d ago`;
+}
+
 function GoalsPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -218,8 +236,17 @@ function GoalsPage() {
                   {g.title}
                 </span>
                 {g.target_date && (
-                  <span className="text-xs text-[var(--color-text-muted)] tabular-nums">
-                    {new Date(g.target_date).toLocaleDateString()}
+                  <span
+                    className={`text-xs tabular-nums ${
+                      daysUntil(g.target_date) < 0 && !g.completed
+                        ? "text-[var(--color-error)]"
+                        : daysUntil(g.target_date) <= 7 && !g.completed
+                          ? "text-[var(--color-warning)]"
+                          : "text-[var(--color-text-muted)]"
+                    }`}
+                    title={new Date(g.target_date).toLocaleString()}
+                  >
+                    {daysUntilLabel(g.target_date)}
                   </span>
                 )}
                 <button
