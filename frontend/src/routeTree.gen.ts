@@ -20,6 +20,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as RandomRouteImport } from './routes/random'
 import { Route as PlayRouteImport } from './routes/play'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LabRouteImport } from './routes/lab'
@@ -105,6 +106,11 @@ const RandomRoute = RandomRouteImport.update({
 const PlayRoute = PlayRouteImport.update({
   id: '/play',
   path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotesRoute = NotesRouteImport.update({
@@ -280,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
@@ -324,6 +331,7 @@ export interface FileRoutesByTo {
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
@@ -369,6 +377,7 @@ export interface FileRoutesById {
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
@@ -415,6 +424,7 @@ export interface FileRouteTypes {
     | '/lab'
     | '/login'
     | '/notes'
+    | '/onboarding'
     | '/play'
     | '/random'
     | '/sessions'
@@ -459,6 +469,7 @@ export interface FileRouteTypes {
     | '/lab'
     | '/login'
     | '/notes'
+    | '/onboarding'
     | '/play'
     | '/random'
     | '/sessions'
@@ -503,6 +514,7 @@ export interface FileRouteTypes {
     | '/lab'
     | '/login'
     | '/notes'
+    | '/onboarding'
     | '/play'
     | '/random'
     | '/sessions'
@@ -548,6 +560,7 @@ export interface RootRouteChildren {
   LabRoute: typeof LabRoute
   LoginRoute: typeof LoginRoute
   NotesRoute: typeof NotesRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
   PlayRoute: typeof PlayRoute
   RandomRoute: typeof RandomRoute
   SessionsRoute: typeof SessionsRoute
@@ -641,6 +654,13 @@ declare module '@tanstack/react-router' {
       path: '/play'
       fullPath: '/play'
       preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notes': {
@@ -987,6 +1007,7 @@ const rootRouteChildren: RootRouteChildren = {
   LabRoute: LabRoute,
   LoginRoute: LoginRoute,
   NotesRoute: NotesRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
   PlayRoute: PlayRoute,
   RandomRoute: RandomRoute,
   SessionsRoute: SessionsRoute,
