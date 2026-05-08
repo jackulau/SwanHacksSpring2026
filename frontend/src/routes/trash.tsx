@@ -126,7 +126,13 @@ function TrashPage() {
     <AppShell>
       <PageHeader
         title="Trash"
-        subtitle="Archived note pages recover here before permanent removal."
+        subtitle={
+          pages === null
+            ? "Loading…"
+            : pages.length === 0
+              ? "Empty — nothing archived."
+              : `${pages.length} archived page${pages.length === 1 ? "" : "s"}.`
+        }
         actions={
           pages && pages.length > 0 ? (
             <div className="inline-flex items-center gap-2">
