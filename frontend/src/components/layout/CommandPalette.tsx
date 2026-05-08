@@ -48,6 +48,7 @@ interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
   onShowShortcuts?: () => void;
+  onOpenQuickCapture?: () => void;
 }
 
 /**
@@ -55,7 +56,12 @@ interface CommandPaletteProps {
  * substring match, keyboard-first. The first non-trivial keystroke wins
  * focus; arrow keys navigate; Enter executes.
  */
-export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPaletteProps) {
+export function CommandPalette({
+  open,
+  onClose,
+  onShowShortcuts,
+  onOpenQuickCapture,
+}: CommandPaletteProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [query, setQuery] = useState("");
@@ -116,6 +122,7 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
       { id: "go-courses", label: "Go to Courses", icon: BookOpen, group: "Go", run: () => navigate({ to: "/courses" }) },
       { id: "go-notes", label: "Go to Notes", keywords: "pages docs writing", icon: FileText, group: "Go", run: () => navigate({ to: "/notes" }) },
       { id: "act-new-note", label: "New note page", keywords: "page create blank", icon: Plus, group: "Action", run: () => navigate({ to: "/notes" }) },
+      { id: "act-quick-capture", label: "Quick capture", hint: isMacPlatform() ? "⌘J" : "Ctrl J", keywords: "inbox thought scratch jot stash idea fast", icon: Sparkles, group: "Action", run: () => onOpenQuickCapture?.() },
       { id: "go-calendar", label: "Go to Calendar", icon: Calendar, group: "Go", run: () => navigate({ to: "/calendar" }) },
       { id: "go-study", label: "Go to Study", keywords: "flashcards quiz", icon: Glasses, group: "Go", run: () => navigate({ to: "/study" }) },
       { id: "go-due", label: "Review due today", keywords: "due cards spaced repetition every deck unified queue", icon: Glasses, group: "Action", run: () => navigate({ to: "/study/due" }) },
@@ -176,7 +183,7 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
       });
     }
     return list;
-  }, [lectures, courses, assignments, navigate, onShowShortcuts]);
+  }, [lectures, courses, assignments, navigate, onShowShortcuts, onOpenQuickCapture]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

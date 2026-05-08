@@ -22,6 +22,7 @@ import { FocusMode } from "../accessibility/FocusMode";
 import { A11yPanel } from "../accessibility/A11yPanel";
 import { AudioPlayer } from "./AudioPlayer";
 import { CommandPalette } from "./CommandPalette";
+import { QuickCapture } from "./QuickCapture";
 import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { Toaster } from "./Toaster";
 import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
@@ -45,6 +46,7 @@ import {
   FileText,
   Download,
   CloudOff,
+  Sparkles,
 } from "lucide-react";
 
 function isMacPlatform(): boolean {
@@ -89,6 +91,7 @@ export function AppShell({ children }: AppShellProps) {
   const [a11yOpen, setA11yOpen] = useState<boolean>(false);
   const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
   const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState<boolean>(false);
 
   // Recent lectures for the sidebar Notes dropdown.
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
@@ -129,6 +132,14 @@ export function AppShell({ children }: AppShellProps) {
       if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
         e.preventDefault();
         setPaletteOpen((o) => !o);
+        return;
+      }
+      // Cmd/Ctrl+J opens the quick-capture composer. Like the palette,
+      // it should fire even while typing so users can stash a thought
+      // without breaking flow.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        setQuickCaptureOpen((o) => !o);
         return;
       }
       if (isTyping(e.target)) return;
@@ -233,12 +244,28 @@ export function AppShell({ children }: AppShellProps) {
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          className="mx-3 mb-3 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
+          className="mx-3 mb-2 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
           aria-label="Open command palette"
         >
           <span className="flex-1 text-left">Search or jump…</span>
           <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/[0.12] text-white/80 border border-white/10">
             {isMacPlatform() ? "⌘K" : "Ctrl K"}
+          </kbd>
+        </button>
+
+        {/* Quick capture opener — sibling to the palette button. Kept
+         * subtle (matching weight) so it doesn't fight the primary
+         * search affordance for attention. */}
+        <button
+          type="button"
+          onClick={() => setQuickCaptureOpen(true)}
+          className="mx-3 mb-3 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
+          aria-label="Open quick capture"
+        >
+          <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+          <span className="flex-1 text-left">Quick capture…</span>
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/[0.12] text-white/80 border border-white/10">
+            {isMacPlatform() ? "⌘J" : "Ctrl J"}
           </kbd>
         </button>
 
@@ -333,6 +360,15 @@ export function AppShell({ children }: AppShellProps) {
           setPaletteOpen(false);
           setShortcutsOpen(true);
         }}
+        onOpenQuickCapture={() => {
+          setPaletteOpen(false);
+          setQuickCaptureOpen(true);
+        }}
+      />
+      <QuickCapture
+        open={quickCaptureOpen}
+        onClose={() => setQuickCaptureOpen(false)}
+        userId={user?.id}
       />
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <Toaster />

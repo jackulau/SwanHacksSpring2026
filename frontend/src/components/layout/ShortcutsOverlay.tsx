@@ -20,6 +20,7 @@ const GROUPS: ShortcutGroup[] = [
     title: "Global",
     rows: [
       { keys: [Mod, "K"], label: "Open command palette" },
+      { keys: [Mod, "J"], label: "Quick capture a thought" },
       { keys: ["?"], label: "Show this overlay" },
       { keys: ["G", "H"], label: "Go to Home" },
       { keys: ["G", "O"], label: "Go to Courses" },
