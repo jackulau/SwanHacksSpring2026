@@ -25,10 +25,19 @@ export const Route = createFileRoute("/sandbox")({
 
 type Mode = "summary" | "flashcards" | "questions";
 
+const SANDBOX_KEY = "converge:sandbox:draft";
+
 function SandboxPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [text, setText] = useState("");
+  const [text, setText] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return window.localStorage.getItem(SANDBOX_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [mode, setMode] = useState<Mode>("summary");
   const [output, setOutput] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -36,6 +45,16 @@ function SandboxPage() {
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
   }, [authLoading, user, navigate]);
+
+  // Persist draft so a refresh doesn't lose hand-typed prompt scratch.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(SANDBOX_KEY, text);
+    } catch {
+      // ignore
+    }
+  }, [text]);
 
   const run = async () => {
     if (!user || !text.trim() || busy) return;
