@@ -548,6 +548,26 @@ export interface KnowledgeChunkRecord extends RecordModel {
 
 export type KnowledgeEdgeKind = "mentions" | "derived_from" | "same_source";
 
+// ──────────────────────────────────────────────
+// Course modules
+// ──────────────────────────────────────────────
+
+export interface ChecklistItem {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+export interface CourseModuleRecord extends RecordModel {
+  user: string;
+  course: string;
+  title: string;
+  description: string;
+  sort_index: number;
+  checklist: ChecklistItem[];
+  done: boolean;
+}
+
 export interface KnowledgeEdgeRecord extends RecordModel {
   user: string;
   from_chunk: string;

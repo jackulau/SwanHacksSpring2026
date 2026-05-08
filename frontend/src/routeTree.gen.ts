@@ -36,6 +36,7 @@ import { Route as CaptureUploadRouteImport } from './routes/capture.upload'
 import { Route as AssignmentsAssignmentIdRouteImport } from './routes/assignments.$assignmentId'
 import { Route as StudyQuizQuizIdRouteImport } from './routes/study.quiz.$quizId'
 import { Route as CoursesCourseIdSearchRouteImport } from './routes/courses.$courseId.search'
+import { Route as CoursesCourseIdModulesRouteImport } from './routes/courses.$courseId.modules'
 import { Route as StudyQuizQuizIdMultiplayerRouteImport } from './routes/study.quiz.$quizId.multiplayer'
 
 const TrashRoute = TrashRouteImport.update({
@@ -173,6 +174,11 @@ const CoursesCourseIdSearchRoute = CoursesCourseIdSearchRouteImport.update({
   path: '/search',
   getParentRoute: () => CoursesCourseIdRoute,
 } as any)
+const CoursesCourseIdModulesRoute = CoursesCourseIdModulesRouteImport.update({
+  id: '/modules',
+  path: '/modules',
+  getParentRoute: () => CoursesCourseIdRoute,
+} as any)
 const StudyQuizQuizIdMultiplayerRoute =
   StudyQuizQuizIdMultiplayerRouteImport.update({
     id: '/multiplayer',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
+  '/courses/$courseId/modules': typeof CoursesCourseIdModulesRoute
   '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
   '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
+  '/courses/$courseId/modules': typeof CoursesCourseIdModulesRoute
   '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
   '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
+  '/courses/$courseId/modules': typeof CoursesCourseIdModulesRoute
   '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
   '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
+    | '/courses/$courseId/modules'
     | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
     | '/study/quiz/$quizId/multiplayer'
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
+    | '/courses/$courseId/modules'
     | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
     | '/study/quiz/$quizId/multiplayer'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
+    | '/courses/$courseId/modules'
     | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
     | '/study/quiz/$quizId/multiplayer'
@@ -575,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseIdSearchRouteImport
       parentRoute: typeof CoursesCourseIdRoute
     }
+    '/courses/$courseId/modules': {
+      id: '/courses/$courseId/modules'
+      path: '/modules'
+      fullPath: '/courses/$courseId/modules'
+      preLoaderRoute: typeof CoursesCourseIdModulesRouteImport
+      parentRoute: typeof CoursesCourseIdRoute
+    }
     '/study/quiz/$quizId/multiplayer': {
       id: '/study/quiz/$quizId/multiplayer'
       path: '/multiplayer'
@@ -597,10 +616,12 @@ const CaptureRouteWithChildren =
   CaptureRoute._addFileChildren(CaptureRouteChildren)
 
 interface CoursesCourseIdRouteChildren {
+  CoursesCourseIdModulesRoute: typeof CoursesCourseIdModulesRoute
   CoursesCourseIdSearchRoute: typeof CoursesCourseIdSearchRoute
 }
 
 const CoursesCourseIdRouteChildren: CoursesCourseIdRouteChildren = {
+  CoursesCourseIdModulesRoute: CoursesCourseIdModulesRoute,
   CoursesCourseIdSearchRoute: CoursesCourseIdSearchRoute,
 }
 
