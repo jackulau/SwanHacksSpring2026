@@ -26,3 +26,12 @@ export { quizFromNote } from "./quizFromNote";
 export type { QuizFromNoteOptions } from "./quizFromNote";
 export { studyPlanFromCourse } from "./studyPlanFromCourse";
 export type { StudyPlanFromCourseOptions } from "./studyPlanFromCourse";
+export {
+  conceptsFromText,
+  appendConceptsToPage,
+  buildConceptBlocks,
+} from "./conceptsFromText";
+export type {
+  ConceptCard,
+  ConceptsFromTextOptions,
+} from "./conceptsFromText";
