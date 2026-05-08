@@ -338,16 +338,7 @@ interface ProviderHttpResponse {
  * caller. Without this header the hook returns 401 and the provider
  * looks unavailable.
  */
-import { pb } from "../pocketbase";
-
-function pbAuthedHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  const tok = pb.authStore?.token;
-  if (tok) headers.Authorization = tok;
-  return headers;
-}
+import { pbAuthedHeaders } from "../http";
 
 /**
  * Anthropic provider — POSTs to a server-side hook at /api/llm/anthropic
