@@ -140,6 +140,7 @@ export function CommandPalette({
       { id: "go-activity", label: "Activity feed", keywords: "recent everything notes lectures", icon: Activity, group: "Go", run: () => navigate({ to: "/activity" }) },
       { id: "go-digest", label: "Weekly digest", keywords: "summary recap llm week recommendations", icon: Sparkles, group: "Go", run: () => navigate({ to: "/digest" }) },
       { id: "go-import", label: "Import markdown", keywords: "import md paste upload note file", icon: Upload, group: "Action", run: () => navigate({ to: "/import" }) },
+      { id: "go-backup", label: "Backup library", keywords: "export json restore everything", icon: Download, group: "Action", run: () => navigate({ to: "/backup" }) },
       { id: "go-random", label: "Random pick", keywords: "shuffle dice card note quiz", icon: Dice5, group: "Action", run: () => navigate({ to: "/random" }) },
       { id: "go-lab", label: "Lab — system status", keywords: "providers diagnostics counts collections", icon: TestTube, group: "Go", run: () => navigate({ to: "/lab" }) },
       { id: "go-tags", label: "Browse tags", keywords: "label categorize filter", icon: TagIcon, group: "Go", run: () => navigate({ to: "/tags" }) },
