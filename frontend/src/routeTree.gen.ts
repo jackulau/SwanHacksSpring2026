@@ -45,6 +45,7 @@ import { Route as NotesPageIdRouteImport } from './routes/notes.$pageId'
 import { Route as LecturesLectureIdRouteImport } from './routes/lectures.$lectureId'
 import { Route as KnowledgeAskRouteImport } from './routes/knowledge.ask'
 import { Route as GameSessionIdRouteImport } from './routes/game.$sessionId'
+import { Route as DecksImportRouteImport } from './routes/decks.import'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as CaptureUploadRouteImport } from './routes/capture.upload'
 import { Route as AssignmentsAssignmentIdRouteImport } from './routes/assignments.$assignmentId'
@@ -233,6 +234,11 @@ const GameSessionIdRoute = GameSessionIdRouteImport.update({
   path: '/game/$sessionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DecksImportRoute = DecksImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => DecksRoute,
+} as any)
 const CoursesCourseIdRoute = CoursesCourseIdRouteImport.update({
   id: '/$courseId',
   path: '/$courseId',
@@ -278,7 +284,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
-  '/decks': typeof DecksRoute
+  '/decks': typeof DecksRouteWithChildren
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/import': typeof ImportRoute
@@ -301,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
+  '/decks/import': typeof DecksImportRoute
   '/game/$sessionId': typeof GameSessionIdRoute
   '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -323,7 +330,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
-  '/decks': typeof DecksRoute
+  '/decks': typeof DecksRouteWithChildren
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/import': typeof ImportRoute
@@ -346,6 +353,7 @@ export interface FileRoutesByTo {
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
+  '/decks/import': typeof DecksImportRoute
   '/game/$sessionId': typeof GameSessionIdRoute
   '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -369,7 +377,7 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
-  '/decks': typeof DecksRoute
+  '/decks': typeof DecksRouteWithChildren
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
   '/import': typeof ImportRoute
@@ -392,6 +400,7 @@ export interface FileRoutesById {
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
+  '/decks/import': typeof DecksImportRoute
   '/game/$sessionId': typeof GameSessionIdRoute
   '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -439,6 +448,7 @@ export interface FileRouteTypes {
     | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
+    | '/decks/import'
     | '/game/$sessionId'
     | '/knowledge/ask'
     | '/lectures/$lectureId'
@@ -484,6 +494,7 @@ export interface FileRouteTypes {
     | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
+    | '/decks/import'
     | '/game/$sessionId'
     | '/knowledge/ask'
     | '/lectures/$lectureId'
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
     | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
+    | '/decks/import'
     | '/game/$sessionId'
     | '/knowledge/ask'
     | '/lectures/$lectureId'
@@ -552,7 +564,7 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   CaptureRoute: typeof CaptureRouteWithChildren
   CoursesRoute: typeof CoursesRouteWithChildren
-  DecksRoute: typeof DecksRoute
+  DecksRoute: typeof DecksRouteWithChildren
   DigestRoute: typeof DigestRoute
   ExportRoute: typeof ExportRoute
   ImportRoute: typeof ImportRoute
@@ -831,6 +843,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameSessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/decks/import': {
+      id: '/decks/import'
+      path: '/import'
+      fullPath: '/decks/import'
+      preLoaderRoute: typeof DecksImportRouteImport
+      parentRoute: typeof DecksRoute
+    }
     '/courses/$courseId': {
       id: '/courses/$courseId'
       path: '/$courseId'
@@ -919,6 +938,16 @@ const CoursesRouteChildren: CoursesRouteChildren = {
 const CoursesRouteWithChildren =
   CoursesRoute._addFileChildren(CoursesRouteChildren)
 
+interface DecksRouteChildren {
+  DecksImportRoute: typeof DecksImportRoute
+}
+
+const DecksRouteChildren: DecksRouteChildren = {
+  DecksImportRoute: DecksImportRoute,
+}
+
+const DecksRouteWithChildren = DecksRoute._addFileChildren(DecksRouteChildren)
+
 interface KnowledgeRouteChildren {
   KnowledgeAskRoute: typeof KnowledgeAskRoute
 }
@@ -999,7 +1028,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   CaptureRoute: CaptureRouteWithChildren,
   CoursesRoute: CoursesRouteWithChildren,
-  DecksRoute: DecksRoute,
+  DecksRoute: DecksRouteWithChildren,
   DigestRoute: DigestRoute,
   ExportRoute: ExportRoute,
   ImportRoute: ImportRoute,
