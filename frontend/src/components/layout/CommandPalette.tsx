@@ -161,6 +161,7 @@ export function CommandPalette({
       { id: "go-me", label: "Account", keywords: "profile me settings logout sign out", icon: Settings, group: "Go", run: () => navigate({ to: "/me" }) },
       { id: "go-shortcuts", label: "Keyboard shortcuts page", keywords: "keys hotkey help reference", icon: Keyboard, group: "Go", run: () => navigate({ to: "/shortcuts" }) },
       { id: "go-goals", label: "Goals", keywords: "objective target plan season", icon: Sparkles, group: "Go", run: () => navigate({ to: "/goals" }) },
+      { id: "go-privacy", label: "Privacy", keywords: "data storage providers backup legal", icon: Settings, group: "Go", run: () => navigate({ to: "/privacy" }) },
       { id: "go-templates", label: "Note templates", keywords: "scaffold skeleton starter", icon: FileText, group: "Go", run: () => navigate({ to: "/templates" }) },
       { id: "go-today", label: "Today", keywords: "dashboard daily focus today", icon: Sparkles, group: "Go", run: () => navigate({ to: "/today" }) },
       { id: "go-decks", label: "Decks", keywords: "flashcard library deck stats", icon: Glasses, group: "Go", run: () => navigate({ to: "/decks" }) },
