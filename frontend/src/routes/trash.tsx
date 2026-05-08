@@ -103,6 +103,23 @@ function TrashPage() {
     }
   };
 
+  const restoreAll = async () => {
+    if (!pages || pages.length === 0) return;
+    setBusy("restore-all");
+    try {
+      for (const p of pages) {
+        await pb
+          .collection("note_pages")
+          .update(p.id, { archived: false })
+          .catch(() => undefined);
+      }
+      setPages([]);
+      toast.success("Restored", `${pages.length} pages back in your library.`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   if (loading || !user) return null;
 
   return (
@@ -112,19 +129,34 @@ function TrashPage() {
         subtitle="Archived note pages recover here before permanent removal."
         actions={
           pages && pages.length > 0 ? (
-            <button
-              type="button"
-              onClick={emptyTrash}
-              disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:border-[var(--color-error)] text-xs px-2.5 h-8 rounded disabled:opacity-50"
-            >
-              {busy === "empty-all" ? (
-                <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
-              ) : (
-                <Trash2 className="w-3 h-3" aria-hidden="true" />
-              )}
-              Empty trash
-            </button>
+            <div className="inline-flex items-center gap-2">
+              <button
+                type="button"
+                onClick={restoreAll}
+                disabled={busy !== null}
+                className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs px-2.5 h-8 rounded disabled:opacity-50 hover:bg-[var(--color-surface-raised)]"
+              >
+                {busy === "restore-all" ? (
+                  <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                ) : (
+                  <RotateCcw className="w-3 h-3" aria-hidden="true" />
+                )}
+                Restore all
+              </button>
+              <button
+                type="button"
+                onClick={emptyTrash}
+                disabled={busy !== null}
+                className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:border-[var(--color-error)] text-xs px-2.5 h-8 rounded disabled:opacity-50"
+              >
+                {busy === "empty-all" ? (
+                  <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Trash2 className="w-3 h-3" aria-hidden="true" />
+                )}
+                Empty trash
+              </button>
+            </div>
           ) : undefined
         }
       />
