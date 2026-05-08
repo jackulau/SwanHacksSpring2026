@@ -19,6 +19,7 @@ import { Route as StatsRouteImport } from './routes/stats'
 import { Route as ShortcutsRouteImport } from './routes/shortcuts'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
+import { Route as SandboxRouteImport } from './routes/sandbox'
 import { Route as RandomRouteImport } from './routes/random'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -105,6 +106,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SessionsRoute = SessionsRouteImport.update({
   id: '/sessions',
   path: '/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SandboxRoute = SandboxRouteImport.update({
+  id: '/sandbox',
+  path: '/sandbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RandomRoute = RandomRouteImport.update({
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/random': typeof RandomRoute
+  '/sandbox': typeof SandboxRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/shortcuts': typeof ShortcutsRoute
@@ -364,6 +371,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/random': typeof RandomRoute
+  '/sandbox': typeof SandboxRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/shortcuts': typeof ShortcutsRoute
@@ -414,6 +422,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/random': typeof RandomRoute
+  '/sandbox': typeof SandboxRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/shortcuts': typeof ShortcutsRoute
@@ -465,6 +474,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/play'
     | '/random'
+    | '/sandbox'
     | '/sessions'
     | '/settings'
     | '/shortcuts'
@@ -514,6 +524,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/play'
     | '/random'
+    | '/sandbox'
     | '/sessions'
     | '/settings'
     | '/shortcuts'
@@ -563,6 +574,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/play'
     | '/random'
+    | '/sandbox'
     | '/sessions'
     | '/settings'
     | '/shortcuts'
@@ -613,6 +625,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PlayRoute: typeof PlayRoute
   RandomRoute: typeof RandomRoute
+  SandboxRoute: typeof SandboxRoute
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   ShortcutsRoute: typeof ShortcutsRoute
@@ -698,6 +711,13 @@ declare module '@tanstack/react-router' {
       path: '/sessions'
       fullPath: '/sessions'
       preLoaderRoute: typeof SessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sandbox': {
+      id: '/sandbox'
+      path: '/sandbox'
+      fullPath: '/sandbox'
+      preLoaderRoute: typeof SandboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/random': {
@@ -1101,6 +1121,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PlayRoute: PlayRoute,
   RandomRoute: RandomRoute,
+  SandboxRoute: SandboxRoute,
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRouteWithChildren,
   ShortcutsRoute: ShortcutsRoute,
