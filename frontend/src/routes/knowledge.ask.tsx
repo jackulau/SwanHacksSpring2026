@@ -168,12 +168,29 @@ function AskPage() {
         className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-4 max-h-[60vh] overflow-y-auto space-y-5 mb-4"
       >
         {turns.length === 0 ? (
-          <div className="text-center text-sm text-[var(--color-text-muted)] py-8 flex flex-col items-center gap-2">
+          <div className="text-center text-sm text-[var(--color-text-muted)] py-6 flex flex-col items-center gap-3">
             <Sparkles className="w-5 h-5" aria-hidden="true" />
             <p>
               Ask anything you've captured — notes, lectures, flashcards. The
               answer cites the source rows it pulled.
             </p>
+            <div className="flex flex-wrap justify-center gap-1.5 text-xs">
+              {[
+                "Summarize my last lecture",
+                "What did I learn about photosynthesis?",
+                "Quiz me on the recent reading notes",
+                "Which concepts am I weakest on?",
+              ].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setInput(s)}
+                  className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-raised)]/40 px-2.5 h-7 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)]"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           turns.map((t) => <TurnRow key={t.id} turn={t} />)
