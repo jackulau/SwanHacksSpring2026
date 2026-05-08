@@ -25,7 +25,6 @@ import {
   Search,
   Sparkles,
   Trash2,
-  Volume2,
   X,
 } from "lucide-react";
 import type { Note } from "../lib/types";
@@ -43,6 +42,7 @@ import type {
 } from "../lib/types";
 import type { Mentionable } from "../components/notes/MentionMenu";
 import { PageEditor } from "../components/notes/PageEditor";
+import { TtsToolbar } from "../components/notes/TtsToolbar";
 import { PagePropertiesPanel } from "../components/notes/PageProperties";
 import { CommentThread } from "../components/notes/CommentThread";
 import { HistoryPanel } from "../components/notes/HistoryPanel";
@@ -51,7 +51,6 @@ import { EmptyState } from "../components/layout/EmptyState";
 import { InlineAiMenu } from "../components/notes/InlineAiMenu";
 import { ingestNote } from "../lib/knowledge/ingest";
 import { flashcardsFromNote, quizFromNote } from "../lib/generate";
-import { getTts } from "../lib/tts";
 import { toast } from "../lib/toasts";
 
 export const Route = createFileRoute("/notes/$pageId")({
@@ -819,24 +818,6 @@ function NotePageView() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              const tts = getTts();
-              if (!tts.available) return;
-              if (tts.speaking) {
-                tts.cancel();
-              } else {
-                const md = exportMarkdown();
-                tts.speak(md);
-              }
-            }}
-            aria-label="Read aloud"
-            className="px-2 h-7 rounded inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
-            title="Read aloud (browser TTS)"
-          >
-            <Volume2 className="w-3.5 h-3.5" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
             onClick={copyMarkdown}
             aria-label="Copy as markdown"
             className="px-2 h-7 rounded inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
@@ -887,6 +868,8 @@ function NotePageView() {
           }}
         />
       )}
+
+      <TtsToolbar blocks={blocks} title={title} readOnly={readingMode} />
 
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-10">

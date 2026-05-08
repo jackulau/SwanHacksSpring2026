@@ -519,6 +519,12 @@ body {
   color: #1a1a1a;
 }
 
+/* Highlight the block currently being spoken by the TTS toolbar. */
+.tts-active-block {
+  box-shadow: inset 0 0 0 3px var(--color-primary);
+  border-radius: 4px;
+}
+
 /* Reading-mode tweaks — center, widen, serif. */
 .page-reading-mode {
   font-family: Georgia, "Times New Roman", serif;
