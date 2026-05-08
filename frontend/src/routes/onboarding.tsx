@@ -228,11 +228,21 @@ function OnboardingPage() {
           })}
         </ol>
 
-        {done === total && (
+        {done === total ? (
           <div className="rounded-md border border-[var(--color-success)]/40 bg-[var(--color-success)]/10 p-3 text-sm text-[var(--color-success)] inline-flex items-center gap-2">
             <Trophy className="w-4 h-4" aria-hidden="true" />
             All done. Press Cmd/Ctrl + K to roam.
           </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setCompleted(new Set(STEPS.map((s) => s.id)));
+            }}
+            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] underline"
+          >
+            Skip tour — I know my way around
+          </button>
         )}
       </div>
     </AppShell>
