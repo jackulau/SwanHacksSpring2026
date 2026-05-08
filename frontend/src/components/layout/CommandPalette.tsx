@@ -22,6 +22,7 @@ import {
   History,
   Activity,
   TestTube,
+  Tag as TagIcon,
 } from "lucide-react";
 import { pb } from "../../lib/pocketbase";
 import { useAuth } from "../../lib/auth";
@@ -128,6 +129,7 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
       { id: "go-export", label: "Export decks and courses", keywords: "download anki json bundle markdown", icon: Download, group: "Action", run: () => navigate({ to: "/export" }) },
       { id: "go-activity", label: "Activity feed", keywords: "recent everything notes lectures", icon: Activity, group: "Go", run: () => navigate({ to: "/activity" }) },
       { id: "go-lab", label: "Lab — system status", keywords: "providers diagnostics counts collections", icon: TestTube, group: "Go", run: () => navigate({ to: "/lab" }) },
+      { id: "go-tags", label: "Browse tags", keywords: "label categorize filter", icon: TagIcon, group: "Go", run: () => navigate({ to: "/tags" }) },
       { id: "go-trash", label: "Trash", icon: Trash2, group: "Go", run: () => navigate({ to: "/trash" }) },
       { id: "go-settings", label: "Settings", icon: Settings, group: "Go", run: () => navigate({ to: "/settings" }) },
       { id: "go-a11y", label: "Accessibility settings", keywords: "ruler focus mode contrast tts", icon: Accessibility, group: "Go", run: () => navigate({ to: "/settings/accessibility" }) },
