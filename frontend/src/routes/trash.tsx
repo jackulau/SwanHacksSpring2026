@@ -82,6 +82,27 @@ function TrashPage() {
     }
   };
 
+  const emptyTrash = async () => {
+    if (!pages || pages.length === 0) return;
+    if (
+      !window.confirm(
+        `Permanently delete ${pages.length} archived page${pages.length === 1 ? "" : "s"}? This can't be undone.`,
+      )
+    ) {
+      return;
+    }
+    setBusy("empty-all");
+    try {
+      for (const p of pages) {
+        await pb.collection("note_pages").delete(p.id).catch(() => undefined);
+      }
+      setPages([]);
+      toast.success("Trash emptied", `${pages.length} pages removed.`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   if (loading || !user) return null;
 
   return (
@@ -89,6 +110,23 @@ function TrashPage() {
       <PageHeader
         title="Trash"
         subtitle="Archived note pages recover here before permanent removal."
+        actions={
+          pages && pages.length > 0 ? (
+            <button
+              type="button"
+              onClick={emptyTrash}
+              disabled={busy !== null}
+              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:border-[var(--color-error)] text-xs px-2.5 h-8 rounded disabled:opacity-50"
+            >
+              {busy === "empty-all" ? (
+                <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 className="w-3 h-3" aria-hidden="true" />
+              )}
+              Empty trash
+            </button>
+          ) : undefined
+        }
       />
 
       <div className="px-4 sm:px-6 lg:px-8 pb-16">
