@@ -19,6 +19,7 @@ import {
   exportCourseMarkdown,
   exportDeckJson,
 } from "../lib/export";
+import { toast } from "../lib/toasts";
 import type { Course, Flashcard } from "../lib/types";
 
 export const Route = createFileRoute("/export")({
@@ -83,11 +84,12 @@ function ExportPage() {
       const payload = await exportDeckJson(user.id, deckName);
       const safe = deckName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       downloadJson(`${safe}.deck.json`, payload);
-      setFeedback(
-        `Exported ${payload.cards.length} card${payload.cards.length === 1 ? "" : "s"} from "${deckName}".`,
-      );
+      const msg = `Exported ${payload.cards.length} card${payload.cards.length === 1 ? "" : "s"} from "${deckName}".`;
+      setFeedback(msg);
+      toast.success("Deck exported", msg);
     } catch {
       setFeedback("Export failed.");
+      toast.error("Export failed", deckName);
     } finally {
       setBusy(null);
     }
@@ -100,9 +102,12 @@ function ExportPage() {
     try {
       const out = await exportCourseMarkdown(user.id, course.id);
       downloadText(out.filename, out.content);
-      setFeedback(`Exported ${course.code || course.name} to ${out.filename}.`);
+      const msg = `Exported ${course.code || course.name} to ${out.filename}.`;
+      setFeedback(msg);
+      toast.success("Course bundled", msg);
     } catch {
       setFeedback("Export failed.");
+      toast.error("Export failed", course.name);
     } finally {
       setBusy(null);
     }

@@ -23,6 +23,7 @@ import { A11yPanel } from "../accessibility/A11yPanel";
 import { AudioPlayer } from "./AudioPlayer";
 import { CommandPalette } from "./CommandPalette";
 import { ShortcutsOverlay } from "./ShortcutsOverlay";
+import { Toaster } from "./Toaster";
 import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
 import { ConvergeLogo } from "./ConvergeLogo";
 import { RecentNotesDropdown } from "../dashboard/RecentNotesDropdown";
@@ -334,6 +335,7 @@ export function AppShell({ children }: AppShellProps) {
         }}
       />
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <Toaster />
 
       {/* Floating accessibility button */}
       <button

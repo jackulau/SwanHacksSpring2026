@@ -23,6 +23,7 @@ import {
   type Retrieved,
 } from "../lib/knowledge/retrieve";
 import { backfillUserKnowledge } from "../lib/knowledge/ingest";
+import { toast } from "../lib/toasts";
 import type { KnowledgeSourceType } from "../lib/types";
 
 export const Route = createFileRoute("/knowledge")({
@@ -211,10 +212,13 @@ function KnowledgeSearchPage() {
     setProgress("Starting…");
     try {
       const out = await backfillUserKnowledge(user.id, (msg) => setProgress(msg));
-      setStats(`Indexed ${out.total.chunks} chunks across your library.`);
+      const msg = `Indexed ${out.total.chunks} chunks across your library.`;
+      setStats(msg);
+      toast.success("Backfill complete", msg);
       void refreshCounts();
     } catch {
       setStats("Backfill ran into an error — check the console.");
+      toast.error("Backfill failed", "See the dev console for details.");
     } finally {
       setBackfilling(false);
       setProgress(null);
