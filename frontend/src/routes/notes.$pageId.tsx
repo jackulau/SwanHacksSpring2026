@@ -45,6 +45,7 @@ import type { Mentionable } from "../components/notes/MentionMenu";
 import { PageEditor } from "../components/notes/PageEditor";
 import { PagePropertiesPanel } from "../components/notes/PageProperties";
 import { CommentThread } from "../components/notes/CommentThread";
+import { HistoryPanel } from "../components/notes/HistoryPanel";
 import { EmptyState } from "../components/layout/EmptyState";
 import { InlineAiMenu } from "../components/notes/InlineAiMenu";
 import { ingestNote } from "../lib/knowledge/ingest";
@@ -91,6 +92,12 @@ function NotePageView() {
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const debounceRef = useRef<number | undefined>(undefined);
+  // Track the last snapshot we wrote so we can rate-limit (1/minute) and
+  // skip no-op writes. The snapshot panel is keyed off `historyKey` so it
+  // re-fetches whenever a new row is created.
+  const lastSnapshotAtRef = useRef<number>(0);
+  const lastSnapshotBlocksRef = useRef<NoteBlock[] | null>(null);
+  const [historyKey, setHistoryKey] = useState(0);
 
   /* ───── load ───── */
 
@@ -291,6 +298,26 @@ function NotePageView() {
     ) => {
       if (!page) return;
       setSaveState("saving");
+      // Decide whether this autosave warrants a version snapshot. We
+      // snapshot the PRIOR state (page.blocks / page.title) so that
+      // restoring a snapshot returns the user to what they had before
+      // this save. Two gates apply:
+      //   1. Blocks must differ structurally from the last-saved state
+      //      AND from the last snapshot we wrote (avoids near-dupes).
+      //   2. At most one snapshot per minute, to keep the trail readable
+      //      and avoid churn from continuous typing.
+      const priorBlocks = (page.blocks ?? []) as NoteBlock[];
+      const blocksChanged = !blocksEqual(nextBlocks, priorBlocks);
+      const sinceLast = Date.now() - lastSnapshotAtRef.current;
+      const lastSnap = lastSnapshotBlocksRef.current;
+      const differsFromLastSnap =
+        !lastSnap || !blocksEqual(priorBlocks, lastSnap);
+      const shouldSnapshot =
+        user &&
+        blocksChanged &&
+        sinceLast >= 60_000 &&
+        differsFromLastSnap &&
+        priorBlocks.length > 0;
       try {
         const updated = await pb.collection("note_pages").update<NotePage>(page.id, {
           title: nextTitle,
@@ -298,6 +325,22 @@ function NotePageView() {
           properties: nextProperties,
           course: nextCourse || null,
         });
+        if (shouldSnapshot && user) {
+          // Best-effort — a snapshot failure must never disturb the save.
+          pb.collection("note_versions")
+            .create({
+              user: user.id,
+              page: page.id,
+              blocks: priorBlocks,
+              title: page.title || "",
+            })
+            .then(() => {
+              lastSnapshotAtRef.current = Date.now();
+              lastSnapshotBlocksRef.current = priorBlocks;
+              setHistoryKey((k) => k + 1);
+            })
+            .catch(() => undefined);
+        }
         setSaveState("saved");
         window.setTimeout(() => {
           setSaveState((s) => (s === "saved" ? "idle" : s));
@@ -571,6 +614,44 @@ function NotePageView() {
   const onTitleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setTitle(e.target.value.replace(/\n/g, ""));
   };
+
+  /**
+   * Restore a prior version. We always take a "before-restore" snapshot
+   * of the current state first, so the user can undo the revert. The
+   * restored state then flows through the normal autosave path.
+   */
+  const onRestoreVersion = useCallback(
+    (snapshot: { title: string; blocks: NoteBlock[] }) => {
+      if (!page || !user) return;
+      const currentBlocks = blocks;
+      const currentTitle = title;
+      // Create a "before-restore" snapshot. Best-effort: even if the
+      // create fails, we still let the restore proceed so the user
+      // doesn't lose the click.
+      pb.collection("note_versions")
+        .create({
+          user: user.id,
+          page: page.id,
+          blocks: currentBlocks,
+          title: currentTitle,
+        })
+        .then(() => {
+          lastSnapshotAtRef.current = Date.now();
+          lastSnapshotBlocksRef.current = currentBlocks;
+          setHistoryKey((k) => k + 1);
+        })
+        .catch(() => undefined);
+      // Apply the restored state — autosave will pick it up via the
+      // existing dirty-detection effect.
+      setTitle(snapshot.title);
+      setBlocks(
+        snapshot.blocks.length > 0
+          ? snapshot.blocks
+          : [{ id: rid(), type: "paragraph", text: "" }],
+      );
+    },
+    [page, user, blocks, title],
+  );
 
   if (!user || missing) {
     return (
@@ -856,6 +937,13 @@ function NotePageView() {
             />
 
             <BacklinksPanel pages={backlinks} />
+
+            <HistoryPanel
+              pageId={page.id}
+              userId={user.id}
+              refreshKey={historyKey}
+              onRestore={onRestoreVersion}
+            />
 
             {!readingMode && (
               <CommentThread pageId={page.id} userId={user.id} />

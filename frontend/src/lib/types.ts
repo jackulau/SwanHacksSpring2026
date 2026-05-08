@@ -452,6 +452,13 @@ export interface NoteCommentRecord extends RecordModel {
   resolved: boolean;
 }
 
+export interface NoteVersionRecord extends RecordModel {
+  user: string;
+  page: string;
+  blocks: NoteBlock[];
+  title: string;
+}
+
 export interface CalendarEventRecord extends RecordModel {
   user: string;
   title: string;
