@@ -41,6 +41,7 @@ import { Route as ConceptsRouteImport } from './routes/concepts'
 import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BackupRouteImport } from './routes/backup'
+import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as AslRouteImport } from './routes/asl'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
@@ -222,6 +223,11 @@ const BackupRoute = BackupRouteImport.update({
   path: '/backup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssignmentsRoute = AssignmentsRouteImport.update({
+  id: '/assignments',
+  path: '/assignments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AslRoute = AslRouteImport.update({
   id: '/asl',
   path: '/asl',
@@ -298,9 +304,9 @@ const CaptureUploadRoute = CaptureUploadRouteImport.update({
   getParentRoute: () => CaptureRoute,
 } as any)
 const AssignmentsAssignmentIdRoute = AssignmentsAssignmentIdRouteImport.update({
-  id: '/assignments/$assignmentId',
-  path: '/assignments/$assignmentId',
-  getParentRoute: () => rootRouteImport,
+  id: '/$assignmentId',
+  path: '/$assignmentId',
+  getParentRoute: () => AssignmentsRoute,
 } as any)
 const StudyQuizQuizIdRoute = StudyQuizQuizIdRouteImport.update({
   id: '/quiz/$quizId',
@@ -328,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
+  '/assignments': typeof AssignmentsRouteWithChildren
   '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
@@ -382,6 +389,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
+  '/assignments': typeof AssignmentsRouteWithChildren
   '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
@@ -437,6 +445,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
+  '/assignments': typeof AssignmentsRouteWithChildren
   '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
@@ -493,6 +502,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/asl'
+    | '/assignments'
     | '/backup'
     | '/calendar'
     | '/capture'
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/asl'
+    | '/assignments'
     | '/backup'
     | '/calendar'
     | '/capture'
@@ -601,6 +612,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/asl'
+    | '/assignments'
     | '/backup'
     | '/calendar'
     | '/capture'
@@ -656,6 +668,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
   AslRoute: typeof AslRoute
+  AssignmentsRoute: typeof AssignmentsRouteWithChildren
   BackupRoute: typeof BackupRoute
   CalendarRoute: typeof CalendarRoute
   CaptureRoute: typeof CaptureRouteWithChildren
@@ -688,7 +701,6 @@ export interface RootRouteChildren {
   TodayRoute: typeof TodayRoute
   TrashRoute: typeof TrashRoute
   VoiceRoute: typeof VoiceRoute
-  AssignmentsAssignmentIdRoute: typeof AssignmentsAssignmentIdRoute
   GameSessionIdRoute: typeof GameSessionIdRoute
   LecturesLectureIdRoute: typeof LecturesLectureIdRoute
 }
@@ -919,6 +931,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BackupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assignments': {
+      id: '/assignments'
+      path: '/assignments'
+      fullPath: '/assignments'
+      preLoaderRoute: typeof AssignmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/asl': {
       id: '/asl'
       path: '/asl'
@@ -1026,10 +1045,10 @@ declare module '@tanstack/react-router' {
     }
     '/assignments/$assignmentId': {
       id: '/assignments/$assignmentId'
-      path: '/assignments/$assignmentId'
+      path: '/$assignmentId'
       fullPath: '/assignments/$assignmentId'
       preLoaderRoute: typeof AssignmentsAssignmentIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AssignmentsRoute
     }
     '/study/quiz/$quizId': {
       id: '/study/quiz/$quizId'
@@ -1061,6 +1080,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AssignmentsRouteChildren {
+  AssignmentsAssignmentIdRoute: typeof AssignmentsAssignmentIdRoute
+}
+
+const AssignmentsRouteChildren: AssignmentsRouteChildren = {
+  AssignmentsAssignmentIdRoute: AssignmentsAssignmentIdRoute,
+}
+
+const AssignmentsRouteWithChildren = AssignmentsRoute._addFileChildren(
+  AssignmentsRouteChildren,
+)
 
 interface CaptureRouteChildren {
   CaptureUploadRoute: typeof CaptureUploadRoute
@@ -1184,6 +1215,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
   AslRoute: AslRoute,
+  AssignmentsRoute: AssignmentsRouteWithChildren,
   BackupRoute: BackupRoute,
   CalendarRoute: CalendarRoute,
   CaptureRoute: CaptureRouteWithChildren,
@@ -1216,7 +1248,6 @@ const rootRouteChildren: RootRouteChildren = {
   TodayRoute: TodayRoute,
   TrashRoute: TrashRoute,
   VoiceRoute: VoiceRoute,
-  AssignmentsAssignmentIdRoute: AssignmentsAssignmentIdRoute,
   GameSessionIdRoute: GameSessionIdRoute,
   LecturesLectureIdRoute: LecturesLectureIdRoute,
 }
