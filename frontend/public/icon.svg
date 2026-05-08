@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Converge">
+  <rect width="512" height="512" rx="96" fill="#0a0a0a"/>
+  <circle cx="256" cy="256" r="156" fill="none" stroke="#2f5d4f" stroke-width="36"/>
+  <path
+    d="M 360 178
+       A 140 140 0 1 0 360 334"
+    fill="none"
+    stroke="#fbfbf9"
+    stroke-width="48"
+    stroke-linecap="round"
+  />
+</svg>
