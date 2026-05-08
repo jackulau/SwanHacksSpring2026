@@ -44,6 +44,7 @@ import type { Mentionable } from "../components/notes/MentionMenu";
 import { PageEditor } from "../components/notes/PageEditor";
 import { PagePropertiesPanel } from "../components/notes/PageProperties";
 import { EmptyState } from "../components/layout/EmptyState";
+import { InlineAiMenu } from "../components/notes/InlineAiMenu";
 import { ingestNote } from "../lib/knowledge/ingest";
 import { flashcardsFromNote } from "../lib/generate";
 
@@ -796,6 +797,11 @@ function NotePageView() {
               readOnly={readingMode}
               mentionables={mentionables}
               onNavigatePage={(id) => navigate({ to: "/notes/$pageId", params: { pageId: id } })}
+            />
+
+            <InlineAiMenu
+              containerRef={editorContainerRef}
+              readOnly={readingMode}
             />
 
             <BacklinksPanel pages={backlinks} />
