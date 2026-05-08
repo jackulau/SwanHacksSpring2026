@@ -13,6 +13,7 @@
 
 import { pb } from "../pocketbase";
 import { resolveProvider, StubProvider, type LlmProvider, type LlmProviderId } from "../llm/providers";
+import { ingestQuiz } from "../knowledge/ingest";
 import type {
   Lecture,
   MultipleChoiceQuestion,
@@ -85,14 +86,8 @@ export async function quizFromLecture(
     source: "auto_generated",
   });
   // Best-effort knowledge ingest so the new quiz surfaces in /knowledge
-  // search immediately. The dynamic import avoids pulling the ingest
-  // module into the quiz-generation path on first load.
-  try {
-    const mod = await import("../knowledge/ingest");
-    void mod.ingestQuiz(lecture.user, written).catch(() => undefined);
-  } catch {
-    // ignore
-  }
+  // search immediately.
+  void ingestQuiz(lecture.user, written).catch(() => undefined);
   return written;
 }
 

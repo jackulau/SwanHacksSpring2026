@@ -14,6 +14,7 @@
 import { pb } from "../pocketbase";
 import { resolveProvider, type LlmProvider, type LlmProviderId } from "../llm/providers";
 import type { Assignment, Course, Lecture, NoteBlock, NotePage } from "../types";
+import { ingestNote } from "../knowledge/ingest";
 
 export interface StudyPlanFromCourseOptions {
   provider?: LlmProviderId;
@@ -72,12 +73,7 @@ export async function studyPlanFromCourse(
     archived: false,
   });
   // Best-effort knowledge ingest so the new plan is searchable.
-  try {
-    const mod = await import("../knowledge/ingest");
-    void mod.ingestNote(course.user, written).catch(() => undefined);
-  } catch {
-    // ignore
-  }
+  void ingestNote(course.user, written).catch(() => undefined);
   return written;
 }
 

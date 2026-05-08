@@ -8,6 +8,7 @@ import type {
   NoteBlock,
   NotePage,
 } from "../types";
+import { ingestNote } from "../knowledge/ingest";
 
 export interface AslSessionSummary {
   pageId: string;
@@ -95,12 +96,7 @@ export async function aslSessionToNotePage(
   });
 
   // Best-effort knowledge ingest so the new page is searchable.
-  try {
-    const mod = await import("../knowledge/ingest");
-    void mod.ingestNote(userId, created).catch(() => undefined);
-  } catch {
-    // ignore
-  }
+  void ingestNote(userId, created).catch(() => undefined);
 
   return { pageId: created.id, segmentCount: segs.totalItems };
 }

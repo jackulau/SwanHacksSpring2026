@@ -9,6 +9,7 @@
 import { pb } from "../pocketbase";
 import type { AslSegmentRecord } from "../types";
 import type { VlmProvider, VlmTranscription } from "./providers";
+import { ingestAslSegment } from "../knowledge/ingest";
 
 export interface PipelineEvent {
   type: "started" | "segment_start" | "segment_end" | "result" | "error";
@@ -259,11 +260,8 @@ export class AslPipeline {
       });
       // Best-effort ingest into knowledge_chunks so this segment becomes
       // searchable from /knowledge. Skip the unclear/empty ones —
-      // ingestAslSegment already filters those, but the dynamic import
-      // keeps the asl pipeline's first paint cheap.
-      void import("../knowledge/ingest")
-        .then((mod) => mod.ingestAslSegment(this.userId!, written))
-        .catch(() => undefined);
+      // ingestAslSegment already filters those.
+      void ingestAslSegment(this.userId!, written).catch(() => undefined);
     } catch {
       // Persistence is best-effort; chat row is already on screen.
     }
