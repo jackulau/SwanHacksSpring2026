@@ -145,6 +145,7 @@ export function CommandPalette({
       { id: "go-random", label: "Random pick", keywords: "shuffle dice card note quiz", icon: Dice5, group: "Action", run: () => navigate({ to: "/random" }) },
       { id: "go-lab", label: "Lab — system status", keywords: "providers diagnostics counts collections", icon: TestTube, group: "Go", run: () => navigate({ to: "/lab" }) },
       { id: "go-tags", label: "Browse tags", keywords: "label categorize filter", icon: TagIcon, group: "Go", run: () => navigate({ to: "/tags" }) },
+      { id: "go-onboarding", label: "Onboarding tour", keywords: "tour welcome introduction help getting-started", icon: Sparkles, group: "Go", run: () => navigate({ to: "/onboarding" }) },
       { id: "go-templates", label: "Note templates", keywords: "scaffold skeleton starter", icon: FileText, group: "Go", run: () => navigate({ to: "/templates" }) },
       { id: "go-today", label: "Today", keywords: "dashboard daily focus today", icon: Sparkles, group: "Go", run: () => navigate({ to: "/today" }) },
       { id: "go-decks", label: "Decks", keywords: "flashcard library deck stats", icon: Glasses, group: "Go", run: () => navigate({ to: "/decks" }) },
