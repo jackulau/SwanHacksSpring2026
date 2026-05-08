@@ -147,7 +147,11 @@ function ExportPage() {
     <AppShell>
       <PageHeader
         title="Export"
-        subtitle="Download your decks and courses as portable files."
+        subtitle={
+          decks.length === 0 && courses.length === 0
+            ? "Download your decks and courses as portable files."
+            : `${decks.length} deck${decks.length === 1 ? "" : "s"} · ${courses.length} course${courses.length === 1 ? "" : "s"} ready.`
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto space-y-8">
         {feedback && (
