@@ -35,12 +35,42 @@ interface ProviderStatus {
   resolved: string;
 }
 
+interface HookStatus {
+  path: string;
+  status: number;
+  ok: boolean;
+}
+
+const PROBE_HOOKS = [
+  "/api/asl/recognize",
+  "/api/asl/recognize-anthropic",
+  "/api/asl/recognize-openai",
+  "/api/llm/anthropic",
+  "/api/llm/openai",
+  "/api/knowledge/ask",
+];
+
+async function probeHooks(): Promise<HookStatus[]> {
+  const out: HookStatus[] = [];
+  for (const p of PROBE_HOOKS) {
+    try {
+      const res = await fetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      // 401 = wired but auth-needed; 503 = key missing; 400 = wired but bad body; 404 = not deployed.
+      out.push({ path: p, status: res.status, ok: res.status !== 404 });
+    } catch {
+      out.push({ path: p, status: 0, ok: false });
+    }
+  }
+  return out;
+}
+
 function LabPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [llm, setLlm] = useState<ProviderStatus[] | null>(null);
   const [vlm, setVlm] = useState<ProviderStatus[] | null>(null);
   const [counts, setCounts] = useState<Record<string, number> | null>(null);
+  const [hooks, setHooks] = useState<HookStatus[] | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -72,6 +102,10 @@ function LabPage() {
         });
       }
       setVlm(vlmProbes);
+
+      // Probe server-side hook availability so the user can see which
+      // routes are deployed in this PB instance.
+      setHooks(await probeHooks());
 
       if (user) {
         const collections = [
@@ -151,10 +185,66 @@ function LabPage() {
           hint="The /asl chat surface routes frames through these."
         />
 
+        <HookSection hooks={hooks} />
+
         <CollectionSection counts={counts} />
       </div>
     </AppShell>
   );
+}
+
+function HookSection({ hooks }: { hooks: HookStatus[] | null }) {
+  return (
+    <section>
+      <h2 className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-2 inline-flex items-center gap-1.5">
+        <Activity className="w-3.5 h-3.5" aria-hidden="true" />
+        Server hooks
+      </h2>
+      {hooks === null ? (
+        <p className="text-xs text-[var(--color-text-muted)]">Probing…</p>
+      ) : (
+        <ul className="space-y-1">
+          {hooks.map((h) => (
+            <li
+              key={h.path}
+              className="flex items-center gap-3 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs"
+            >
+              {h.ok ? (
+                <CheckCircle2
+                  className="w-3.5 h-3.5 text-[var(--color-success)] flex-shrink-0"
+                  aria-hidden="true"
+                />
+              ) : (
+                <XCircle
+                  className="w-3.5 h-3.5 text-[var(--color-text-subtle)] flex-shrink-0"
+                  aria-hidden="true"
+                />
+              )}
+              <span className="font-mono text-[var(--color-text)] flex-1 truncate">
+                {h.path}
+              </span>
+              <span className="text-[var(--color-text-muted)] tabular-nums">
+                {h.status}
+              </span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-text-subtle)]">
+                {hookStatusLabel(h.status)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function hookStatusLabel(status: number): string {
+  if (status === 0) return "unreachable";
+  if (status === 404) return "not deployed";
+  if (status === 401) return "auth needed";
+  if (status === 503) return "key missing";
+  if (status === 400) return "wired";
+  if (status >= 200 && status < 300) return "wired";
+  return `status ${status}`;
 }
 
 function ProviderSection({
