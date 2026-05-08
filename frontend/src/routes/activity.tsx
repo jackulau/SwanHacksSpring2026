@@ -68,7 +68,8 @@ function ActivityPage() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    Promise.all([
+    let intervalId: number | undefined;
+    const fetchAll = () => Promise.all([
       pb
         .collection("note_pages")
         .getList<NotePage>(1, 30, {
@@ -184,8 +185,11 @@ function ActivityPage() {
       merged.sort((a, b) => b.ts - a.ts);
       setRows(merged.slice(0, 80));
     });
+    fetchAll();
+    intervalId = window.setInterval(() => void fetchAll(), 60_000);
     return () => {
       cancelled = true;
+      if (intervalId) window.clearInterval(intervalId);
     };
   }, [user]);
 
