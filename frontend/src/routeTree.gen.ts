@@ -44,6 +44,7 @@ import { Route as BackupRouteImport } from './routes/backup'
 import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as AslRouteImport } from './routes/asl'
 import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TagsTagRouteImport } from './routes/tags.$tag'
 import { Route as StudyPlannerRouteImport } from './routes/study.planner'
@@ -238,6 +239,11 @@ const ActivityRoute = ActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AchievementsRoute = AchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -332,6 +338,7 @@ const StudyQuizQuizIdMultiplayerRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
   '/assignments': typeof AssignmentsRouteWithChildren
@@ -387,6 +394,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
   '/assignments': typeof AssignmentsRouteWithChildren
@@ -443,6 +451,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
   '/assignments': typeof AssignmentsRouteWithChildren
@@ -500,6 +509,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/achievements'
     | '/activity'
     | '/asl'
     | '/assignments'
@@ -555,6 +565,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/achievements'
     | '/activity'
     | '/asl'
     | '/assignments'
@@ -610,6 +621,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/achievements'
     | '/activity'
     | '/asl'
     | '/assignments'
@@ -666,6 +678,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AchievementsRoute: typeof AchievementsRoute
   ActivityRoute: typeof ActivityRoute
   AslRoute: typeof AslRoute
   AssignmentsRoute: typeof AssignmentsRouteWithChildren
@@ -952,6 +965,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/achievements': {
+      id: '/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AchievementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -1213,6 +1233,7 @@ const TagsRouteWithChildren = TagsRoute._addFileChildren(TagsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AchievementsRoute: AchievementsRoute,
   ActivityRoute: ActivityRoute,
   AslRoute: AslRoute,
   AssignmentsRoute: AssignmentsRouteWithChildren,
