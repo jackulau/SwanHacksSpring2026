@@ -1,9 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Loader2, Send, Sparkles, Trash2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  FilePlus,
+  Loader2,
+  Send,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { retrieve, type Retrieved } from "../lib/knowledge/retrieve";
 import { sourceHref } from "./knowledge";
+import { pb } from "../lib/pocketbase";
+import { ingestNote } from "../lib/knowledge/ingest";
+import { toast } from "../lib/toasts";
+import type { NoteBlock, NotePage } from "../lib/types";
 
 export const Route = createFileRoute("/knowledge/ask")({
   component: AskPage,
@@ -51,10 +63,12 @@ function saveHistory(turns: Turn[]): void {
 }
 
 function AskPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [turns, setTurns] = useState<Turn[]>(() => loadHistory());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savingThread, setSavingThread] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -157,20 +171,81 @@ function AskPage() {
           Ask
         </button>
         {turns.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm("Clear the conversation?")) setTurns([]);
-            }}
-            aria-label="Clear conversation"
-            className="inline-flex items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:border-[var(--color-error)] text-sm w-10 h-10 rounded-md"
-          >
-            <Trash2 className="w-4 h-4" aria-hidden="true" />
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={savingThread}
+              onClick={async () => {
+                if (!user) return;
+                setSavingThread(true);
+                try {
+                  const blocks: NoteBlock[] = [];
+                  blocks.push({ id: rid(), type: "heading", level: 1, text: "Knowledge ask thread" });
+                  blocks.push({ id: rid(), type: "paragraph", text: `Saved ${new Date().toLocaleString()}` });
+                  for (const t of turns) {
+                    blocks.push({ id: rid(), type: "heading", level: 2, text: t.question });
+                    blocks.push({ id: rid(), type: "paragraph", text: t.answer });
+                    if (t.citations.length > 0) {
+                      blocks.push({
+                        id: rid(),
+                        type: "callout",
+                        variant: "tip",
+                        text: `Sources: ${t.citations.slice(0, 6).map((c, i) => `[${i + 1}] ${c.chunk.title || "untitled"}`).join("; ")}`,
+                      });
+                    }
+                  }
+                  const page = await pb.collection("note_pages").create<NotePage>({
+                    user: user.id,
+                    title: "Ask thread - " + new Date().toLocaleDateString(),
+                    icon: "",
+                    parent: "",
+                    course: "",
+                    lecture: "",
+                    blocks,
+                    properties: { tags: ["ask", "auto-generated"] },
+                    archived: false,
+                  });
+                  toast.success(
+                    "Saved as note",
+                    `${turns.length} question${turns.length === 1 ? "" : "s"} captured.`,
+                  );
+                  void ingestNote(user.id, page).catch(() => undefined);
+                  navigate({ to: "/notes/$pageId", params: { pageId: page.id } });
+                } catch {
+                  toast.error("Save failed", "Try again.");
+                } finally {
+                  setSavingThread(false);
+                }
+              }}
+              aria-label="Save thread as note"
+              title="Save this conversation as a note page."
+              className="inline-flex items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-sm w-10 h-10 rounded-md disabled:opacity-50"
+            >
+              {savingThread ? (
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <FilePlus className="w-4 h-4" aria-hidden="true" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Clear the conversation?")) setTurns([]);
+              }}
+              aria-label="Clear conversation"
+              className="inline-flex items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:border-[var(--color-error)] text-sm w-10 h-10 rounded-md"
+            >
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </>
         )}
       </form>
     </div>
   );
+}
+
+function rid(): string {
+  return Math.random().toString(36).slice(2, 11);
 }
 
 function TurnRow({ turn }: { turn: Turn }) {
