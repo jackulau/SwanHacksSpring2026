@@ -6,6 +6,7 @@ import {
   Search,
   Archive,
   Tag as TagIcon,
+  Copy,
 } from "lucide-react";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -82,6 +83,33 @@ function NotesIndexPage() {
       archived: false,
     });
     navigate({ to: "/notes/$pageId", params: { pageId: created.id } });
+  };
+
+  const duplicatePage = async (src: NotePage) => {
+    if (!user) return;
+    try {
+      // Stamp fresh ids on every block so a host of editors keyed by
+      // block id (table cells, toggle children) don't collide.
+      const cloneBlocks = (src.blocks ?? []).map((b) => ({
+        ...b,
+        id: rid(),
+      })) as NotePage["blocks"];
+      const created = await pb.collection("note_pages").create<NotePage>({
+        user: user.id,
+        title: src.title ? `${src.title} (copy)` : "",
+        icon: src.icon,
+        parent: src.parent || "",
+        course: src.course || "",
+        lecture: src.lecture || "",
+        blocks: cloneBlocks,
+        properties: src.properties ?? {},
+        archived: false,
+      });
+      setPages((prev) => (prev ? [created, ...prev] : prev));
+      navigate({ to: "/notes/$pageId", params: { pageId: created.id } });
+    } catch {
+      // ignore — best-effort
+    }
   };
 
   return (
@@ -170,7 +198,10 @@ function NotesIndexPage() {
           ) : view === "board" ? (
             <PageBoard pages={filtered} />
           ) : (
-            <PageGrid pages={view === "recent" ? filtered : sortByTitle(filtered)} />
+            <PageGrid
+              pages={view === "recent" ? filtered : sortByTitle(filtered)}
+              onDuplicate={duplicatePage}
+            />
           )}
         </div>
       </div>
@@ -188,11 +219,31 @@ function rid(): string {
   return Math.random().toString(36).slice(2, 11);
 }
 
-function PageGrid({ pages }: { pages: NotePage[] }) {
+function PageGrid({
+  pages,
+  onDuplicate,
+}: {
+  pages: NotePage[];
+  onDuplicate?: (p: NotePage) => void;
+}) {
   return (
     <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {pages.map((p) => (
-        <li key={p.id}>
+        <li key={p.id} className="group relative">
+          {onDuplicate && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                onDuplicate(p);
+              }}
+              aria-label={`Duplicate ${p.title || "Untitled"}`}
+              title="Duplicate page"
+              className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)]"
+            >
+              <Copy className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          )}
           <Link
             to="/notes/$pageId"
             params={{ pageId: p.id }}
