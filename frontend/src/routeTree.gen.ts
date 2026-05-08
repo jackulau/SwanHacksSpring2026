@@ -31,6 +31,7 @@ import { Route as KnowledgeAskRouteImport } from './routes/knowledge.ask'
 import { Route as GameSessionIdRouteImport } from './routes/game.$sessionId'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as CaptureUploadRouteImport } from './routes/capture.upload'
+import { Route as AssignmentsAssignmentIdRouteImport } from './routes/assignments.$assignmentId'
 import { Route as StudyQuizQuizIdRouteImport } from './routes/study.quiz.$quizId'
 import { Route as StudyQuizQuizIdMultiplayerRouteImport } from './routes/study.quiz.$quizId.multiplayer'
 
@@ -144,6 +145,11 @@ const CaptureUploadRoute = CaptureUploadRouteImport.update({
   path: '/upload',
   getParentRoute: () => CaptureRoute,
 } as any)
+const AssignmentsAssignmentIdRoute = AssignmentsAssignmentIdRouteImport.update({
+  id: '/assignments/$assignmentId',
+  path: '/assignments/$assignmentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudyQuizQuizIdRoute = StudyQuizQuizIdRouteImport.update({
   id: '/quiz/$quizId',
   path: '/quiz/$quizId',
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
+  '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/game/$sessionId': typeof GameSessionIdRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
+  '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/game/$sessionId': typeof GameSessionIdRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/study': typeof StudyRouteWithChildren
   '/trash': typeof TrashRoute
+  '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/game/$sessionId': typeof GameSessionIdRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/study'
     | '/trash'
+    | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/game/$sessionId'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/study'
     | '/trash'
+    | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/game/$sessionId'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/study'
     | '/trash'
+    | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
     | '/game/$sessionId'
@@ -329,6 +341,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRouteWithChildren
   StudyRoute: typeof StudyRouteWithChildren
   TrashRoute: typeof TrashRoute
+  AssignmentsAssignmentIdRoute: typeof AssignmentsAssignmentIdRoute
   GameSessionIdRoute: typeof GameSessionIdRoute
   LecturesLectureIdRoute: typeof LecturesLectureIdRoute
 }
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CaptureUploadRouteImport
       parentRoute: typeof CaptureRoute
     }
+    '/assignments/$assignmentId': {
+      id: '/assignments/$assignmentId'
+      path: '/assignments/$assignmentId'
+      fullPath: '/assignments/$assignmentId'
+      preLoaderRoute: typeof AssignmentsAssignmentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/study/quiz/$quizId': {
       id: '/study/quiz/$quizId'
       path: '/quiz/$quizId'
@@ -603,6 +623,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRouteWithChildren,
   StudyRoute: StudyRouteWithChildren,
   TrashRoute: TrashRoute,
+  AssignmentsAssignmentIdRoute: AssignmentsAssignmentIdRoute,
   GameSessionIdRoute: GameSessionIdRoute,
   LecturesLectureIdRoute: LecturesLectureIdRoute,
 }
