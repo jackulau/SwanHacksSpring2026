@@ -268,6 +268,34 @@ export function downloadText(filename: string, content: string): void {
   );
 }
 
+export function downloadCsv(filename: string, content: string): void {
+  downloadBlob(
+    filename,
+    new Blob([content], { type: "text/csv;charset=utf-8" }),
+  );
+}
+
+/**
+ * Anki-importable CSV: front,back,tags. Tags are space-joined per
+ * Anki convention. Newlines within front/back are escaped to <br>
+ * tags so the field stays single-line in the CSV row.
+ */
+export function deckToAnkiCsv(deck: DeckExportPayload): string {
+  const escape = (s: string) =>
+    `"${s.replace(/"/g, '""').replace(/\n/g, "<br>")}"`;
+  const rows = ["front,back,tags"];
+  for (const c of deck.cards) {
+    rows.push(
+      [
+        escape(c.front || ""),
+        escape(c.back || ""),
+        escape((c.tags || []).join(" ")),
+      ].join(","),
+    );
+  }
+  return rows.join("\n") + "\n";
+}
+
 export interface CourseJsonExport {
   format: "converge.course.v1";
   exported_at: string;

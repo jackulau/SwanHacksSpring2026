@@ -14,6 +14,8 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { useAuth } from "../lib/auth";
 import { pb } from "../lib/pocketbase";
 import {
+  deckToAnkiCsv,
+  downloadCsv,
   downloadJson,
   downloadText,
   exportCourseJson,
@@ -77,14 +79,18 @@ function ExportPage() {
     };
   }, [user]);
 
-  const exportDeck = async (deckName: string) => {
+  const exportDeck = async (deckName: string, format: "json" | "csv") => {
     if (!user) return;
-    setBusy(`deck:${deckName}`);
+    setBusy(`deck-${format}:${deckName}`);
     setFeedback(null);
     try {
       const payload = await exportDeckJson(user.id, deckName);
       const safe = deckName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      downloadJson(`${safe}.deck.json`, payload);
+      if (format === "json") {
+        downloadJson(`${safe}.deck.json`, payload);
+      } else {
+        downloadCsv(`${safe}.csv`, deckToAnkiCsv(payload));
+      }
       const msg = `Exported ${payload.cards.length} card${payload.cards.length === 1 ? "" : "s"} from "${deckName}".`;
       setFeedback(msg);
       toast.success("Deck exported", msg);
@@ -175,15 +181,30 @@ function ExportPage() {
                   <button
                     type="button"
                     disabled={busy !== null}
-                    onClick={() => exportDeck(d.name)}
+                    onClick={() => exportDeck(d.name, "json")}
+                    title="Converge JSON (preserves SM-2 state)"
                     className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs px-2.5 h-7 rounded hover:bg-[var(--color-surface-raised)] disabled:opacity-50"
                   >
-                    {busy === `deck:${d.name}` ? (
+                    {busy === `deck-json:${d.name}` ? (
                       <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
                     ) : (
                       <Download className="w-3 h-3" aria-hidden="true" />
                     )}
-                    Export
+                    .json
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => exportDeck(d.name, "csv")}
+                    title="Anki-importable CSV (front, back, tags)"
+                    className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs px-2.5 h-7 rounded hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)] disabled:opacity-50"
+                  >
+                    {busy === `deck-csv:${d.name}` ? (
+                      <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Download className="w-3 h-3" aria-hidden="true" />
+                    )}
+                    .csv
                   </button>
                 </li>
               ))}
