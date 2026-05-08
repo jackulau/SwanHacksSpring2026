@@ -169,6 +169,7 @@ function MePage() {
             <Row to="/onboarding" label="Onboarding tour" />
             <Row to="/shortcuts" label="Keyboard shortcuts" />
             <Row to="/privacy" label="Privacy" />
+            <Row to="/achievements" label="Achievements" />
             <Row to="/lab" label="Lab — system status" />
           </ul>
         </section>
