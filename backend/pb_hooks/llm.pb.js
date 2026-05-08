@@ -16,25 +16,19 @@
 // handlers don't auto-enforce auth, so we read e.requestInfo().auth
 // and reject unauthenticated calls.
 
-function requireAuth(e) {
-  const info = e.requestInfo();
-  if (!info || !info.auth) {
-    return { error: e.json(401, { error: "auth required" }) };
-  }
-  return { info };
-}
-
 // ───────────── Anthropic Messages chat ─────────────
 routerAdd("POST", "/api/llm/anthropic", (e) => {
-  const guard = requireAuth(e);
-  if (guard.error) return guard.error;
+  const info = e.requestInfo();
+  if (!info || !info.auth) {
+    return e.json(401, { error: "auth required" });
+  }
   const apiKey = $os.getenv("ANTHROPIC_API_KEY");
   if (!apiKey) {
     return e.json(503, { error: "ANTHROPIC_API_KEY not configured" });
   }
   const model = $os.getenv("ANTHROPIC_MODEL") || "claude-opus-4-7";
 
-  const body = guard.info.body || {};
+  const body = info.body || {};
   const messages = Array.isArray(body.messages) ? body.messages : [];
   if (messages.length === 0) {
     return e.json(400, { error: "messages[] required" });
@@ -98,15 +92,17 @@ routerAdd("POST", "/api/llm/anthropic", (e) => {
 
 // ───────────── OpenAI chat completions ─────────────
 routerAdd("POST", "/api/llm/openai", (e) => {
-  const guard = requireAuth(e);
-  if (guard.error) return guard.error;
+  const info = e.requestInfo();
+  if (!info || !info.auth) {
+    return e.json(401, { error: "auth required" });
+  }
   const apiKey = $os.getenv("OPENAI_API_KEY");
   if (!apiKey) {
     return e.json(503, { error: "OPENAI_API_KEY not configured" });
   }
   const model = $os.getenv("OPENAI_MODEL") || "gpt-5";
 
-  const body = guard.info.body || {};
+  const body = info.body || {};
   const messages = Array.isArray(body.messages) ? body.messages : [];
   if (messages.length === 0) {
     return e.json(400, { error: "messages[] required" });
@@ -155,14 +151,16 @@ routerAdd("POST", "/api/llm/openai", (e) => {
 
 // ───────────── Anthropic vision proxy for ASL frames ─────────────
 routerAdd("POST", "/api/asl/recognize-anthropic", (e) => {
-  const guard = requireAuth(e);
-  if (guard.error) return guard.error;
+  const info = e.requestInfo();
+  if (!info || !info.auth) {
+    return e.json(401, { error: "auth required" });
+  }
   const apiKey = $os.getenv("ANTHROPIC_API_KEY");
   if (!apiKey) {
     return e.json(503, { error: "ANTHROPIC_API_KEY not configured" });
   }
   const model = $os.getenv("ANTHROPIC_VISION_MODEL") || "claude-opus-4-7";
-  const body = guard.info.body || {};
+  const body = info.body || {};
   const frames = Array.isArray(body.frames) ? body.frames : [];
   if (frames.length === 0) {
     return e.json(400, { error: "frames[] (base64 JPEGs) required" });
@@ -233,14 +231,16 @@ routerAdd("POST", "/api/asl/recognize-anthropic", (e) => {
 
 // ───────────── OpenAI vision proxy for ASL frames ─────────────
 routerAdd("POST", "/api/asl/recognize-openai", (e) => {
-  const guard = requireAuth(e);
-  if (guard.error) return guard.error;
+  const info = e.requestInfo();
+  if (!info || !info.auth) {
+    return e.json(401, { error: "auth required" });
+  }
   const apiKey = $os.getenv("OPENAI_API_KEY");
   if (!apiKey) {
     return e.json(503, { error: "OPENAI_API_KEY not configured" });
   }
   const model = $os.getenv("OPENAI_VISION_MODEL") || "gpt-5";
-  const body = guard.info.body || {};
+  const body = info.body || {};
   const frames = Array.isArray(body.frames) ? body.frames : [];
   if (frames.length === 0) {
     return e.json(400, { error: "frames[] (base64 JPEGs) required" });
@@ -308,10 +308,12 @@ routerAdd("POST", "/api/asl/recognize-openai", (e) => {
 
 // ───────────── Knowledge ask synthesis ─────────────
 routerAdd("POST", "/api/knowledge/ask", (e) => {
-  const guard = requireAuth(e);
-  if (guard.error) return guard.error;
+  const info = e.requestInfo();
+  if (!info || !info.auth) {
+    return e.json(401, { error: "auth required" });
+  }
 
-  const body = guard.info.body || {};
+  const body = info.body || {};
   const question = String(body.question || "").trim();
   const citations = Array.isArray(body.citations) ? body.citations : [];
   if (!question) return e.json(400, { error: "question required" });
