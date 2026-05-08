@@ -89,7 +89,11 @@ function ImportPage() {
     <AppShell>
       <PageHeader
         title="Import"
-        subtitle="Paste markdown or drop a .md file to land it as a note page."
+        subtitle={
+          body.trim().length > 0
+            ? `${body.split(/\s+/).filter(Boolean).length} words ready to import.`
+            : "Paste markdown or drop a .md file to land it as a note page."
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto space-y-4">
         <div className="rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-surface-raised)]/30 p-3 text-xs text-[var(--color-text-muted)] flex items-start gap-2">
