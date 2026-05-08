@@ -10,6 +10,7 @@ import {
   Activity,
   Camera,
   CameraOff,
+  Hand,
   HelpCircle,
   Loader2,
   Pause,
@@ -36,6 +37,7 @@ import {
   type PipelineSettings,
   type SegmentResult,
 } from "../lib/asl/pipeline";
+import { HandsOverlay } from "../lib/asl/handsOverlay";
 import type { AslSegmentRecord } from "../lib/types";
 
 export const Route = createFileRoute("/asl")({
@@ -60,6 +62,8 @@ function AslPage() {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const pipelineRef = useRef<AslPipeline | null>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayRef = useRef<HandsOverlay | null>(null);
   const sessionIdRef = useRef<string>(
     `asl_${Math.random().toString(36).slice(2, 10)}`,
   );
@@ -75,6 +79,9 @@ function AslPage() {
   const [settings, setSettings] = useState<PipelineSettings>(() =>
     loadAslPref<PipelineSettings>("settings", DEFAULT_PIPELINE_SETTINGS),
   );
+  const [overlayEnabled, setOverlayEnabled] = useState<boolean>(() =>
+    loadAslPref<boolean>("overlay", true),
+  );
 
   useEffect(() => {
     saveAslPref("provider", providerId);
@@ -82,6 +89,9 @@ function AslPage() {
   useEffect(() => {
     saveAslPref("settings", settings);
   }, [settings]);
+  useEffect(() => {
+    saveAslPref("overlay", overlayEnabled);
+  }, [overlayEnabled]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [replay, setReplay] = useState<ChatRow | null>(null);
 
@@ -163,7 +173,31 @@ function AslPage() {
     setRunning(false);
     pipelineRef.current?.stop();
     pipelineRef.current = null;
+    overlayRef.current?.stop();
+    overlayRef.current = null;
   };
+
+  // Overlay lifecycle. We tie the overlay to (streaming + overlayEnabled) so
+  // toggling either side cleanly tears down the model + RAF loop. Visualisation
+  // only — the recognition pipeline owns its own MediaPipe instance.
+  useEffect(() => {
+    if (!streaming || !overlayEnabled) {
+      overlayRef.current?.stop();
+      overlayRef.current = null;
+      return;
+    }
+    const video = videoRef.current;
+    const canvas = overlayCanvasRef.current;
+    if (!video || !canvas) return;
+    if (overlayRef.current) return;
+    const overlay = new HandsOverlay({ video, canvas });
+    overlayRef.current = overlay;
+    void overlay.start();
+    return () => {
+      overlay.stop();
+      if (overlayRef.current === overlay) overlayRef.current = null;
+    };
+  }, [streaming, overlayEnabled]);
 
   const handleResult = useCallback((r: SegmentResult) => {
     const row: ChatRow = {
@@ -277,6 +311,13 @@ function AslPage() {
               muted
               className="w-full h-full object-cover bg-black"
             />
+            <canvas
+              ref={overlayCanvasRef}
+              aria-hidden="true"
+              className={`pointer-events-none absolute inset-0 w-full h-full ${
+                overlayEnabled && streaming ? "" : "hidden"
+              }`}
+            />
             {!streaming && (
               <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)] text-sm">
                 Camera off
@@ -349,9 +390,23 @@ function AslPage() {
               ))}
             <button
               type="button"
+              onClick={() => setOverlayEnabled((v) => !v)}
+              aria-pressed={overlayEnabled}
+              title="Toggle hand-pose overlay"
+              className={`inline-flex items-center gap-1.5 border text-sm px-3 h-9 rounded-md ml-auto ${
+                overlayEnabled
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]"
+                  : "border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+              }`}
+            >
+              <Hand className="w-4 h-4" aria-hidden="true" />
+              Overlay
+            </button>
+            <button
+              type="button"
               onClick={() => setSettingsOpen((v) => !v)}
               aria-pressed={settingsOpen}
-              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-sm px-3 h-9 rounded-md hover:bg-[var(--color-surface-raised)] ml-auto"
+              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-sm px-3 h-9 rounded-md hover:bg-[var(--color-surface-raised)]"
             >
               <Settings className="w-4 h-4" aria-hidden="true" />
               Settings
