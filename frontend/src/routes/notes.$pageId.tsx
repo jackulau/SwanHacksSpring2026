@@ -44,6 +44,7 @@ import type { Mentionable } from "../components/notes/MentionMenu";
 import { PageEditor } from "../components/notes/PageEditor";
 import { PagePropertiesPanel } from "../components/notes/PageProperties";
 import { EmptyState } from "../components/layout/EmptyState";
+import { ingestNote } from "../lib/knowledge/ingest";
 
 export const Route = createFileRoute("/notes/$pageId")({
   component: () => (
@@ -285,7 +286,7 @@ function NotePageView() {
       if (!page) return;
       setSaveState("saving");
       try {
-        await pb.collection("note_pages").update(page.id, {
+        const updated = await pb.collection("note_pages").update<NotePage>(page.id, {
           title: nextTitle,
           blocks: nextBlocks,
           properties: nextProperties,
@@ -295,11 +296,16 @@ function NotePageView() {
         window.setTimeout(() => {
           setSaveState((s) => (s === "saved" ? "idle" : s));
         }, 1800);
+        // Re-ingest into knowledge_chunks so the search/ask surfaces stay
+        // current. Best-effort: ingest failure must never block the save.
+        if (user) {
+          void ingestNote(user.id, updated).catch(() => undefined);
+        }
       } catch {
         setSaveState("dirty");
       }
     },
-    [page],
+    [page, user],
   );
 
   // Debounced autosave on any persisted-field change.
