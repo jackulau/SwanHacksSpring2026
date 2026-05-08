@@ -7,6 +7,7 @@ import { ModeTabs } from "./capture";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
 import { transcribeAudioFile } from "../hooks/useLocalWhisper";
+import { toast } from "../lib/toasts";
 
 export const Route = createFileRoute("/capture/upload")({
   component: UploadPage,
@@ -74,13 +75,22 @@ function UploadPage() {
       if (result.errors.length > 0) {
         setPipelineStage('error');
         setPipelineError(result.errors.join('; '));
+        toast.error('Upload pipeline errored', result.errors[0]);
       } else {
         setPipelineStage('done');
+        toast.success(
+          'Lecture ready',
+          'Notes, flashcards, and a quiz are ready to review.',
+        );
       }
     } catch (e) {
       setIsUploading(false);
       setPipelineStage('error');
       setPipelineError(e instanceof Error ? e.message : 'Upload failed');
+      toast.error(
+        'Upload failed',
+        e instanceof Error ? e.message : undefined,
+      );
     }
   }, []);
 
