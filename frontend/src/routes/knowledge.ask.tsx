@@ -181,9 +181,14 @@ function TurnRow({ turn }: { turn: Turn }) {
 async function answerWith(question: string, citations: Retrieved[]): Promise<string> {
   // Probe the server-side hook. 404 means it's not wired yet.
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    const tok = (await import("../lib/pocketbase")).pb.authStore?.token;
+    if (tok) headers.Authorization = tok;
     const res = await fetch("/api/knowledge/ask", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         question,
         citations: citations.slice(0, 6).map((c, i) => ({

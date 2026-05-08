@@ -333,6 +333,23 @@ interface ProviderHttpResponse {
 }
 
 /**
+ * Build fetch headers that include the PB auth token so server-side
+ * routerAdd hooks can read `e.requestInfo().auth` and authorize the
+ * caller. Without this header the hook returns 401 and the provider
+ * looks unavailable.
+ */
+import { pb } from "../pocketbase";
+
+function pbAuthedHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const tok = pb.authStore?.token;
+  if (tok) headers.Authorization = tok;
+  return headers;
+}
+
+/**
  * Anthropic provider — POSTs to a server-side hook at /api/llm/anthropic
  * which forwards to the Messages API. The hook isn't deployed in this
  * branch (it'd require a PB restart we can't trigger from the agent), so
@@ -365,7 +382,7 @@ export class AnthropicProvider implements LlmProvider {
     const t0 = performance.now();
     const res = await fetch("/api/llm/anthropic", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: pbAuthedHeaders(),
       body: JSON.stringify({
         model: this.model,
         messages,
@@ -410,7 +427,7 @@ export class OpenAIProvider implements LlmProvider {
     const t0 = performance.now();
     const res = await fetch("/api/llm/openai", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: pbAuthedHeaders(),
       body: JSON.stringify({
         model: this.model,
         messages,
