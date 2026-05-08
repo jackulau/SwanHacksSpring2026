@@ -215,7 +215,13 @@ function ActivityPage() {
     <AppShell>
       <PageHeader
         title="Activity"
-        subtitle="Everything you've touched lately, in one place."
+        subtitle={
+          rows === null
+            ? "Loading…"
+            : rows.length === 0
+              ? "Everything you've touched lately, in one place."
+              : `${rows.length} recent event${rows.length === 1 ? "" : "s"}.`
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto space-y-5">
         <div className="flex flex-wrap gap-1.5">
