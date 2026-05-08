@@ -119,6 +119,7 @@ export function CommandPalette({
       // Navigation — always available
       { id: "go-home", label: "Go to Home", icon: Home, group: "Go", run: () => navigate({ to: "/" }) },
       { id: "go-record", label: "Start a recording", keywords: "record capture audio mic", icon: Mic, group: "Action", run: () => navigate({ to: "/capture" }) },
+      { id: "go-voice", label: "Voice note", keywords: "dictate speech transcribe microphone speak", icon: Mic, group: "Action", run: () => navigate({ to: "/voice" }) },
       { id: "go-courses", label: "Go to Courses", icon: BookOpen, group: "Go", run: () => navigate({ to: "/courses" }) },
       { id: "go-notes", label: "Go to Notes", keywords: "pages docs writing", icon: FileText, group: "Go", run: () => navigate({ to: "/notes" }) },
       { id: "act-new-note", label: "New note page", keywords: "page create blank", icon: Plus, group: "Action", run: () => navigate({ to: "/notes" }) },

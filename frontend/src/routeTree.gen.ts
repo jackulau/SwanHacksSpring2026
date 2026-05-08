@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VoiceRouteImport } from './routes/voice'
 import { Route as TrashRouteImport } from './routes/trash'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as TemplatesRouteImport } from './routes/templates'
@@ -47,6 +48,11 @@ import { Route as CoursesCourseIdSearchRouteImport } from './routes/courses.$cou
 import { Route as CoursesCourseIdModulesRouteImport } from './routes/courses.$courseId.modules'
 import { Route as StudyQuizQuizIdMultiplayerRouteImport } from './routes/study.quiz.$quizId.multiplayer'
 
+const VoiceRoute = VoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrashRoute = TrashRouteImport.update({
   id: '/trash',
   path: '/trash',
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof TemplatesRoute
   '/today': typeof TodayRoute
   '/trash': typeof TrashRoute
+  '/voice': typeof VoiceRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
@@ -295,6 +302,7 @@ export interface FileRoutesByTo {
   '/templates': typeof TemplatesRoute
   '/today': typeof TodayRoute
   '/trash': typeof TrashRoute
+  '/voice': typeof VoiceRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
@@ -335,6 +343,7 @@ export interface FileRoutesById {
   '/templates': typeof TemplatesRoute
   '/today': typeof TodayRoute
   '/trash': typeof TrashRoute
+  '/voice': typeof VoiceRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
   '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
@@ -376,6 +385,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/today'
     | '/trash'
+    | '/voice'
     | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
@@ -415,6 +425,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/today'
     | '/trash'
+    | '/voice'
     | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
@@ -454,6 +465,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/today'
     | '/trash'
+    | '/voice'
     | '/assignments/$assignmentId'
     | '/capture/upload'
     | '/courses/$courseId'
@@ -494,6 +506,7 @@ export interface RootRouteChildren {
   TemplatesRoute: typeof TemplatesRoute
   TodayRoute: typeof TodayRoute
   TrashRoute: typeof TrashRoute
+  VoiceRoute: typeof VoiceRoute
   AssignmentsAssignmentIdRoute: typeof AssignmentsAssignmentIdRoute
   GameSessionIdRoute: typeof GameSessionIdRoute
   LecturesLectureIdRoute: typeof LecturesLectureIdRoute
@@ -501,6 +514,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/voice': {
+      id: '/voice'
+      path: '/voice'
+      fullPath: '/voice'
+      preLoaderRoute: typeof VoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trash': {
       id: '/trash'
       path: '/trash'
@@ -893,6 +913,7 @@ const rootRouteChildren: RootRouteChildren = {
   TemplatesRoute: TemplatesRoute,
   TodayRoute: TodayRoute,
   TrashRoute: TrashRoute,
+  VoiceRoute: VoiceRoute,
   AssignmentsAssignmentIdRoute: AssignmentsAssignmentIdRoute,
   GameSessionIdRoute: GameSessionIdRoute,
   LecturesLectureIdRoute: LecturesLectureIdRoute,
