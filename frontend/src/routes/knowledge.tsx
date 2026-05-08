@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { pb } from "../lib/pocketbase";
 import {
   BookOpen,
   Calendar,
@@ -130,10 +131,41 @@ function KnowledgeSearchPage() {
   const [filters, setFilters] = useState<Set<KnowledgeSourceType>>(() =>
     loadFilters(),
   );
+  const [counts, setCounts] = useState<Partial<
+    Record<KnowledgeSourceType, number>
+  > & { total?: number }>({});
 
   useEffect(() => {
     saveFilters(filters);
   }, [filters]);
+
+  const refreshCounts = useCallback(async () => {
+    if (!user) return;
+    const next: Partial<Record<KnowledgeSourceType, number>> & {
+      total?: number;
+    } = {};
+    let total = 0;
+    for (const t of FILTER_TYPES) {
+      try {
+        const page = await pb
+          .collection("knowledge_chunks")
+          .getList(1, 1, {
+            filter: `user = "${user.id}" && source_type = "${t}"`,
+            requestKey: `kc-count-${t}`,
+          });
+        next[t] = page.totalItems;
+        total += page.totalItems;
+      } catch {
+        next[t] = 0;
+      }
+    }
+    next.total = total;
+    setCounts(next);
+  }, [user]);
+
+  useEffect(() => {
+    void refreshCounts();
+  }, [refreshCounts]);
 
   const toggleFilter = (t: KnowledgeSourceType) => {
     setFilters((prev) => {
@@ -180,6 +212,7 @@ function KnowledgeSearchPage() {
     try {
       const out = await backfillUserKnowledge(user.id, (msg) => setProgress(msg));
       setStats(`Indexed ${out.total.chunks} chunks across your library.`);
+      void refreshCounts();
     } catch {
       setStats("Backfill ran into an error — check the console.");
     } finally {
@@ -217,6 +250,7 @@ function KnowledgeSearchPage() {
           const meta = SOURCE_META[t];
           const Icon = meta?.icon ?? FileText;
           const active = filters.has(t);
+          const cnt = counts[t] ?? 0;
           return (
             <button
               key={t}
@@ -226,10 +260,13 @@ function KnowledgeSearchPage() {
                 active
                   ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]"
                   : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
-              }`}
+              } ${cnt === 0 ? "opacity-60" : ""}`}
             >
               <Icon className="w-3 h-3" aria-hidden="true" />
               {meta?.label ?? t}
+              <span className="font-mono tabular-nums text-[var(--color-text-subtle)]">
+                {cnt}
+              </span>
             </button>
           );
         })}
@@ -243,6 +280,13 @@ function KnowledgeSearchPage() {
           </button>
         )}
       </div>
+
+      {(counts.total ?? 0) > 0 && (
+        <div className="text-[11px] text-[var(--color-text-subtle)]">
+          {counts.total} chunks indexed across {Object.keys(counts).filter((k) => k !== "total" && (counts[k as KnowledgeSourceType] ?? 0) > 0).length}{" "}
+          source types.
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)]">
         <div>
