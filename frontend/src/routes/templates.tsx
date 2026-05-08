@@ -73,7 +73,7 @@ function TemplatesPage() {
     <AppShell>
       <PageHeader
         title="Templates"
-        subtitle="Start a new note from a tested skeleton."
+        subtitle={`${NOTE_TEMPLATES.length} starter shapes — pick one to scaffold a new page.`}
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
