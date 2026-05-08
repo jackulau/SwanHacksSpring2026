@@ -628,7 +628,22 @@ function ChatSurface({
     );
   }
 
+  const totalConfident = chat.filter(
+    (r) => r.confidence >= 0.5 && r.transcription !== "[unclear]",
+  ).length;
+  const total = chat.length;
+  const accuracy = total > 0 ? Math.round((totalConfident / total) * 100) : 0;
+
   return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-[11px] text-[var(--color-text-subtle)] px-1">
+        <span>
+          {total} segment{total === 1 ? "" : "s"}
+        </span>
+        <span className="tabular-nums">
+          {accuracy}% high-confidence
+        </span>
+      </div>
     <div
       ref={ref}
       className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 max-h-[600px] overflow-y-auto space-y-2"
@@ -706,6 +721,7 @@ function ChatSurface({
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
