@@ -6,6 +6,7 @@ import {
   QUIZ_GENERATION_SYSTEM,
 } from './prompts';
 import type { NoteBlock, QuizQuestion } from './types';
+import { ingestFlashcard, ingestLecture, ingestQuiz } from './knowledge/ingest';
 
 // ── LLM provider config ────────────────────────────────────────────────────
 // Supports any OpenAI-compatible endpoint: Ollama (local, no key), OpenRouter,
@@ -351,9 +352,6 @@ async function runKnowledgeIngestForLecture(
   userId: string,
   lectureId: string,
 ): Promise<void> {
-  const { ingestLecture, ingestQuiz, ingestFlashcard } = await import(
-    './knowledge/ingest'
-  );
   const lecture = await pb
     .collection('lectures')
     .getOne<import('./types').Lecture>(lectureId)

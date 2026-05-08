@@ -16,6 +16,7 @@ import { pb } from "../lib/pocketbase";
 import { ingestNote } from "../lib/knowledge/ingest";
 import { toast } from "../lib/toasts";
 import type { NoteBlock, NotePage } from "../lib/types";
+import { pbAuthedHeaders } from "../lib/http";
 import { resolveProvider, type LlmMessage } from "../lib/llm/providers";
 
 export const Route = createFileRoute("/knowledge/ask")({
@@ -412,7 +413,6 @@ async function* streamAnswer(
 
   // 2. Single-shot legacy hook.
   try {
-    const { pbAuthedHeaders } = await import("../lib/http");
     const res = await fetch("/api/knowledge/ask", {
       method: "POST",
       headers: pbAuthedHeaders(),
