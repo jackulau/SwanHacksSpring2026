@@ -68,11 +68,20 @@ function AslPage() {
   const [running, setRunning] = useState(false);
   const [signing, setSigning] = useState(false);
   const [chat, setChat] = useState<ChatRow[]>([]);
-  const [providerId, setProviderId] = useState<VlmProviderId>("google");
-  const [provider, setProvider] = useState<VlmProvider>(new StubProvider());
-  const [settings, setSettings] = useState<PipelineSettings>(
-    DEFAULT_PIPELINE_SETTINGS,
+  const [providerId, setProviderId] = useState<VlmProviderId>(
+    () => loadAslPref<VlmProviderId>("provider", "google"),
   );
+  const [provider, setProvider] = useState<VlmProvider>(new StubProvider());
+  const [settings, setSettings] = useState<PipelineSettings>(() =>
+    loadAslPref<PipelineSettings>("settings", DEFAULT_PIPELINE_SETTINGS),
+  );
+
+  useEffect(() => {
+    saveAslPref("provider", providerId);
+  }, [providerId]);
+  useEffect(() => {
+    saveAslPref("settings", settings);
+  }, [settings]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [replay, setReplay] = useState<ChatRow | null>(null);
 
@@ -664,3 +673,25 @@ function _useUnused(_v: ((...args: unknown[]) => void) | undefined) {
 void useMemo;
 void Loader2;
 void _useUnused;
+
+const ASL_PREF_PREFIX = "converge:asl:";
+
+function loadAslPref<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(ASL_PREF_PREFIX + key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveAslPref<T>(key: string, value: T): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ASL_PREF_PREFIX + key, JSON.stringify(value));
+  } catch {
+    // ignore
+  }
+}
