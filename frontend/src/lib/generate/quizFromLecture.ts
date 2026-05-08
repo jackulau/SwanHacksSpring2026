@@ -76,7 +76,7 @@ export async function quizFromLecture(
 
   const totalPoints = questions.reduce((sum, q) => sum + (q.points ?? 1), 0);
   const title = opts.title ?? `${lecture.title} — quiz`;
-  return await pb.collection("quizzes").create<Quiz>({
+  const written = await pb.collection("quizzes").create<Quiz>({
     lecture: lectureId,
     user: lecture.user,
     title,
@@ -84,6 +84,16 @@ export async function quizFromLecture(
     total_points: totalPoints,
     source: "auto_generated",
   });
+  // Best-effort knowledge ingest so the new quiz surfaces in /knowledge
+  // search immediately. The dynamic import avoids pulling the ingest
+  // module into the quiz-generation path on first load.
+  try {
+    const mod = await import("../knowledge/ingest");
+    void mod.ingestQuiz(lecture.user, written).catch(() => undefined);
+  } catch {
+    // ignore
+  }
+  return written;
 }
 
 /**

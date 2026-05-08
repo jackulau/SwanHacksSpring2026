@@ -15,6 +15,7 @@
 import { pb } from "../pocketbase";
 import { resolveProvider, type LlmProvider, type LlmProviderId } from "../llm/providers";
 import type { Flashcard, NoteBlock, NotePage } from "../types";
+import { ingestFlashcard } from "../knowledge/ingest";
 
 export interface FlashcardsFromNoteOptions {
   /** Pin a specific provider; falls back through the resolver chain. */
@@ -60,7 +61,7 @@ export async function flashcardsFromNote(
   let created = 0;
   for (const card of cards) {
     try {
-      await pb.collection("flashcards").create<Flashcard>({
+      const written = await pb.collection("flashcards").create<Flashcard>({
         lecture: page.lecture || "",
         user: page.user,
         deck_name: deckName,
@@ -76,6 +77,10 @@ export async function flashcardsFromNote(
         repetitions: 0,
       });
       created++;
+      // Best-effort knowledge ingest so the new card surfaces in
+      // /knowledge search without manual backfill. Swallow errors so a
+      // search-index hiccup never aborts the deck creation flow.
+      void ingestFlashcard(page.user, written).catch(() => undefined);
     } catch {
       // Per-card create failed; continue with the rest.
     }

@@ -60,7 +60,7 @@ export async function studyPlanFromCourse(
   }
 
   const title = opts.title ?? `${course.code || course.name} study plan`;
-  return await pb.collection("note_pages").create<NotePage>({
+  const written = await pb.collection("note_pages").create<NotePage>({
     user: course.user,
     title,
     icon: opts.icon ?? "list-checks",
@@ -71,6 +71,14 @@ export async function studyPlanFromCourse(
     properties: { tags: ["study-plan", "auto-generated"], status: "in_progress" },
     archived: false,
   });
+  // Best-effort knowledge ingest so the new plan is searchable.
+  try {
+    const mod = await import("../knowledge/ingest");
+    void mod.ingestNote(course.user, written).catch(() => undefined);
+  } catch {
+    // ignore
+  }
+  return written;
 }
 
 /**
