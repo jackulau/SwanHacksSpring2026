@@ -30,6 +30,7 @@ import { Route as DecksRouteImport } from './routes/decks'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as BackupRouteImport } from './routes/backup'
 import { Route as AslRouteImport } from './routes/asl'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
@@ -155,6 +156,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BackupRoute = BackupRouteImport.update({
+  id: '/backup',
+  path: '/backup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AslRoute = AslRouteImport.update({
   id: '/asl',
   path: '/asl',
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
+  '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
@@ -298,6 +305,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
+  '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
@@ -341,6 +349,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/asl': typeof AslRoute
+  '/backup': typeof BackupRoute
   '/calendar': typeof CalendarRoute
   '/capture': typeof CaptureRouteWithChildren
   '/courses': typeof CoursesRouteWithChildren
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/asl'
+    | '/backup'
     | '/calendar'
     | '/capture'
     | '/courses'
@@ -427,6 +437,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/asl'
+    | '/backup'
     | '/calendar'
     | '/capture'
     | '/courses'
@@ -469,6 +480,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/asl'
+    | '/backup'
     | '/calendar'
     | '/capture'
     | '/courses'
@@ -512,6 +524,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
   AslRoute: typeof AslRoute
+  BackupRoute: typeof BackupRoute
   CalendarRoute: typeof CalendarRoute
   CaptureRoute: typeof CaptureRouteWithChildren
   CoursesRoute: typeof CoursesRouteWithChildren
@@ -685,6 +698,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/backup': {
+      id: '/backup'
+      path: '/backup'
+      fullPath: '/backup'
+      preLoaderRoute: typeof BackupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/asl': {
@@ -935,6 +955,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
   AslRoute: AslRoute,
+  BackupRoute: BackupRoute,
   CalendarRoute: CalendarRoute,
   CaptureRoute: CaptureRouteWithChildren,
   CoursesRoute: CoursesRouteWithChildren,
