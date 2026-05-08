@@ -108,12 +108,52 @@ function MePage() {
               Counting…
             </div>
           ) : (
+            <>
             <ul className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <Tile label="Notes" value={counts.notes} to="/notes" />
               <Tile label="Lectures" value={counts.lectures} to="/courses" />
               <Tile label="Cards" value={counts.flashcards} to="/decks" />
               <Tile label="Quizzes" value={counts.quizzes} to="/study" />
             </ul>
+            <ul className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <li>
+                <Link
+                  to="/goals"
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 hover:border-[var(--color-primary)] block"
+                >
+                  <div className="text-xs text-[var(--color-text-muted)]">Goals</div>
+                  <div className="text-sm text-[var(--color-text)]">Open list</div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/journal"
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 hover:border-[var(--color-primary)] block"
+                >
+                  <div className="text-xs text-[var(--color-text-muted)]">Journal</div>
+                  <div className="text-sm text-[var(--color-text)]">Today's entry</div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/stats"
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 hover:border-[var(--color-primary)] block"
+                >
+                  <div className="text-xs text-[var(--color-text-muted)]">Stats</div>
+                  <div className="text-sm text-[var(--color-text)]">Analytics</div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/sessions"
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 hover:border-[var(--color-primary)] block"
+                >
+                  <div className="text-xs text-[var(--color-text-muted)]">Sessions</div>
+                  <div className="text-sm text-[var(--color-text)]">Multiplayer</div>
+                </Link>
+              </li>
+            </ul>
+            </>
           )}
         </section>
 
