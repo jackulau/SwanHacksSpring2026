@@ -1,7 +1,16 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { FileText, ArrowLeft, Plus, ClipboardList, NotebookPen, Loader2 } from "lucide-react";
+import {
+  FileText,
+  ArrowLeft,
+  Plus,
+  ClipboardList,
+  NotebookPen,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { pb } from "../lib/pocketbase";
+import { studyPlanFromCourse } from "../lib/generate";
 import type { Course, Lecture, Note } from "../lib/types";
 import { PageHeader } from "../components/layout/PageHeader";
 import { EmptyState } from "../components/layout/EmptyState";
@@ -16,12 +25,35 @@ type Tab = "lectures" | "assignments" | "notes";
 
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
+  const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [notes, setNotes] = useState<Array<Note & { lectureTitle?: string }>>([]);
   const [assignmentCount, setAssignmentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("lectures");
+  // Study-plan generation state. On success we navigate to the new note
+  // page directly so the user lands inside the generated checklist.
+  const [planGenerating, setPlanGenerating] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+
+  const handleGeneratePlan = async () => {
+    if (!course || planGenerating) return;
+    setPlanGenerating(true);
+    setPlanError(null);
+    try {
+      const page = await studyPlanFromCourse(course.id);
+      navigate({ to: "/notes/$pageId", params: { pageId: page.id } });
+    } catch (err) {
+      setPlanError(
+        err instanceof Error
+          ? err.message
+          : "Couldn't generate a study plan for this course.",
+      );
+    } finally {
+      setPlanGenerating(false);
+    }
+  };
 
   useEffect(() => {
     if (!course?.name) return;
@@ -150,17 +182,37 @@ function CourseDetailPage() {
           ) : undefined
         }
         actions={
-          <Link
-            to="/capture"
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold rounded-md px-4 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-            Add lecture
-          </Link>
+          <div className="inline-flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleGeneratePlan}
+              disabled={planGenerating}
+              title="Build a checklist study plan from this course's lectures and assignments."
+              className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] transition-colors"
+            >
+              <Sparkles className="w-4 h-4" aria-hidden="true" />
+              {planGenerating ? "Generating…" : "Generate study plan"}
+            </button>
+            <Link
+              to="/capture"
+              className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold rounded-md px-4 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Add lecture
+            </Link>
+          </div>
         }
       />
 
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
+        {planError && (
+          <div
+            role="alert"
+            className="mb-4 px-3 py-2 text-xs text-[var(--color-record)] border-l-2 border-[var(--color-record)] bg-[var(--color-record)]/10"
+          >
+            {planError}
+          </div>
+        )}
         <Link
           to="/courses"
           className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-md"
