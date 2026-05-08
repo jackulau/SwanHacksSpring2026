@@ -412,20 +412,44 @@ function KnowledgeSearchPage() {
 function SearchResultRow({ r, query }: { r: Retrieved; query: string }) {
   const href = sourceHref(r.chunk.source_type, r.chunk.source_id);
   const snippet = useMemo(() => buildSnippet(r.chunk.text, query), [r, query]);
+  const [expanded, setExpanded] = useState(false);
   return (
     <li>
-      {href ? (
-        <a
-          href={href}
-          className="block rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-3 hover:border-[var(--color-primary)] transition-colors"
-        >
-          <ResultBody r={r} snippet={snippet} />
-        </a>
-      ) : (
-        <div className="block rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-          <ResultBody r={r} snippet={snippet} />
+      <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)] transition-colors">
+        {href ? (
+          <a
+            href={href}
+            className="block p-3"
+            onClick={(e) => {
+              // Cmd/Ctrl-click should still respect new-tab semantics.
+              if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+            }}
+          >
+            <ResultBody r={r} snippet={snippet} />
+          </a>
+        ) : (
+          <div className="block p-3">
+            <ResultBody r={r} snippet={snippet} />
+          </div>
+        )}
+        <div className="border-t border-[var(--color-border)]/60 px-3 py-1.5 flex items-center justify-end gap-2 text-[10px]">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setExpanded((v) => !v);
+            }}
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          >
+            {expanded ? "Hide chunk" : "Show full chunk"}
+          </button>
         </div>
-      )}
+        {expanded && (
+          <pre className="px-3 pb-3 -mt-1 text-[11px] text-[var(--color-text-muted)] whitespace-pre-wrap leading-relaxed font-sans">
+            {r.chunk.text}
+          </pre>
+        )}
+      </div>
     </li>
   );
 }
