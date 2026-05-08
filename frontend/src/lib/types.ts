@@ -442,6 +442,14 @@ export interface NoteLink extends RecordModel {
   target_page: string;
 }
 
+export interface NoteCommentRecord extends RecordModel {
+  user: string;
+  page: string;
+  parent: string;
+  body: string;
+  resolved: boolean;
+}
+
 export interface CalendarEventRecord extends RecordModel {
   user: string;
   title: string;
