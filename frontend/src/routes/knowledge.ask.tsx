@@ -16,6 +16,7 @@ import { pb } from "../lib/pocketbase";
 import { ingestNote } from "../lib/knowledge/ingest";
 import { toast } from "../lib/toasts";
 import type { NoteBlock, NotePage } from "../lib/types";
+import { resolveProvider, type LlmMessage } from "../lib/llm/providers";
 
 export const Route = createFileRoute("/knowledge/ask")({
   component: AskPage,
@@ -107,12 +108,40 @@ function AskPage() {
         topK: 8,
         expandGraph: true,
       });
-      const answer = await answerWith(question, citations);
+      // Surface citations early so the sources list renders alongside the
+      // typewriter; keep `pending` true until the first chunk arrives so
+      // the spinner doesn't flicker on an empty card.
       setTurns((prev) =>
-        prev.map((t) =>
-          t.id === id ? { ...t, answer, citations, pending: false } : t,
-        ),
+        prev.map((t) => (t.id === id ? { ...t, citations } : t)),
       );
+      let acc = "";
+      let firstChunk = true;
+      for await (const chunk of streamAnswer(question, citations)) {
+        acc += chunk;
+        // Snapshot for the closure — React state updater otherwise sees a
+        // stale `acc` if multiple chunks arrive in the same microtask tick.
+        const snapshot = acc;
+        const flipPending = firstChunk;
+        firstChunk = false;
+        setTurns((prev) =>
+          prev.map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  answer: snapshot,
+                  pending: flipPending ? false : t.pending,
+                }
+              : t,
+          ),
+        );
+      }
+      // Edge case: stream produced zero chunks. Drop pending so the card
+      // doesn't sit on the spinner forever.
+      if (firstChunk) {
+        setTurns((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, pending: false } : t)),
+        );
+      }
     } catch {
       setTurns((prev) =>
         prev.map((t) =>
@@ -324,13 +353,64 @@ function TurnRow({ turn }: { turn: Turn }) {
 }
 
 /**
- * Answer the question — either via a configured LLM hook or, when
- * none exists, by composing a deterministic stub answer that quotes
- * the top retrievals so the surface is still useful. The endpoint
- * `/api/knowledge/ask` is reserved for the real implementation.
+ * Stream an answer to the question as an AsyncIterable of text deltas.
+ *
+ * Resolution order:
+ *   1. `resolveProvider().completeStream()` — uses the new SSE hooks at
+ *      /api/llm/{anthropic,openai}-stream, with each provider falling
+ *      back to its non-streaming `complete()` when those routes 404.
+ *   2. `/api/knowledge/ask` — the older non-streaming synthesis hook,
+ *      yielded as a single chunk so the UI still renders something
+ *      sensible if the provider stack threw before yielding anything.
+ *   3. Deterministic citation-quoting stub so the surface is useful on
+ *      a fresh checkout with no LLM keys configured.
  */
-async function answerWith(question: string, citations: Retrieved[]): Promise<string> {
-  // Probe the server-side hook. 404 means it's not wired yet.
+async function* streamAnswer(
+  question: string,
+  citations: Retrieved[],
+): AsyncIterable<string> {
+  const sourcesBlock = citations
+    .slice(0, 6)
+    .map(
+      (c, i) =>
+        `[${i + 1}] ${c.chunk.title || "Untitled"} (${c.chunk.source_type})\n${(c.chunk.text || "").slice(0, 1200)}`,
+    )
+    .join("\n\n");
+  const messages: LlmMessage[] = [
+    {
+      role: "system",
+      content:
+        "You are a focused study companion. Answer the user's question " +
+        "using ONLY the provided source excerpts. Cite sources inline " +
+        "using their [index]. Be concise. If the sources don't answer " +
+        "the question, say so.",
+    },
+    {
+      role: "user",
+      content: `Question: ${question}\n\nSources:\n${sourcesBlock}`,
+    },
+  ];
+
+  // 1. Streaming provider path.
+  let yieldedAny = false;
+  try {
+    const provider = await resolveProvider("anthropic");
+    if (provider.id !== "stub" || citations.length === 0) {
+      for await (const chunk of provider.completeStream(messages, {
+        maxTokens: 800,
+      })) {
+        if (chunk) {
+          yieldedAny = true;
+          yield chunk;
+        }
+      }
+      if (yieldedAny) return;
+    }
+  } catch {
+    // fall through
+  }
+
+  // 2. Single-shot legacy hook.
   try {
     const { pbAuthedHeaders } = await import("../lib/http");
     const res = await fetch("/api/knowledge/ask", {
@@ -349,14 +429,19 @@ async function answerWith(question: string, citations: Retrieved[]): Promise<str
     });
     if (res.ok) {
       const data = (await res.json()) as { answer?: string };
-      if (data.answer) return data.answer;
+      if (data.answer) {
+        yield data.answer;
+        return;
+      }
     }
   } catch {
     // fall through
   }
-  // Stub: synthesize a readable response from retrievals.
+
+  // 3. Deterministic stub.
   if (citations.length === 0) {
-    return "I couldn't find anything in your library that matches. Try rephrasing or running a backfill from the Search tab so this is up-to-date.";
+    yield "I couldn't find anything in your library that matches. Try rephrasing or running a backfill from the Search tab so this is up-to-date.";
+    return;
   }
   const lines: string[] = [];
   lines.push(`Here's what your library says about "${question}":`);
@@ -370,5 +455,5 @@ async function answerWith(question: string, citations: Retrieved[]): Promise<str
   lines.push(
     "(No LLM provider configured; this fallback shows top retrievals verbatim. Wire /api/knowledge/ask in pb_hooks to enable streamed synthesis.)",
   );
-  return lines.join("\n");
+  yield lines.join("\n");
 }
