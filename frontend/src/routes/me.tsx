@@ -126,6 +126,9 @@ function MePage() {
             <Row to="/settings" label="Preferences" />
             <Row to="/settings/accessibility" label="Accessibility" />
             <Row to="/backup" label="Backup library" />
+            <Row to="/onboarding" label="Onboarding tour" />
+            <Row to="/shortcuts" label="Keyboard shortcuts" />
+            <Row to="/privacy" label="Privacy" />
             <Row to="/lab" label="Lab — system status" />
           </ul>
         </section>
