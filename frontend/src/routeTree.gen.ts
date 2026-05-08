@@ -16,6 +16,7 @@ import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TagsRouteImport } from './routes/tags'
 import { Route as StudyRouteImport } from './routes/study'
 import { Route as StatsRouteImport } from './routes/stats'
+import { Route as ShortcutsRouteImport } from './routes/shortcuts'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as RandomRouteImport } from './routes/random'
@@ -89,6 +90,11 @@ const StudyRoute = StudyRouteImport.update({
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShortcutsRoute = ShortcutsRouteImport.update({
+  id: '/shortcuts',
+  path: '/shortcuts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -311,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/shortcuts': typeof ShortcutsRoute
   '/stats': typeof StatsRoute
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
@@ -359,6 +366,7 @@ export interface FileRoutesByTo {
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/shortcuts': typeof ShortcutsRoute
   '/stats': typeof StatsRoute
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
@@ -408,6 +416,7 @@ export interface FileRoutesById {
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/shortcuts': typeof ShortcutsRoute
   '/stats': typeof StatsRoute
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
@@ -458,6 +467,7 @@ export interface FileRouteTypes {
     | '/random'
     | '/sessions'
     | '/settings'
+    | '/shortcuts'
     | '/stats'
     | '/study'
     | '/tags'
@@ -506,6 +516,7 @@ export interface FileRouteTypes {
     | '/random'
     | '/sessions'
     | '/settings'
+    | '/shortcuts'
     | '/stats'
     | '/study'
     | '/tags'
@@ -554,6 +565,7 @@ export interface FileRouteTypes {
     | '/random'
     | '/sessions'
     | '/settings'
+    | '/shortcuts'
     | '/stats'
     | '/study'
     | '/tags'
@@ -603,6 +615,7 @@ export interface RootRouteChildren {
   RandomRoute: typeof RandomRoute
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
+  ShortcutsRoute: typeof ShortcutsRoute
   StatsRoute: typeof StatsRoute
   StudyRoute: typeof StudyRouteWithChildren
   TagsRoute: typeof TagsRouteWithChildren
@@ -664,6 +677,13 @@ declare module '@tanstack/react-router' {
       path: '/stats'
       fullPath: '/stats'
       preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shortcuts': {
+      id: '/shortcuts'
+      path: '/shortcuts'
+      fullPath: '/shortcuts'
+      preLoaderRoute: typeof ShortcutsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -1083,6 +1103,7 @@ const rootRouteChildren: RootRouteChildren = {
   RandomRoute: RandomRoute,
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRouteWithChildren,
+  ShortcutsRoute: ShortcutsRoute,
   StatsRoute: StatsRoute,
   StudyRoute: StudyRouteWithChildren,
   TagsRoute: TagsRouteWithChildren,
