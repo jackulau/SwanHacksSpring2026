@@ -34,6 +34,7 @@ import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as CaptureUploadRouteImport } from './routes/capture.upload'
 import { Route as AssignmentsAssignmentIdRouteImport } from './routes/assignments.$assignmentId'
 import { Route as StudyQuizQuizIdRouteImport } from './routes/study.quiz.$quizId'
+import { Route as CoursesCourseIdSearchRouteImport } from './routes/courses.$courseId.search'
 import { Route as StudyQuizQuizIdMultiplayerRouteImport } from './routes/study.quiz.$quizId.multiplayer'
 
 const TrashRoute = TrashRouteImport.update({
@@ -161,6 +162,11 @@ const StudyQuizQuizIdRoute = StudyQuizQuizIdRouteImport.update({
   path: '/quiz/$quizId',
   getParentRoute: () => StudyRoute,
 } as any)
+const CoursesCourseIdSearchRoute = CoursesCourseIdSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => CoursesCourseIdRoute,
+} as any)
 const StudyQuizQuizIdMultiplayerRoute =
   StudyQuizQuizIdMultiplayerRouteImport.update({
     id: '/multiplayer',
@@ -184,7 +190,7 @@ export interface FileRoutesByFullPath {
   '/trash': typeof TrashRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
-  '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
   '/game/$sessionId': typeof GameSessionIdRoute
   '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
+  '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
   '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
 }
@@ -212,7 +219,7 @@ export interface FileRoutesByTo {
   '/trash': typeof TrashRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
-  '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
   '/game/$sessionId': typeof GameSessionIdRoute
   '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
+  '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
   '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
 }
@@ -241,7 +249,7 @@ export interface FileRoutesById {
   '/trash': typeof TrashRoute
   '/assignments/$assignmentId': typeof AssignmentsAssignmentIdRoute
   '/capture/upload': typeof CaptureUploadRoute
-  '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/courses/$courseId': typeof CoursesCourseIdRouteWithChildren
   '/game/$sessionId': typeof GameSessionIdRoute
   '/knowledge/ask': typeof KnowledgeAskRoute
   '/lectures/$lectureId': typeof LecturesLectureIdRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/study/due': typeof StudyDueRoute
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
+  '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
   '/study/quiz/$quizId/multiplayer': typeof StudyQuizQuizIdMultiplayerRoute
 }
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
+    | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
     | '/study/quiz/$quizId/multiplayer'
   fileRoutesByTo: FileRoutesByTo
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
+    | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
     | '/study/quiz/$quizId/multiplayer'
   id:
@@ -336,6 +347,7 @@ export interface FileRouteTypes {
     | '/study/due'
     | '/study/flashcards'
     | '/study/planner'
+    | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
     | '/study/quiz/$quizId/multiplayer'
   fileRoutesById: FileRoutesById
@@ -536,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudyQuizQuizIdRouteImport
       parentRoute: typeof StudyRoute
     }
+    '/courses/$courseId/search': {
+      id: '/courses/$courseId/search'
+      path: '/search'
+      fullPath: '/courses/$courseId/search'
+      preLoaderRoute: typeof CoursesCourseIdSearchRouteImport
+      parentRoute: typeof CoursesCourseIdRoute
+    }
     '/study/quiz/$quizId/multiplayer': {
       id: '/study/quiz/$quizId/multiplayer'
       path: '/multiplayer'
@@ -557,12 +576,24 @@ const CaptureRouteChildren: CaptureRouteChildren = {
 const CaptureRouteWithChildren =
   CaptureRoute._addFileChildren(CaptureRouteChildren)
 
+interface CoursesCourseIdRouteChildren {
+  CoursesCourseIdSearchRoute: typeof CoursesCourseIdSearchRoute
+}
+
+const CoursesCourseIdRouteChildren: CoursesCourseIdRouteChildren = {
+  CoursesCourseIdSearchRoute: CoursesCourseIdSearchRoute,
+}
+
+const CoursesCourseIdRouteWithChildren = CoursesCourseIdRoute._addFileChildren(
+  CoursesCourseIdRouteChildren,
+)
+
 interface CoursesRouteChildren {
-  CoursesCourseIdRoute: typeof CoursesCourseIdRoute
+  CoursesCourseIdRoute: typeof CoursesCourseIdRouteWithChildren
 }
 
 const CoursesRouteChildren: CoursesRouteChildren = {
-  CoursesCourseIdRoute: CoursesCourseIdRoute,
+  CoursesCourseIdRoute: CoursesCourseIdRouteWithChildren,
 }
 
 const CoursesRouteWithChildren =
