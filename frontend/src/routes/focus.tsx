@@ -9,16 +9,42 @@ export const Route = createFileRoute("/focus")({
   component: FocusPage,
 });
 
-const POMODORO_SECONDS = 25 * 60;
 const SHORT_BREAK_SECONDS = 5 * 60;
+const FOCUS_LENGTH_KEY = "converge:focus:length";
+
+function loadLength(): number {
+  if (typeof window === "undefined") return 25 * 60;
+  try {
+    const raw = window.localStorage.getItem(FOCUS_LENGTH_KEY);
+    if (!raw) return 25 * 60;
+    const v = Number(raw);
+    if (!Number.isFinite(v) || v < 60 || v > 90 * 60) return 25 * 60;
+    return v;
+  } catch {
+    return 25 * 60;
+  }
+}
 
 function FocusPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [phase, setPhase] = useState<"work" | "break">("work");
-  const [remaining, setRemaining] = useState(POMODORO_SECONDS);
+  const [length, setLength] = useState<number>(() => loadLength());
+  const [remaining, setRemaining] = useState(length);
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState(0);
+
+  useEffect(() => {
+    if (running) return;
+    if (phase === "work") setRemaining(length);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(FOCUS_LENGTH_KEY, String(length));
+      } catch {
+        // ignore
+      }
+    }
+  }, [length, phase, running]);
   const startTsRef = useRef<number | null>(null);
   const sessionRef = useRef<string | null>(null);
 
@@ -53,7 +79,7 @@ function FocusPage() {
                 lecture: "",
                 cards_reviewed: 0,
                 cards_correct: 0,
-                duration_secs: POMODORO_SECONDS,
+                duration_secs: length,
                 started_at: startIso,
                 ended_at: new Date().toISOString(),
               })
@@ -64,7 +90,7 @@ function FocusPage() {
           setRemaining(SHORT_BREAK_SECONDS);
         } else {
           setPhase("work");
-          setRemaining(POMODORO_SECONDS);
+          setRemaining(length);
         }
       }
     }, 250);
@@ -86,14 +112,14 @@ function FocusPage() {
   const reset = () => {
     setRunning(false);
     setPhase("work");
-    setRemaining(POMODORO_SECONDS);
+    setRemaining(length);
   };
 
   const minutes = Math.floor(remaining / 60);
   const seconds = remaining % 60;
 
   const progress = useMemo(() => {
-    const total = phase === "work" ? POMODORO_SECONDS : SHORT_BREAK_SECONDS;
+    const total = phase === "work" ? length : SHORT_BREAK_SECONDS;
     return 1 - remaining / total;
   }, [remaining, phase]);
 
@@ -162,6 +188,25 @@ function FocusPage() {
             ? `${completed} pomodoro${completed === 1 ? "" : "s"} today`
             : "First pomodoro of the day"}
         </div>
+
+        {!running && (
+          <div className="flex items-center justify-center gap-1.5">
+            {[15, 25, 50].map((min) => (
+              <button
+                key={min}
+                type="button"
+                onClick={() => setLength(min * 60)}
+                className={`text-[10px] uppercase tracking-wider px-2 h-6 rounded-full border ${
+                  length === min * 60
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]"
+                    : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+                }`}
+              >
+                {min}m
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
