@@ -205,7 +205,13 @@ function BackupPage() {
     <AppShell>
       <PageHeader
         title="Backup"
-        subtitle="One-shot export and restore of your library to a single JSON."
+        subtitle={
+          busy === "export"
+            ? "Bundling your library…"
+            : busy === "import"
+              ? "Restoring rows…"
+              : "One-shot export and restore of your library to a single JSON."
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-2xl mx-auto space-y-6">
         <section className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-4 space-y-3">
