@@ -23,6 +23,7 @@ import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as ImportRouteImport } from './routes/import'
 import { Route as ExportRouteImport } from './routes/export'
 import { Route as DigestRouteImport } from './routes/digest'
 import { Route as DecksRouteImport } from './routes/decks'
@@ -117,6 +118,11 @@ const LabRoute = LabRouteImport.update({
 const KnowledgeRoute = KnowledgeRouteImport.update({
   id: '/knowledge',
   path: '/knowledge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportRoute = ImportRouteImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExportRoute = ExportRouteImport.update({
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/decks': typeof DecksRoute
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
+  '/import': typeof ImportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
@@ -297,6 +304,7 @@ export interface FileRoutesByTo {
   '/decks': typeof DecksRoute
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
+  '/import': typeof ImportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
@@ -339,6 +347,7 @@ export interface FileRoutesById {
   '/decks': typeof DecksRoute
   '/digest': typeof DigestRoute
   '/export': typeof ExportRoute
+  '/import': typeof ImportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
@@ -382,6 +391,7 @@ export interface FileRouteTypes {
     | '/decks'
     | '/digest'
     | '/export'
+    | '/import'
     | '/knowledge'
     | '/lab'
     | '/login'
@@ -423,6 +433,7 @@ export interface FileRouteTypes {
     | '/decks'
     | '/digest'
     | '/export'
+    | '/import'
     | '/knowledge'
     | '/lab'
     | '/login'
@@ -464,6 +475,7 @@ export interface FileRouteTypes {
     | '/decks'
     | '/digest'
     | '/export'
+    | '/import'
     | '/knowledge'
     | '/lab'
     | '/login'
@@ -506,6 +518,7 @@ export interface RootRouteChildren {
   DecksRoute: typeof DecksRoute
   DigestRoute: typeof DigestRoute
   ExportRoute: typeof ExportRoute
+  ImportRoute: typeof ImportRoute
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
   LabRoute: typeof LabRoute
   LoginRoute: typeof LoginRoute
@@ -623,6 +636,13 @@ declare module '@tanstack/react-router' {
       path: '/knowledge'
       fullPath: '/knowledge'
       preLoaderRoute: typeof KnowledgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/import': {
+      id: '/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof ImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/export': {
@@ -921,6 +941,7 @@ const rootRouteChildren: RootRouteChildren = {
   DecksRoute: DecksRoute,
   DigestRoute: DigestRoute,
   ExportRoute: ExportRoute,
+  ImportRoute: ImportRoute,
   KnowledgeRoute: KnowledgeRouteWithChildren,
   LabRoute: LabRoute,
   LoginRoute: LoginRoute,
