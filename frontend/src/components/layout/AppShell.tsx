@@ -27,6 +27,7 @@ import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
 import { ConvergeLogo } from "./ConvergeLogo";
 import { RecentNotesDropdown } from "../dashboard/RecentNotesDropdown";
 import { pb } from "../../lib/pocketbase";
+import { useInstallPrompt, useOnlineStatus } from "../../lib/pwa";
 import type { Lecture } from "../../lib/types";
 import {
   Home,
@@ -41,6 +42,8 @@ import {
   LogOut,
   Search,
   FileText,
+  Download,
+  CloudOff,
 } from "lucide-react";
 
 function isMacPlatform(): boolean {
@@ -89,6 +92,10 @@ export function AppShell({ children }: AppShellProps) {
   // Recent lectures for the sidebar Notes dropdown.
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
   const [recentLoading, setRecentLoading] = useState<boolean>(true);
+
+  // PWA: install prompt + online status.
+  const { canInstall, prompt: promptInstall } = useInstallPrompt();
+  const online = useOnlineStatus();
 
   // Reset main scroll on route change so users don't land mid-page after
   // navigating from a long page like a transcript.
@@ -262,6 +269,8 @@ export function AppShell({ children }: AppShellProps) {
             <span className="font-semibold tracking-tight">Converge</span>
           </Link>
           <div className="flex items-center gap-2">
+            {!online && <OfflinePill />}
+            {canInstall && <InstallButton onClick={() => void promptInstall()} />}
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
@@ -282,7 +291,9 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Floating user menu (desktop) — sits on top of the page header band */}
-        <div className="hidden lg:block absolute top-4 right-6 z-30">
+        <div className="hidden lg:flex absolute top-4 right-6 z-30 items-center gap-2">
+          {!online && <OfflinePill />}
+          {canInstall && <InstallButton onClick={() => void promptInstall()} />}
           <UserMenu
             email={user?.email}
             displayName={user?.display_name}
@@ -538,5 +549,38 @@ function UserMenu({
         </>
       )}
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* PWA affordances                                                        */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function InstallButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-xs font-medium shadow-sm transition-colors"
+      aria-label="Install Converge as an app"
+      title="Install Converge"
+    >
+      <Download className="w-3.5 h-3.5" aria-hidden="true" />
+      <span>Install</span>
+    </button>
+  );
+}
+
+function OfflinePill() {
+  return (
+    <span
+      role="status"
+      aria-live="polite"
+      className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-medium border border-amber-500/30"
+      title="You're offline. Previously viewed pages are still available."
+    >
+      <CloudOff className="w-3.5 h-3.5" aria-hidden="true" />
+      <span>Offline</span>
+    </span>
   );
 }
