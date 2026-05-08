@@ -67,7 +67,11 @@ function RandomPage() {
     <AppShell>
       <PageHeader
         title="Random pick"
-        subtitle="Roll the dice on something to study right now."
+        subtitle={
+          pick === null
+            ? "Roll the dice on something to study right now."
+            : `Pulled a ${pick.kind}. Reroll for another.`
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-xl mx-auto space-y-4">
         {loading ? (
