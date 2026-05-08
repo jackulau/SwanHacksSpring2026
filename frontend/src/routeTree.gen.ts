@@ -16,6 +16,7 @@ import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LabRouteImport } from './routes/lab'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as ExportRouteImport } from './routes/export'
 import { Route as CoursesRouteImport } from './routes/courses'
@@ -73,6 +74,11 @@ const NotesRoute = NotesRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabRoute = LabRouteImport.update({
+  id: '/lab',
+  path: '/lab',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KnowledgeRoute = KnowledgeRouteImport.update({
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/courses': typeof CoursesRouteWithChildren
   '/export': typeof ExportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
+  '/lab': typeof LabRoute
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/courses': typeof CoursesRouteWithChildren
   '/export': typeof ExportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
+  '/lab': typeof LabRoute
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/courses': typeof CoursesRouteWithChildren
   '/export': typeof ExportRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
+  '/lab': typeof LabRoute
   '/login': typeof LoginRoute
   '/notes': typeof NotesRouteWithChildren
   '/play': typeof PlayRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/courses'
     | '/export'
     | '/knowledge'
+    | '/lab'
     | '/login'
     | '/notes'
     | '/play'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/courses'
     | '/export'
     | '/knowledge'
+    | '/lab'
     | '/login'
     | '/notes'
     | '/play'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/courses'
     | '/export'
     | '/knowledge'
+    | '/lab'
     | '/login'
     | '/notes'
     | '/play'
@@ -397,6 +409,7 @@ export interface RootRouteChildren {
   CoursesRoute: typeof CoursesRouteWithChildren
   ExportRoute: typeof ExportRoute
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
+  LabRoute: typeof LabRoute
   LoginRoute: typeof LoginRoute
   NotesRoute: typeof NotesRouteWithChildren
   PlayRoute: typeof PlayRoute
@@ -458,6 +471,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab': {
+      id: '/lab'
+      path: '/lab'
+      fullPath: '/lab'
+      preLoaderRoute: typeof LabRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/knowledge': {
@@ -731,6 +751,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoursesRoute: CoursesRouteWithChildren,
   ExportRoute: ExportRoute,
   KnowledgeRoute: KnowledgeRouteWithChildren,
+  LabRoute: LabRoute,
   LoginRoute: LoginRoute,
   NotesRoute: NotesRouteWithChildren,
   PlayRoute: PlayRoute,
