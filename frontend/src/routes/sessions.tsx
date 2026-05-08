@@ -146,7 +146,11 @@ function SessionsPage() {
     <AppShell>
       <PageHeader
         title="Multiplayer sessions"
-        subtitle="Lobbies you've hosted and rounds you've joined."
+        subtitle={
+          hosted === null && joined === null
+            ? "Loading…"
+            : `${(hosted?.length ?? 0) + (joined?.length ?? 0)} session${(hosted?.length ?? 0) + (joined?.length ?? 0) === 1 ? "" : "s"} on record.`
+        }
       />
 
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto space-y-6">
