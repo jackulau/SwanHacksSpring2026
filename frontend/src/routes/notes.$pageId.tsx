@@ -45,6 +45,7 @@ import { PageEditor } from "../components/notes/PageEditor";
 import { PagePropertiesPanel } from "../components/notes/PageProperties";
 import { EmptyState } from "../components/layout/EmptyState";
 import { ingestNote } from "../lib/knowledge/ingest";
+import { flashcardsFromNote } from "../lib/generate";
 
 export const Route = createFileRoute("/notes/$pageId")({
   component: () => (
@@ -452,6 +453,40 @@ function NotePageView() {
 
   const [lecturePickerOpen, setLecturePickerOpen] = useState(false);
 
+  // Generate-flashcards UX state. We surface a brief inline confirmation
+  // ("Created N cards · Review") that links to the deck rather than a
+  // toast — there's no toast primitive on this surface yet, and the inline
+  // chip is unobtrusive enough to live in the topbar without a layout
+  // shift.
+  const [genFlashState, setGenFlashState] = useState<
+    | { kind: "idle" }
+    | { kind: "running" }
+    | { kind: "done"; deck: string; count: number }
+    | { kind: "error"; message: string }
+  >({ kind: "idle" });
+
+  const onGenerateFlashcards = useCallback(async () => {
+    if (!page) return;
+    setGenFlashState({ kind: "running" });
+    try {
+      const r = await flashcardsFromNote(page.id);
+      setGenFlashState({ kind: "done", deck: r.deckName, count: r.cardsCreated });
+      // Auto-clear the chip so the topbar settles back to its resting state.
+      window.setTimeout(() => {
+        setGenFlashState((s) => (s.kind === "done" ? { kind: "idle" } : s));
+      }, 6000);
+    } catch (err) {
+      setGenFlashState({
+        kind: "error",
+        message:
+          err instanceof Error ? err.message : "Couldn't generate flashcards.",
+      });
+      window.setTimeout(() => {
+        setGenFlashState((s) => (s.kind === "error" ? { kind: "idle" } : s));
+      }, 5000);
+    }
+  }, [page]);
+
   const insertLectureBlocks = async (lectureId: string) => {
     setLecturePickerOpen(false);
     try {
@@ -597,6 +632,39 @@ function NotePageView() {
               />
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={onGenerateFlashcards}
+            disabled={genFlashState.kind === "running"}
+            aria-label="Generate flashcards from this page"
+            title="Generate a flashcard deck from the contents of this page"
+            className="px-2 h-7 rounded inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">
+              {genFlashState.kind === "running" ? "Generating…" : "Generate flashcards"}
+            </span>
+          </button>
+          {genFlashState.kind === "done" && (
+            <Link
+              to="/study/flashcards"
+              search={{ deck: genFlashState.deck } as never}
+              className="text-[11px] inline-flex items-center gap-1 px-1.5 h-6 rounded bg-[var(--color-success)]/15 text-[var(--color-success)] hover:bg-[var(--color-success)]/25"
+            >
+              <Check className="w-3 h-3" aria-hidden="true" />
+              {genFlashState.count} {genFlashState.count === 1 ? "card" : "cards"} · Review
+            </Link>
+          )}
+          {genFlashState.kind === "error" && (
+            <span
+              role="status"
+              className="text-[11px] inline-flex items-center px-1.5 h-6 rounded bg-[var(--color-record)]/15 text-[var(--color-record)]"
+              title={genFlashState.message}
+            >
+              Generate failed
+            </span>
+          )}
 
           <button
             type="button"
