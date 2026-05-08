@@ -25,6 +25,7 @@ import { Route as NotesRouteImport } from './routes/notes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as JournalRouteImport } from './routes/journal'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as FocusRouteImport } from './routes/focus'
 import { Route as ExportRouteImport } from './routes/export'
@@ -133,6 +134,11 @@ const LabRoute = LabRouteImport.update({
 const KnowledgeRoute = KnowledgeRouteImport.update({
   id: '/knowledge',
   path: '/knowledge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImportRoute = ImportRouteImport.update({
@@ -295,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/export': typeof ExportRoute
   '/focus': typeof FocusRoute
   '/import': typeof ImportRoute
+  '/journal': typeof JournalRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
@@ -342,6 +349,7 @@ export interface FileRoutesByTo {
   '/export': typeof ExportRoute
   '/focus': typeof FocusRoute
   '/import': typeof ImportRoute
+  '/journal': typeof JournalRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
@@ -390,6 +398,7 @@ export interface FileRoutesById {
   '/export': typeof ExportRoute
   '/focus': typeof FocusRoute
   '/import': typeof ImportRoute
+  '/journal': typeof JournalRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
@@ -439,6 +448,7 @@ export interface FileRouteTypes {
     | '/export'
     | '/focus'
     | '/import'
+    | '/journal'
     | '/knowledge'
     | '/lab'
     | '/login'
@@ -486,6 +496,7 @@ export interface FileRouteTypes {
     | '/export'
     | '/focus'
     | '/import'
+    | '/journal'
     | '/knowledge'
     | '/lab'
     | '/login'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/export'
     | '/focus'
     | '/import'
+    | '/journal'
     | '/knowledge'
     | '/lab'
     | '/login'
@@ -581,6 +593,7 @@ export interface RootRouteChildren {
   ExportRoute: typeof ExportRoute
   FocusRoute: typeof FocusRoute
   ImportRoute: typeof ImportRoute
+  JournalRoute: typeof JournalRoute
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
   LabRoute: typeof LabRoute
   LoginRoute: typeof LoginRoute
@@ -714,6 +727,13 @@ declare module '@tanstack/react-router' {
       path: '/knowledge'
       fullPath: '/knowledge'
       preLoaderRoute: typeof KnowledgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/import': {
@@ -1053,6 +1073,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExportRoute: ExportRoute,
   FocusRoute: FocusRoute,
   ImportRoute: ImportRoute,
+  JournalRoute: JournalRoute,
   KnowledgeRoute: KnowledgeRouteWithChildren,
   LabRoute: LabRoute,
   LoginRoute: LoginRoute,
