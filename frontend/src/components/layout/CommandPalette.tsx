@@ -25,6 +25,7 @@ import {
   Tag as TagIcon,
   Upload,
   Dice5,
+  BarChart3,
 } from "lucide-react";
 import { pb } from "../../lib/pocketbase";
 import { useAuth } from "../../lib/auth";
@@ -147,6 +148,7 @@ export function CommandPalette({
       { id: "go-templates", label: "Note templates", keywords: "scaffold skeleton starter", icon: FileText, group: "Go", run: () => navigate({ to: "/templates" }) },
       { id: "go-today", label: "Today", keywords: "dashboard daily focus today", icon: Sparkles, group: "Go", run: () => navigate({ to: "/today" }) },
       { id: "go-decks", label: "Decks", keywords: "flashcard library deck stats", icon: Glasses, group: "Go", run: () => navigate({ to: "/decks" }) },
+      { id: "go-stats", label: "Stats", keywords: "analytics charts usage progress hours streak", icon: BarChart3, group: "Go", run: () => navigate({ to: "/stats" }) },
       { id: "go-trash", label: "Trash", icon: Trash2, group: "Go", run: () => navigate({ to: "/trash" }) },
       { id: "go-settings", label: "Settings", icon: Settings, group: "Go", run: () => navigate({ to: "/settings" }) },
       { id: "go-a11y", label: "Accessibility settings", keywords: "ruler focus mode contrast tts", icon: Accessibility, group: "Go", run: () => navigate({ to: "/settings/accessibility" }) },

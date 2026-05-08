@@ -15,6 +15,7 @@ import { Route as TodayRouteImport } from './routes/today'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TagsRouteImport } from './routes/tags'
 import { Route as StudyRouteImport } from './routes/study'
+import { Route as StatsRouteImport } from './routes/stats'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as RandomRouteImport } from './routes/random'
@@ -79,6 +80,11 @@ const TagsRoute = TagsRouteImport.update({
 const StudyRoute = StudyRouteImport.update({
   id: '/study',
   path: '/study',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -278,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/stats': typeof StatsRoute
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
   '/templates': typeof TemplatesRoute
@@ -321,6 +328,7 @@ export interface FileRoutesByTo {
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/stats': typeof StatsRoute
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
   '/templates': typeof TemplatesRoute
@@ -365,6 +373,7 @@ export interface FileRoutesById {
   '/random': typeof RandomRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/stats': typeof StatsRoute
   '/study': typeof StudyRouteWithChildren
   '/tags': typeof TagsRouteWithChildren
   '/templates': typeof TemplatesRoute
@@ -410,6 +419,7 @@ export interface FileRouteTypes {
     | '/random'
     | '/sessions'
     | '/settings'
+    | '/stats'
     | '/study'
     | '/tags'
     | '/templates'
@@ -453,6 +463,7 @@ export interface FileRouteTypes {
     | '/random'
     | '/sessions'
     | '/settings'
+    | '/stats'
     | '/study'
     | '/tags'
     | '/templates'
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/random'
     | '/sessions'
     | '/settings'
+    | '/stats'
     | '/study'
     | '/tags'
     | '/templates'
@@ -540,6 +552,7 @@ export interface RootRouteChildren {
   RandomRoute: typeof RandomRoute
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
+  StatsRoute: typeof StatsRoute
   StudyRoute: typeof StudyRouteWithChildren
   TagsRoute: typeof TagsRouteWithChildren
   TemplatesRoute: typeof TemplatesRoute
@@ -593,6 +606,13 @@ declare module '@tanstack/react-router' {
       path: '/study'
       fullPath: '/study'
       preLoaderRoute: typeof StudyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -971,6 +991,7 @@ const rootRouteChildren: RootRouteChildren = {
   RandomRoute: RandomRoute,
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRouteWithChildren,
+  StatsRoute: StatsRoute,
   StudyRoute: StudyRouteWithChildren,
   TagsRoute: TagsRouteWithChildren,
   TemplatesRoute: TemplatesRoute,
