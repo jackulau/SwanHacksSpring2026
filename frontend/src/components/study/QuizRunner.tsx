@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, RotateCcw } from 'lucide-react';
 import { useStudySession } from '../../hooks/useStudySession';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { renderInlineMarkdown } from '../workspace/markdown';
@@ -7,8 +7,14 @@ import type { QuizQuestion } from '../../lib/types';
 
 interface QuizRunnerProps {
   questions: QuizQuestion[];
-  onComplete: (answers: QuizAnswer[]) => void;
+  onComplete: (answers: QuizAnswer[], elapsedSecs: number) => void;
   lectureId?: string;
+  /**
+   * Stable identifier for this quiz instance. Used to scope localStorage keys
+   * for in-progress state so a refresh doesn't dump the user back to question
+   * one. When omitted, autosave is disabled.
+   */
+  quizId?: string;
 }
 
 interface QuizAnswer {
@@ -18,15 +24,117 @@ interface QuizAnswer {
   pointsEarned: number;
 }
 
-export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps) {
+interface PersistedQuizState {
+  currentIdx: number;
+  answers: Record<string, number | boolean | string>;
+  startedAt: number;
+}
+
+const PROGRESS_KEY_PREFIX = 'converge_quiz_progress_';
+function progressKey(quizId: string): string {
+  return `${PROGRESS_KEY_PREFIX}${quizId}`;
+}
+
+function readPersisted(quizId: string | undefined): PersistedQuizState | null {
+  if (!quizId) return null;
+  try {
+    const raw = localStorage.getItem(progressKey(quizId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      typeof parsed.currentIdx === 'number' &&
+      typeof parsed.answers === 'object' &&
+      typeof parsed.startedAt === 'number'
+    ) {
+      return parsed as PersistedQuizState;
+    }
+  } catch {
+    /* malformed entry — ignore */
+  }
+  return null;
+}
+
+function clearPersisted(quizId: string | undefined): void {
+  if (!quizId) return;
+  try {
+    localStorage.removeItem(progressKey(quizId));
+  } catch {
+    /* localStorage unavailable */
+  }
+}
+
+function formatElapsed(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRunnerProps) {
+  // Detect a previously-saved attempt so we can offer "Resume?" instead of
+  // silently restoring (the latter would surprise students who explicitly
+  // wanted a fresh attempt).
+  const [resumeAvailable, setResumeAvailable] = useState<boolean>(() => {
+    const saved = readPersisted(quizId);
+    if (!saved) return false;
+    // Only offer resume if at least one answer is in the saved state — an
+    // empty state isn't worth a banner.
+    return Object.keys(saved.answers).length > 0;
+  });
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number | boolean | string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState<QuizAnswer[]>([]);
 
+  // Track when this attempt started so the timer chip + persisted score are
+  // honest. Initialized once per mount unless the user opts to resume.
+  const [startedAt, setStartedAt] = useState<number>(() => Date.now());
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (submitted) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [submitted]);
+  const elapsedSecs = Math.max(0, Math.floor((now - startedAt) / 1000));
+
   const question = questions[currentIdx];
   const isLast = currentIdx === questions.length - 1;
   const hasAnswer = question ? answers[question.id] !== undefined : false;
+
+  // Autosave in-flight state so a refresh / nav doesn't reset progress.
+  // Only fires while the user is actively answering — submission clears it.
+  useEffect(() => {
+    if (!quizId || submitted) return;
+    const payload: PersistedQuizState = { currentIdx, answers, startedAt };
+    try {
+      localStorage.setItem(progressKey(quizId), JSON.stringify(payload));
+    } catch {
+      /* quota / unavailable — non-fatal */
+    }
+  }, [quizId, submitted, currentIdx, answers, startedAt]);
+
+  const handleResume = useCallback(() => {
+    const saved = readPersisted(quizId);
+    if (!saved) {
+      setResumeAvailable(false);
+      return;
+    }
+    // Clamp the saved index in case the quiz length changed since save.
+    const safeIdx = Math.min(Math.max(0, saved.currentIdx), Math.max(0, questions.length - 1));
+    setCurrentIdx(safeIdx);
+    setAnswers(saved.answers);
+    setStartedAt(saved.startedAt);
+    setNow(Date.now());
+    setResumeAvailable(false);
+  }, [quizId, questions.length]);
+
+  const handleStartFresh = useCallback(() => {
+    clearPersisted(quizId);
+    setStartedAt(Date.now());
+    setNow(Date.now());
+    setResumeAvailable(false);
+  }, [quizId]);
 
   const { start, finish } = useStudySession();
   const sessionIdRef = useRef<string | null>(null);
@@ -96,6 +204,10 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
 
     setResults(quizAnswers);
     setSubmitted(true);
+    // Wipe persisted progress now that we've finished — leaving it would
+    // make the next mount offer a stale "Resume?" for a quiz the user
+    // already submitted.
+    clearPersisted(quizId);
 
     const sessionId = sessionIdRef.current;
     if (sessionId && !finishedRef.current) {
@@ -110,8 +222,9 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
       });
     }
 
-    onComplete(quizAnswers);
-  }, [questions, answers, onComplete, finish]);
+    const finalElapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    onComplete(quizAnswers, finalElapsed);
+  }, [questions, answers, onComplete, finish, startedAt, quizId]);
 
   // Keyboard: Enter submits when on last question and answered; otherwise advances.
   useKeyboardShortcuts([
@@ -250,6 +363,34 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
 
   return (
     <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 220px)' }}>
+      {resumeAvailable && (
+        <div
+          role="status"
+          className="mb-4 flex items-center justify-between gap-3 rounded-md border border-[var(--color-primary)]/40 bg-[var(--color-primary-soft)] px-3 py-2 text-sm"
+        >
+          <span className="text-[var(--color-text)]">
+            You have an in-progress attempt for this quiz. Resume where you left off?
+          </span>
+          <span className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleResume}
+              className="h-8 px-3 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-xs font-medium transition-colors"
+            >
+              Resume
+            </button>
+            <button
+              type="button"
+              onClick={handleStartFresh}
+              className="inline-flex items-center gap-1 h-8 px-2 rounded-md text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+              Start over
+            </button>
+          </span>
+        </div>
+      )}
+
       <div className="space-y-2">
         <div
           className="w-full h-1 bg-[var(--color-border)] rounded-md overflow-hidden"
@@ -267,7 +408,17 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
           <span>
             Question {currentIdx + 1} of {questions.length}
           </span>
-          <span className="capitalize">{question.difficulty}</span>
+          <span className="flex items-center gap-3">
+            <span
+              className="inline-flex items-center gap-1 text-[var(--color-text-muted)]"
+              aria-label={`Elapsed time ${formatElapsed(elapsedSecs)}`}
+              title="Time spent on this attempt"
+            >
+              <Clock className="w-3 h-3" aria-hidden="true" />
+              {formatElapsed(elapsedSecs)}
+            </span>
+            <span className="capitalize">{question.difficulty}</span>
+          </span>
         </div>
       </div>
 

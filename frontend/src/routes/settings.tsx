@@ -552,6 +552,19 @@ function AIModelSection() {
           />
         </Row>
 
+        <Row
+          label="Custom instructions"
+          hint="Optional. Appended to every system prompt — tone, language, or per-domain rules."
+        >
+          <textarea
+            value={config.customInstructions ?? ''}
+            onChange={(e) => updateConfig({ customInstructions: e.target.value })}
+            rows={3}
+            placeholder="e.g. Always include code examples for CS lectures. Prefer concise definitions."
+            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)] resize-y"
+          />
+        </Row>
+
         <div className="flex items-center gap-3 pt-1">
           <button
             type="button"

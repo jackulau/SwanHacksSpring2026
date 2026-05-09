@@ -10,14 +10,28 @@ import { QuizRunner } from "../components/study/QuizRunner";
 import { pb } from "../lib/pocketbase";
 import type { Quiz, QuizQuestion } from "../lib/types";
 
+interface QuizSearch {
+  /** Pathname to navigate back to on completion / back-button. */
+  from?: string;
+}
+
 export const Route = createFileRoute("/study/quiz/$quizId")({
   component: QuizPage,
+  validateSearch: (raw: Record<string, unknown>): QuizSearch => {
+    const from = typeof raw.from === "string" ? raw.from : undefined;
+    if (from && from.startsWith("/") && !from.startsWith("//")) {
+      return { from };
+    }
+    return {};
+  },
 });
 
 function QuizPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { quizId } = Route.useParams();
+  const { from } = Route.useSearch();
+  const backHref = from ?? "/study";
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +55,10 @@ function QuizPage() {
   }, [user, quizId]);
 
   const handleComplete = useCallback(
-    async (answers: { questionId: string; answer: number | boolean | string; correct: boolean; pointsEarned: number }[]) => {
+    async (
+      answers: { questionId: string; answer: number | boolean | string; correct: boolean; pointsEarned: number }[],
+      elapsedSecs: number,
+    ) => {
       if (!quiz || !user) return;
       const totalEarned = answers.reduce((s, a) => s + a.pointsEarned, 0);
       const totalPossible = (quiz.questions as QuizQuestion[]).reduce((s, q) => s + q.points, 0);
@@ -58,9 +75,17 @@ function QuizPage() {
           score: totalEarned,
           max_score: totalPossible,
           percentage: totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0,
-          time_taken_secs: startedAtRef.current
-            ? Math.max(0, Math.round((Date.now() - startedAtRef.current) / 1000))
-            : 0,
+          // Authoritative timing comes from the QuizRunner — it tracks the
+          // attempt's startedAt internally, restores it across resume, and
+          // freezes when the user submits. The route-level startedAtRef is
+          // a fallback for the (impossible) case where the runner doesn't
+          // pass elapsed seconds back.
+          time_taken_secs:
+            elapsedSecs > 0
+              ? elapsedSecs
+              : startedAtRef.current
+                ? Math.max(0, Math.round((Date.now() - startedAtRef.current) / 1000))
+                : 0,
           completed_at: new Date().toISOString(),
         });
       } catch {
@@ -97,10 +122,10 @@ function QuizPage() {
             size="lg"
             action={
               <button
-                onClick={() => navigate({ to: "/study" })}
+                onClick={() => navigate({ to: backHref })}
                 className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] text-sm flex items-center gap-1"
               >
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to Study
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" /> {from ? "Back to lecture" : "Back to Study"}
               </button>
             }
           />
@@ -115,7 +140,13 @@ function QuizPage() {
       <div className="px-6 lg:px-8 pt-4 pb-8 max-w-2xl mx-auto">
         <button
           onClick={() => {
-            if (quiz.lecture) {
+            // Explicit `from=` (passed by lecture detail) wins over the
+            // implicit `quiz.lecture` so the user lands wherever they came
+            // from — the lecture detail's tab they were on, not the
+            // generic lecture page.
+            if (from) {
+              navigate({ to: from });
+            } else if (quiz.lecture) {
               navigate({ to: "/lectures/$lectureId", params: { lectureId: quiz.lecture } });
             } else {
               navigate({ to: "/study" });
@@ -123,11 +154,13 @@ function QuizPage() {
           }}
           className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4"
         >
-          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to {quiz.lecture ? "lecture" : "study"}
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />{" "}
+          {from || quiz.lecture ? "Back to lecture" : "Back to study"}
         </button>
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}
           onComplete={handleComplete}
+          quizId={quiz.id}
         />
       </div>
     </AppShell>

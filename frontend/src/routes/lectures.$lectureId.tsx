@@ -15,6 +15,7 @@ import { Skeleton } from "../components/layout/Skeleton";
 import { EmptyState } from "../components/layout/EmptyState";
 import { TranscriptViewer } from "../components/workspace/TranscriptViewer";
 import { NoteEditor } from "../components/workspace/NoteEditor";
+import { AIChip } from "../components/layout/AIChip";
 import { useAudioPlayer } from "../lib/audioPlayer";
 import { pb } from "../lib/pocketbase";
 import type {
@@ -505,6 +506,7 @@ function LectureDetailPage() {
               title={notes?.title}
               personalNotes={notes?.summary}
               onPersonalNotesChange={handlePersonalNotesChange}
+              aiGenerated={notes?.content_type === "auto_generated"}
             />
           )}
           {view === "flashcards" && (
@@ -512,11 +514,18 @@ function LectureDetailPage() {
               total={flashcards.length}
               due={dueCount}
               lectureId={lecture.id}
-              // The /study/flashcards route doesn't (yet) validate a `lecture`
-              // search param, so we just send the user to the global review
-              // queue. Lecture-scoped filtering can be added by extending the
-              // study route's validateSearch + getDueCards filter.
-              onStart={() => navigate({ to: "/study/flashcards" })}
+              aiGenerated={flashcards.some((c) => c.source === "auto_generated")}
+              // Pass the current lecture URL via `from` so the deck's
+              // completion screen can route back here in one click. The
+              // /study/flashcards route still operates on the global queue;
+              // lecture-scoped filtering would require extending the study
+              // route's validateSearch + getDueCards filter (deferred).
+              onStart={() =>
+                navigate({
+                  to: "/study/flashcards",
+                  search: { from: `/lectures/${lecture.id}` },
+                })
+              }
               onGenerate={handleGenerateStudySet}
               generating={generating || lecture.status === "generating"}
             />
@@ -525,7 +534,11 @@ function LectureDetailPage() {
             <QuizTab
               quiz={quiz}
               onStart={(quizId) =>
-                navigate({ to: "/study/quiz/$quizId", params: { quizId } })
+                navigate({
+                  to: "/study/quiz/$quizId",
+                  params: { quizId },
+                  search: { from: `/lectures/${lecture.id}` },
+                })
               }
               onGenerate={handleGenerateStudySet}
               generating={generating || lecture.status === "generating"}
@@ -572,11 +585,19 @@ interface FlashcardsTabProps {
   due: number;
   lectureId: string;
   onStart: () => void;
+  aiGenerated?: boolean;
   onGenerate?: () => void;
   generating?: boolean;
 }
 
-function FlashcardsTab({ total, due, onStart, onGenerate, generating }: FlashcardsTabProps) {
+function FlashcardsTab({
+  total,
+  due,
+  onStart,
+  aiGenerated,
+  onGenerate,
+  generating,
+}: FlashcardsTabProps) {
   if (total === 0) {
     return (
       <div className="max-w-3xl mx-auto">
@@ -605,6 +626,11 @@ function FlashcardsTab({ total, due, onStart, onGenerate, generating }: Flashcar
   return (
     <div className="max-w-3xl mx-auto">
       <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-6">
+        {aiGenerated && (
+          <div className="mb-4">
+            <AIChip />
+          </div>
+        )}
         <div className="flex items-center gap-6 mb-6">
           <div>
             <p className="text-3xl font-semibold text-[var(--color-text)] tabular-nums">
@@ -681,12 +707,16 @@ function QuizTab({ quiz, onStart, onGenerate, generating }: QuizTabProps) {
   const questionCount = Array.isArray(quiz.questions)
     ? quiz.questions.length
     : 0;
+  const aiGenerated = (quiz as { source?: string }).source === "auto_generated";
   return (
     <div className="max-w-3xl mx-auto">
       <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-6">
-        <p className="text-base font-medium text-[var(--color-text)] mb-1">
-          {quiz.title}
-        </p>
+        <div className="flex items-center gap-3 mb-1">
+          <p className="text-base font-medium text-[var(--color-text)]">
+            {quiz.title}
+          </p>
+          {aiGenerated && <AIChip />}
+        </div>
         <p className="text-sm text-[var(--color-text-muted)] mb-6">
           {questionCount} {questionCount === 1 ? "question" : "questions"}
           {quiz.total_points ? ` · ${quiz.total_points} pts` : ""}
