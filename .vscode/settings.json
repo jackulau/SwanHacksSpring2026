@@ -1,0 +1,20 @@
+{
+  // Tailwind v4 introduces at-rules (@theme, @utility, @variant, @custom-variant,
+  // @apply, @config) that VS Code's built-in CSS service doesn't recognize.
+  // Silence those false-positive warnings for both .css and .postcss files.
+  // The Tailwind CSS IntelliSense extension is the recommended companion if
+  // you want autocomplete + hover docs.
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+
+  // Use the workspace TypeScript so Vite/React 19 features resolve correctly.
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // Recommend Tailwind IntelliSense without forcing it.
+  "tailwindCSS.experimental.classRegex": [
+    ["className=\"([^\"]*)\""],
+    ["className=\\{`([^`]*)`\\}"]
+  ]
+}

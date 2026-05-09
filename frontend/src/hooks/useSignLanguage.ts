@@ -13,8 +13,6 @@ const CONFIDENCE_THRESHOLD = 0.75;
 const DEBOUNCE_MS = 400;
 const SPACE_GAP_MS = 800;
 
-const ASL_LETTERS: Record<string, (features: number[]) => number> = {};
-
 function extractFeatures(landmarks: NormalizedLandmarkList): number[] {
   const features: number[] = [];
   const wrist = landmarks[0];
