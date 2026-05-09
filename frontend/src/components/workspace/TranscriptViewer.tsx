@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { FileText } from 'lucide-react';
 import { EmptyState } from '../layout/EmptyState';
 import type { TranscriptSegment, Speaker } from '../../lib/types';
@@ -25,6 +25,11 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/** Stable DOM id for the segment at index `i`. */
+function transcriptSegmentId(i: number): string {
+  return `transcript-seg-${i}`;
+}
+
 /**
  * Document-style transcript. Segments flow as continuous prose with the
  * speaker as a left-margin label and a hover-revealed timestamp button. One
@@ -46,6 +51,35 @@ export function TranscriptViewer({
 
   const hasSegments = Array.isArray(segments) && segments.length > 0;
   const fallbackText = cleanText || rawText;
+
+  // Index of the currently-playing segment, recomputed when currentTime
+  // crosses a segment boundary. We track it via index so the scroll effect
+  // can fire only when the active row actually changes.
+  const activeIndex = useMemo(() => {
+    if (!hasSegments || !segments) return -1;
+    return segments.findIndex(
+      (seg) => currentTime >= seg.start && currentTime < seg.end,
+    );
+  }, [hasSegments, segments, currentTime]);
+
+  // Scroll the active segment into view when it changes. Honors
+  // `prefers-reduced-motion` by switching to instant scroll.
+  const lastScrolledRef = useRef<number>(-1);
+  useEffect(() => {
+    if (activeIndex < 0 || activeIndex === lastScrolledRef.current) return;
+    const el = document.getElementById(transcriptSegmentId(activeIndex));
+    if (!el) return;
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+      behavior: reduced ? 'auto' : 'smooth',
+    });
+    lastScrolledRef.current = activeIndex;
+  }, [activeIndex]);
 
   if (!hasSegments && !fallbackText) {
     return (
@@ -69,12 +103,12 @@ export function TranscriptViewer({
         <ol className="list-none p-0 m-0 space-y-4">
           {segments.map((seg, i) => {
             const label = speakerLabel(seg.speaker);
-            const isActive =
-              currentTime >= seg.start && currentTime < seg.end;
+            const isActive = i === activeIndex;
             return (
               <li
                 key={`${seg.start}-${i}`}
-                className="group grid grid-cols-[7rem_1fr] gap-4 items-baseline"
+                id={transcriptSegmentId(i)}
+                className="group grid grid-cols-[7rem_1fr] gap-4 items-baseline scroll-mt-24"
                 aria-current={isActive ? 'true' : undefined}
               >
                 <div className="flex flex-col items-start text-left">

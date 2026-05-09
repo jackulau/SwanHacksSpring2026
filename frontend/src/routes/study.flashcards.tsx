@@ -10,8 +10,22 @@ import { useAuth } from "../lib/auth";
 import type { Flashcard } from "../lib/types";
 import type { QualityRating } from "../lib/sm2";
 
+interface FlashcardsSearch {
+  /** Pathname to navigate back to on completion. Validated to start with `/`. */
+  from?: string;
+}
+
 export const Route = createFileRoute("/study/flashcards")({
   component: FlashcardsPage,
+  validateSearch: (raw: Record<string, unknown>): FlashcardsSearch => {
+    const from = typeof raw.from === "string" ? raw.from : undefined;
+    // Only allow same-origin paths to defend against open-redirect surprises
+    // even though the router won't honor cross-origin URLs.
+    if (from && from.startsWith("/") && !from.startsWith("//")) {
+      return { from };
+    }
+    return {};
+  },
 });
 
 type Stage = "loading" | "ready" | "reviewing" | "complete";
@@ -19,9 +33,18 @@ type Stage = "loading" | "ready" | "reviewing" | "complete";
 function FlashcardsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { from } = Route.useSearch();
   const { rateCard, getDueCards } = useSM2();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [stage, setStage] = useState<Stage>("loading");
+
+  const goBack = useCallback(() => {
+    if (from) {
+      navigate({ to: from });
+    } else {
+      navigate({ to: "/study" });
+    }
+  }, [from, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -109,10 +132,10 @@ function FlashcardsPage() {
             Come back tomorrow for your next review.
           </p>
           <button
-            onClick={() => navigate({ to: "/study" })}
+            onClick={goBack}
             className="w-full h-12 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors"
           >
-            Back to Study
+            {from ? "Back to lecture" : "Back to Study"}
           </button>
         </div>
       </>

@@ -10,14 +10,29 @@ import { QuizRunner } from "../components/study/QuizRunner";
 import { pb } from "../lib/pocketbase";
 import type { Quiz, QuizQuestion } from "../lib/types";
 
+interface QuizSearch {
+  /** Pathname to navigate back to on completion / back-button. */
+  from?: string;
+}
+
 export const Route = createFileRoute("/study/quiz/$quizId")({
   component: QuizPage,
+  validateSearch: (raw: Record<string, unknown>): QuizSearch => {
+    const from = typeof raw.from === "string" ? raw.from : undefined;
+    if (from && from.startsWith("/") && !from.startsWith("//")) {
+      return { from };
+    }
+    return {};
+  },
 });
 
 function QuizPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { quizId } = Route.useParams();
+  const { from } = Route.useSearch();
+  const backHref = from ?? "/study";
+  const backLabel = from ? "Back to lecture" : "Back";
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,10 +109,10 @@ function QuizPage() {
             size="lg"
             action={
               <button
-                onClick={() => navigate({ to: "/study" })}
+                onClick={() => navigate({ to: backHref })}
                 className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] text-sm flex items-center gap-1"
               >
-                <ArrowLeft className="w-4 h-4" /> Back to Study
+                <ArrowLeft className="w-4 h-4" /> {from ? "Back to lecture" : "Back to Study"}
               </button>
             }
           />
@@ -111,10 +126,10 @@ function QuizPage() {
       <PageHeader title={quiz.title} eyebrow="Quiz" />
       <div className="px-6 lg:px-8 pt-4 pb-8 max-w-2xl mx-auto">
         <button
-          onClick={() => navigate({ to: "/study" })}
+          onClick={() => navigate({ to: backHref })}
           className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4"
         >
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-4 h-4" /> {backLabel}
         </button>
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}

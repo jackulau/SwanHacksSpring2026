@@ -404,18 +404,28 @@ function LectureDetailPage() {
               due={dueCount}
               lectureId={lecture.id}
               aiGenerated={flashcards.some((c) => c.source === "auto_generated")}
-              // The /study/flashcards route doesn't (yet) validate a `lecture`
-              // search param, so we just send the user to the global review
-              // queue. Lecture-scoped filtering can be added by extending the
-              // study route's validateSearch + getDueCards filter.
-              onStart={() => navigate({ to: "/study/flashcards" })}
+              // Pass the current lecture URL via `from` so the deck's
+              // completion screen can route back here in one click. The
+              // /study/flashcards route still operates on the global queue;
+              // lecture-scoped filtering would require extending the study
+              // route's validateSearch + getDueCards filter (deferred).
+              onStart={() =>
+                navigate({
+                  to: "/study/flashcards",
+                  search: { from: `/lectures/${lecture.id}` },
+                })
+              }
             />
           )}
           {view === "quiz" && (
             <QuizTab
               quiz={quiz}
               onStart={(quizId) =>
-                navigate({ to: "/study/quiz/$quizId", params: { quizId } })
+                navigate({
+                  to: "/study/quiz/$quizId",
+                  params: { quizId },
+                  search: { from: `/lectures/${lecture.id}` },
+                })
               }
             />
           )}
