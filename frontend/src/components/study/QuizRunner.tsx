@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, RotateCcw } from 'lucide-react';
 import { useStudySession } from '../../hooks/useStudySession';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { renderInlineMarkdown } from '../workspace/markdown';
 import type { QuizQuestion } from '../../lib/types';
 
 interface QuizRunnerProps {
@@ -269,7 +270,7 @@ export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRun
             {pct}%
           </p>
           <p className="text-[var(--color-text-muted)] mt-2 tabular-nums">
-            {totalEarned} of {totalPossible} points
+            {totalEarned.toLocaleString()} of {totalPossible.toLocaleString()} points
           </p>
         </div>
 
@@ -324,10 +325,10 @@ export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRun
                   />
                 )}
                 <div className="min-w-0">
-                  <p className="text-[var(--color-text)]">{q.question}</p>
+                  <p className="text-[var(--color-text)]">{renderInlineMarkdown(q.question)}</p>
                   {q.explanation && (
                     <p className="text-[var(--color-text-muted)] text-sm mt-2">
-                      {q.explanation}
+                      {renderInlineMarkdown(q.explanation)}
                     </p>
                   )}
                 </div>
@@ -335,6 +336,23 @@ export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRun
             );
           })}
         </ul>
+
+        <div className="flex justify-center pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              setAnswers({});
+              setResults([]);
+              setSubmitted(false);
+              setCurrentIdx(0);
+              finishedRef.current = false;
+              sessionIdRef.current = null;
+            }}
+            className="text-sm font-medium text-[var(--color-text)] border border-[var(--color-border-strong)] hover:bg-[var(--color-surface-raised)] rounded-md px-4 py-2 transition-colors"
+          >
+            Retake quiz
+          </button>
+        </div>
       </div>
     );
   }
@@ -406,7 +424,7 @@ export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRun
 
       <div className="flex-1 flex flex-col justify-center py-12 max-w-2xl mx-auto w-full">
         <h2 className="text-2xl sm:text-3xl text-[var(--color-text)] font-medium tracking-tight leading-snug mb-8">
-          {question.question}
+          {renderInlineMarkdown(question.question)}
         </h2>
 
         {question.type === 'multiple_choice' && (
@@ -445,7 +463,7 @@ export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRun
                       <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
                     )}
                   </span>
-                  <span className="text-[var(--color-text)] text-base">{opt}</span>
+                  <span className="text-[var(--color-text)] text-base">{renderInlineMarkdown(opt)}</span>
                 </label>
               );
             })}
@@ -488,6 +506,12 @@ export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRun
             type="text"
             value={String(answers[question.id] ?? '')}
             onChange={(e) => handleAnswer(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' || submitted || !hasAnswer) return;
+              e.preventDefault();
+              if (isLast) handleSubmit();
+              else setCurrentIdx((i) => Math.min(questions.length - 1, i + 1));
+            }}
             placeholder={
               question.type === 'fill_blank' ? 'Fill in the blank…' : 'Type your answer…'
             }
@@ -504,7 +528,7 @@ export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRun
           disabled={currentIdx === 0}
           className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
         >
-          <ChevronLeft className="w-4 h-4" /> Previous
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" /> Previous
         </button>
 
         {isLast ? (
@@ -522,7 +546,7 @@ export function QuizRunner({ questions, onComplete, lectureId, quizId }: QuizRun
             disabled={!hasAnswer}
             className="h-10 px-4 rounded-md text-sm text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
           >
-            Next <ChevronRight className="w-4 h-4" />
+            Next <ChevronRight className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
       </div>

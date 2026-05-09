@@ -25,11 +25,6 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-/** Stable DOM id for the segment at index `i`. */
-function transcriptSegmentId(i: number): string {
-  return `transcript-seg-${i}`;
-}
-
 /**
  * Document-style transcript. Segments flow as continuous prose with the
  * speaker as a left-margin label and a hover-revealed timestamp button. One
@@ -52,34 +47,31 @@ export function TranscriptViewer({
   const hasSegments = Array.isArray(segments) && segments.length > 0;
   const fallbackText = cleanText || rawText;
 
-  // Index of the currently-playing segment, recomputed when currentTime
-  // crosses a segment boundary. We track it via index so the scroll effect
-  // can fire only when the active row actually changes.
-  const activeIndex = useMemo(() => {
-    if (!hasSegments || !segments) return -1;
-    return segments.findIndex(
-      (seg) => currentTime >= seg.start && currentTime < seg.end,
+  // Active segment index — gently scroll into view during playback so the
+  // student doesn't have to chase the active line by hand.
+  const activeIdx = useMemo(() => {
+    if (!hasSegments) return -1;
+    return segments!.findIndex(
+      (s) => currentTime >= s.start && currentTime < s.end,
     );
   }, [hasSegments, segments, currentTime]);
 
-  // Scroll the active segment into view when it changes. Honors
-  // `prefers-reduced-motion` by switching to instant scroll.
-  const lastScrolledRef = useRef<number>(-1);
+  const lastScrolledIdx = useRef<number>(-1);
+  const activeRef = useRef<HTMLLIElement | null>(null);
+
   useEffect(() => {
-    if (activeIndex < 0 || activeIndex === lastScrolledRef.current) return;
-    const el = document.getElementById(transcriptSegmentId(activeIndex));
-    if (!el) return;
-    const reduced =
+    if (activeIdx < 0 || activeIdx === lastScrolledIdx.current) return;
+    lastScrolledIdx.current = activeIdx;
+    // Respect prefers-reduced-motion: jump instead of smooth scroll so we
+    // don't trigger motion sickness for users with that pref.
+    const prefersReduced =
       typeof window !== 'undefined' &&
-      window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView({
-      block: 'nearest',
-      inline: 'nearest',
-      behavior: reduced ? 'auto' : 'smooth',
+    activeRef.current?.scrollIntoView({
+      block: 'center',
+      behavior: prefersReduced ? 'auto' : 'smooth',
     });
-    lastScrolledRef.current = activeIndex;
-  }, [activeIndex]);
+  }, [activeIdx]);
 
   if (!hasSegments && !fallbackText) {
     return (
@@ -103,11 +95,11 @@ export function TranscriptViewer({
         <ol className="list-none p-0 m-0 space-y-4">
           {segments.map((seg, i) => {
             const label = speakerLabel(seg.speaker);
-            const isActive = i === activeIndex;
+            const isActive = i === activeIdx;
             return (
               <li
                 key={`${seg.start}-${i}`}
-                id={transcriptSegmentId(i)}
+                ref={isActive ? activeRef : undefined}
                 className="group grid grid-cols-[7rem_1fr] gap-4 items-baseline scroll-mt-24"
                 aria-current={isActive ? 'true' : undefined}
               >
@@ -133,9 +125,9 @@ export function TranscriptViewer({
                   )}
                 </div>
                 <p
-                  className={`leading-7 ${
+                  className={`leading-7 transition-colors ${
                     isActive
-                      ? 'text-[var(--color-text)]'
+                      ? 'text-[var(--color-text)] font-medium'
                       : 'text-[var(--color-text-muted)]'
                   }`}
                 >

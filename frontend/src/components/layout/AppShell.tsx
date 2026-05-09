@@ -15,12 +15,14 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../lib/auth";
 import { ReadingRuler } from "../accessibility/ReadingRuler";
 import { FocusMode } from "../accessibility/FocusMode";
 import { A11yPanel } from "../accessibility/A11yPanel";
 import { AudioPlayer } from "./AudioPlayer";
+import { CommandPalette } from "./CommandPalette";
+import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
 import { ConvergeLogo } from "./ConvergeLogo";
 import { RecentNotesDropdown } from "../dashboard/RecentNotesDropdown";
@@ -36,7 +38,14 @@ import {
   Glasses,
   Trash2,
   Calendar,
+  LogOut,
+  Search,
 } from "lucide-react";
+
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
 
 interface NavItem {
   to: string;
@@ -69,14 +78,93 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
   const [a11yOpen, setA11yOpen] = useState<boolean>(false);
+  const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
 
   // Recent lectures for the sidebar Notes dropdown.
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
   const [recentLoading, setRecentLoading] = useState<boolean>(true);
 
+  // Reset main scroll on route change so users don't land mid-page after
+  // navigating from a long page like a transcript.
+  useEffect(() => {
+    const main = document.getElementById("main");
+    if (main) main.scrollTop = 0;
+  }, [location.pathname]);
+
   useReadingAidsShortcuts();
+
+  // Global shortcuts: cmd/ctrl+K palette, ? overlay, g-then-X navigation.
+  useEffect(() => {
+    let chordPending = false;
+    let chordTimer: number | undefined;
+
+    const isTyping = (el: EventTarget | null) => {
+      const node = el as HTMLElement | null;
+      if (!node) return false;
+      const tag = node.tagName;
+      return (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        node.isContentEditable
+      );
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl+K opens the palette regardless of focus context.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+        return;
+      }
+      if (isTyping(e.target)) return;
+
+      // ? opens shortcuts (Shift+/ on US layouts).
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+
+      // g-then-X chord nav.
+      if (chordPending) {
+        const k = e.key.toLowerCase();
+        chordPending = false;
+        if (chordTimer) window.clearTimeout(chordTimer);
+        const map: Record<string, string> = {
+          h: "/",
+          c: "/calendar",
+          s: "/study",
+          r: "/capture",
+          t: "/study/planner",
+          o: "/courses",
+        };
+        const target = map[k];
+        if (target) {
+          e.preventDefault();
+          navigate({ to: target });
+        }
+        return;
+      }
+      if ((e.key === "g" || e.key === "G") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        chordPending = true;
+        chordTimer = window.setTimeout(() => {
+          chordPending = false;
+        }, 900);
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      if (chordTimer) window.clearTimeout(chordTimer);
+    };
+  }, [navigate]);
 
   useEffect(() => {
     if (!user) {
@@ -90,6 +178,9 @@ export function AppShell({ children }: AppShellProps) {
       .getList<Lecture>(1, 6, {
         filter: `user = "${user.id}"`,
         sort: "-recorded_at",
+        // Distinct key keeps PB's auto-cancellation from dropping the
+        // sidebar's fetch when the dashboard is also fetching lectures.
+        requestKey: "shell-recent-lectures",
       })
       .then((res) => {
         if (cancelled) return;
@@ -121,11 +212,24 @@ export function AppShell({ children }: AppShellProps) {
         {/* Logo */}
         <Link
           to="/"
-          className="flex items-center gap-2.5 px-5 pt-6 pb-5 text-white hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2.5 px-5 pt-6 pb-3 text-white hover:opacity-90 transition-opacity"
         >
           <ConvergeLogo className="w-8 h-8 shrink-0" />
           <span className="font-semibold text-2xl tracking-tight">Converge</span>
         </Link>
+
+        {/* Command palette opener — visible affordance. */}
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="mx-3 mb-3 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
+          aria-label="Open command palette"
+        >
+          <span className="flex-1 text-left">Search or jump…</span>
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/[0.12] text-white/80 border border-white/10">
+            {isMacPlatform() ? "⌘K" : "Ctrl K"}
+          </kbd>
+        </button>
 
         {/* Nav links */}
         <nav className="flex-1 px-2 overflow-y-auto pb-4">
@@ -154,19 +258,31 @@ export function AppShell({ children }: AppShellProps) {
             <ConvergeLogo className="w-6 h-6" />
             <span className="font-semibold tracking-tight">Converge</span>
           </Link>
-          <UserMenu
-            email={user?.email}
-            open={userMenuOpen}
-            onToggle={() => setUserMenuOpen((o) => !o)}
-            onClose={() => setUserMenuOpen(false)}
-            onLogout={logout}
-          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Open command palette"
+              className="w-10 h-10 grid place-items-center rounded-md text-white/70 hover:text-white hover:bg-white/[0.12] transition-colors"
+            >
+              <Search className="w-4 h-4" aria-hidden="true" />
+            </button>
+            <UserMenu
+              email={user?.email}
+              displayName={user?.display_name}
+              open={userMenuOpen}
+              onToggle={() => setUserMenuOpen((o) => !o)}
+              onClose={() => setUserMenuOpen(false)}
+              onLogout={logout}
+            />
+          </div>
         </header>
 
         {/* Floating user menu (desktop) — sits on top of the page header band */}
         <div className="hidden lg:block absolute top-4 right-6 z-30">
           <UserMenu
             email={user?.email}
+            displayName={user?.display_name}
             open={userMenuOpen}
             onToggle={() => setUserMenuOpen((o) => !o)}
             onClose={() => setUserMenuOpen(false)}
@@ -194,6 +310,17 @@ export function AppShell({ children }: AppShellProps) {
       <A11yPanel isOpen={a11yOpen} onClose={() => setA11yOpen(false)} />
       <AudioPlayer />
 
+      {/* ── Global overlays ── */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onShowShortcuts={() => {
+          setPaletteOpen(false);
+          setShortcutsOpen(true);
+        }}
+      />
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
       {/* Floating accessibility button */}
       <button
         type="button"
@@ -206,7 +333,7 @@ export function AppShell({ children }: AppShellProps) {
         aria-label="Accessibility settings"
         aria-expanded={a11yOpen}
       >
-        <Accessibility className="w-5 h-5" />
+        <Accessibility className="w-5 h-5" aria-hidden="true" />
       </button>
     </div>
   );
@@ -226,9 +353,7 @@ function NavGroup({
   return (
     <div className="space-y-0.5">
       {items.map((item) => {
-        const active =
-          pathname === item.to ||
-          (item.to !== "/" && pathname.startsWith(item.to));
+        const active = isNavItemActive(item.to, pathname);
         return (
           <NavRow
             key={item.to}
@@ -241,6 +366,39 @@ function NavGroup({
       })}
     </div>
   );
+}
+
+/**
+ * Lecture detail (/lectures/:id) and standalone trash/study sub-pages have no
+ * exact match in the sidebar — without this, the sidebar reads as if the user
+ * is "outside" any section. Treat lectures as a child of Courses, and prefer
+ * the most-specific match so /study/planner doesn't also light up "Study".
+ */
+const NAV_TARGETS = [
+  "/",
+  "/capture",
+  "/courses",
+  "/calendar",
+  "/study",
+  "/study/planner",
+  "/trash",
+  "/settings",
+] as const;
+
+function bestNavMatch(pathname: string): string | null {
+  if (pathname.startsWith("/lectures")) return "/courses";
+  let best: string | null = null;
+  for (const t of NAV_TARGETS) {
+    if (pathname === t || (t !== "/" && pathname.startsWith(t))) {
+      if (!best || t.length > best.length) best = t;
+    }
+  }
+  if (pathname === "/") return "/";
+  return best;
+}
+
+function isNavItemActive(to: string, pathname: string): boolean {
+  return bestNavMatch(pathname) === to;
 }
 
 interface NavRowProps {
@@ -267,7 +425,7 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
           aria-hidden="true"
         />
       )}
-      <Icon className="w-[18px] h-[18px] shrink-0" />
+      <Icon className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />
       <span className="flex-1">{label}</span>
     </Link>
   );
@@ -279,18 +437,32 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
 
 function UserMenu({
   email,
+  displayName,
   open,
   onToggle,
   onClose,
   onLogout,
 }: {
   email: string | undefined;
+  displayName?: string;
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
   onLogout: () => void;
 }) {
-  const initial = email?.charAt(0).toUpperCase() ?? "?";
+  const friendly =
+    (displayName && displayName.trim()) || email?.split("@")[0] || "User";
+  const initial = (friendly[0] || email?.[0] || "?").toUpperCase();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   return (
     <div className="relative">
       <button
@@ -303,7 +475,7 @@ function UserMenu({
         <span className="w-5 h-5 rounded-full bg-[var(--color-primary-soft)] flex items-center justify-center text-[10px] font-semibold text-[var(--color-primary-strong)]">
           {initial}
         </span>
-        <span className="max-w-[140px] truncate">{email?.split("@")[0] ?? "User"}</span>
+        <span className="max-w-[140px] truncate">{friendly}</span>
         <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
           <path
             d="M3 4.5L6 7.5L9 4.5"
@@ -335,7 +507,7 @@ function UserMenu({
               onClick={onClose}
               className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4" aria-hidden="true" />
               Settings
             </Link>
             <Link
@@ -344,8 +516,8 @@ function UserMenu({
               onClick={onClose}
               className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
-              <Mic className="w-4 h-4" />
-              New recording
+              <Mic className="w-4 h-4" aria-hidden="true" />
+              Start recording
             </Link>
             <button
               type="button"
@@ -356,8 +528,8 @@ function UserMenu({
               }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
             >
-              <Settings className="w-4 h-4" />
-              Sign Out
+              <LogOut className="w-4 h-4" aria-hidden="true" />
+              Sign out
             </button>
           </div>
         </>

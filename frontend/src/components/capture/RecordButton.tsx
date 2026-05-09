@@ -50,7 +50,7 @@ export function RecordButton({
         aria-label={isPaused ? 'Resume recording' : 'Pause recording'}
         className="h-12 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] inline-flex items-center gap-2 text-sm font-medium transition-colors"
       >
-        {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+        {isPaused ? <Play className="w-4 h-4" aria-hidden="true" /> : <Pause className="w-4 h-4" aria-hidden="true" />}
         <span>{isPaused ? 'Resume' : 'Pause'}</span>
       </button>
       <button

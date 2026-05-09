@@ -35,6 +35,11 @@ function nextIn<T>(arr: readonly T[], current: T): T {
   return arr[(idx + 1) % arr.length];
 }
 
+function capitalize(value: string): string {
+  if (!value) return value;
+  return value[0].toUpperCase() + value.slice(1);
+}
+
 export function useReadingAidsShortcuts() {
   const { prefs, update } = usePreferences();
 
@@ -45,7 +50,7 @@ export function useReadingAidsShortcuts() {
       handler: () => {
         const next = nextIn(RULER_CYCLE, prefs.readingRuler);
         update({ readingRuler: next });
-        showToast(`Reading Ruler: ${next}`);
+        showToast(`Reading ruler: ${capitalize(next)}`);
       },
     },
     {
@@ -54,7 +59,7 @@ export function useReadingAidsShortcuts() {
       handler: () => {
         const next = nextIn(FOCUS_CYCLE, prefs.focusMode);
         update({ focusMode: next });
-        showToast(`Focus Mode: ${next}`);
+        showToast(`Focus mode: ${capitalize(next)}`);
       },
     },
   ]);

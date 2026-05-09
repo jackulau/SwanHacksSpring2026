@@ -11,10 +11,12 @@ interface StudyStreakProps {
  */
 export function StudyStreak({ streak, todayCompleted }: StudyStreakProps) {
   const active = streak > 0;
-  const dayLabel = `${streak} day${streak === 1 ? '' : 's'}`;
+  const visibleLabel = active
+    ? `${streak} day${streak === 1 ? '' : 's'}`
+    : 'Start streak';
   const a11y = active
-    ? `${dayLabel} streak${todayCompleted ? ', today completed' : ''}`
-    : 'No active streak';
+    ? `${streak}-day streak${todayCompleted ? ', today completed' : ', at risk until you study'}`
+    : 'No active streak. Study today to start one.';
 
   return (
     <span
@@ -30,7 +32,7 @@ export function StudyStreak({ streak, todayCompleted }: StudyStreakProps) {
         className={`w-4 h-4 ${active ? 'text-orange-400' : 'text-[var(--color-text-subtle)]'}`}
         aria-hidden="true"
       />
-      <span className="font-medium">{dayLabel}</span>
+      <span className="font-medium">{visibleLabel}</span>
       {active && !todayCompleted && (
         <span className="text-[11px] text-orange-300/80">at risk</span>
       )}

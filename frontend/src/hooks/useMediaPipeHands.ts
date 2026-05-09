@@ -4,6 +4,8 @@ import { Camera } from '@mediapipe/camera_utils';
 
 export interface HandLandmarks {
   landmarks: NormalizedLandmarkList[];
+  /** Per-hand 'Left' / 'Right' label from MediaPipe, parallel to `landmarks`. */
+  handedness: string[];
   timestamp: number;
 }
 
@@ -52,8 +54,15 @@ export function useMediaPipeHands(config: MediaPipeHandsConfig = {}) {
         });
 
         hands.onResults((results) => {
+          // MediaPipe ships handedness as parallel arrays to multiHandLandmarks.
+          // Without these labels, downstream featurization can't tell left from
+          // right and falls back to detection order, which scrambles two-hand
+          // signs roughly 50% of the time.
+          const handedness = ((results.multiHandedness as Array<{ label?: string }> | undefined) ?? [])
+            .map((h) => h?.label ?? '');
           const landmarkData: HandLandmarks = {
             landmarks: (results.multiHandLandmarks as NormalizedLandmarkList[]) || [],
+            handedness,
             timestamp: Date.now(),
           };
           setState((s) => ({ ...s, currentLandmarks: landmarkData }));
@@ -62,8 +71,15 @@ export function useMediaPipeHands(config: MediaPipeHandsConfig = {}) {
 
         await hands.initialize();
         handsRef.current = hands;
+        console.log('[ASL] MediaPipe Hands initialized', {
+          maxNumHands: config.maxNumHands ?? 2,
+          modelComplexity: config.modelComplexity ?? 1,
+          minDetectionConfidence: config.minDetectionConfidence ?? 0.7,
+          minTrackingConfidence: config.minTrackingConfidence ?? 0.5,
+        });
         setState((s) => ({ ...s, isLoaded: true }));
       } catch (e) {
+        console.error('[ASL] MediaPipe Hands init failed', e);
         setState((s) => ({
           ...s,
           error: e instanceof Error ? e.message : 'Failed to load MediaPipe Hands',

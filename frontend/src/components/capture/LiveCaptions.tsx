@@ -31,7 +31,9 @@ export function LiveCaptions({
     }
   }, [captions]);
 
-  // Group consecutive segments by speaker for paragraph-like flow.
+  // Group consecutive segments by speaker for paragraph-like flow. Uncertain
+  // segments (confidence < 0.55) get a dotted underline rather than fading
+  // their opacity — the reader still sees the words, but knows to verify.
   return (
     <div
       ref={scrollRef}
@@ -55,6 +57,8 @@ export function LiveCaptions({
               showSpeakerLabels &&
               segment.speaker &&
               segment.speaker !== prev?.speaker;
+            const uncertain =
+              showConfidence && segment.isFinal && segment.confidence < 0.55;
 
             return (
               <span key={i}>
@@ -70,18 +74,17 @@ export function LiveCaptions({
                   />
                 )}
                 <span
-                  className={
+                  title={uncertain ? `Low confidence (${Math.round(segment.confidence * 100)}%)` : undefined}
+                  className={[
                     isSign
                       ? 'italic text-[var(--color-primary-strong)]'
                       : segment.isFinal
                         ? 'text-[var(--color-text)]'
-                        : 'text-[var(--color-text-muted)]'
-                  }
-                  style={{
-                    opacity: showConfidence
-                      ? 0.5 + segment.confidence * 0.5
-                      : undefined,
-                  }}
+                        : 'text-[var(--color-text-muted)] italic',
+                    uncertain
+                      ? 'decoration-dotted decoration-[var(--color-warning)] underline underline-offset-4'
+                      : '',
+                  ].join(' ')}
                 >
                   {segment.text}
                 </span>{' '}

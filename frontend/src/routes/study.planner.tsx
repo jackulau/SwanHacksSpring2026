@@ -173,7 +173,7 @@ function StudyPlannerPage() {
               disabled={!draft.trim()}
               className="h-10 px-4 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
             >
-              <Plus className="w-4 h-4" /> Add
+              <Plus className="w-4 h-4" aria-hidden="true" /> Add
             </button>
           </form>
 
@@ -188,7 +188,13 @@ function StudyPlannerPage() {
             />
           ) : (
             <ul className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
-              {tasks.map((task) => {
+              {[...tasks]
+                .sort((a, b) => {
+                  const aDone = a.status === "submitted" || a.status === "graded" ? 1 : 0;
+                  const bDone = b.status === "submitted" || b.status === "graded" ? 1 : 0;
+                  return aDone - bDone;
+                })
+                .map((task) => {
                 const done = task.status === "submitted" || task.status === "graded";
                 const isEditing = editingId === task.id;
                 return (
@@ -206,7 +212,7 @@ function StudyPlannerPage() {
                           : "border-[var(--color-border-strong)] hover:border-[var(--color-primary)]"
                       }`}
                     >
-                      {done && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                      {done && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} aria-hidden="true" />}
                     </button>
 
                     {isEditing ? (
@@ -226,6 +232,7 @@ function StudyPlannerPage() {
                     ) : (
                       <button
                         onClick={() => startEdit(task)}
+                        title={task.title}
                         className={`flex-1 text-left text-base ${
                           done
                             ? "text-[var(--color-text-subtle)] line-through"
@@ -238,10 +245,11 @@ function StudyPlannerPage() {
 
                     <button
                       onClick={() => deleteTask(task.id)}
-                      aria-label="Delete task"
+                      aria-label={`Delete task: ${task.title}`}
+                      title={`Delete "${task.title}"`}
                       className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 text-[var(--color-text-subtle)] hover:text-[var(--color-record)] transition-opacity"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </li>
                 );

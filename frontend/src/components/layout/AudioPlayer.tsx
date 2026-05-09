@@ -3,7 +3,7 @@ import {
   Play,
   SkipBack,
   SkipForward,
-  Volume2,
+  X,
 } from "lucide-react";
 import { useAudioPlayer } from "../../lib/audioPlayer";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -25,17 +25,22 @@ export function AudioPlayer() {
     duration,
     playing,
     rate,
+    error,
     seek,
     togglePlay,
     setRate,
+    setSrc,
     skip,
   } = useAudioPlayer();
 
   const active = src !== null;
 
+  // Note: Space is intentionally NOT bound here. Multiple pages bind Space
+  // (capture → record toggle, flashcard deck → flip card). Letting the
+  // global audio player also claim Space would double-fire on those pages.
+  // Use 'k' for play/pause — same convention as YouTube and most players.
   useKeyboardShortcuts(
     [
-      { key: " ", handler: () => { void togglePlay(); } },
       { key: "k", handler: () => { void togglePlay(); } },
       { key: "j", handler: () => skip(-10) },
       { key: "l", handler: () => skip(10) },
@@ -63,8 +68,19 @@ export function AudioPlayer() {
       style={{ height: "var(--audio-player-height, 56px)" }}
     >
       {title && (
-        <span className="hidden sm:inline truncate max-w-48 text-sm text-[var(--color-text-muted)]">
+        <span
+          className="truncate text-xs sm:text-sm text-[var(--color-text-muted)] max-w-[40%] sm:max-w-48"
+          title={title}
+        >
           {title}
+        </span>
+      )}
+      {error && (
+        <span
+          role="alert"
+          className="truncate text-xs text-[var(--color-record)] max-w-[60%] sm:max-w-72"
+        >
+          {error}
         </span>
       )}
 
@@ -74,7 +90,7 @@ export function AudioPlayer() {
         className="hidden sm:inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
         aria-label="Skip back 10 seconds"
       >
-        <SkipBack className="w-4 h-4" />
+        <SkipBack className="w-4 h-4" aria-hidden="true" />
       </button>
 
       <button
@@ -84,7 +100,7 @@ export function AudioPlayer() {
         aria-label={playing ? "Pause" : "Play"}
         aria-pressed={playing}
       >
-        {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        {playing ? <Pause className="w-4 h-4" aria-hidden="true" /> : <Play className="w-4 h-4" aria-hidden="true" />}
       </button>
 
       <button
@@ -93,7 +109,7 @@ export function AudioPlayer() {
         className="hidden sm:inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
         aria-label="Skip forward 10 seconds"
       >
-        <SkipForward className="w-4 h-4" />
+        <SkipForward className="w-4 h-4" aria-hidden="true" />
       </button>
 
       <span className="hidden sm:inline w-10 text-right text-xs text-[var(--color-text-subtle)] tabular-nums">
@@ -131,7 +147,15 @@ export function AudioPlayer() {
         </select>
       </label>
 
-      <Volume2 className="hidden sm:inline w-4 h-4 text-[var(--color-text-subtle)]" aria-hidden="true" />
+      <button
+        type="button"
+        onClick={() => setSrc(null)}
+        className="text-[var(--color-text-subtle)] hover:text-[var(--color-text)] p-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        aria-label="Close audio player"
+        title="Close audio player"
+      >
+        <X className="w-4 h-4" aria-hidden="true" />
+      </button>
     </div>
   );
 }
