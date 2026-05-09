@@ -10,10 +10,25 @@ const userAvatar = document.getElementById("user-avatar");
 const lastSync = document.getElementById("last-sync");
 const pbUrlInput = document.getElementById("pb-url");
 const saveUrlBtn = document.getElementById("save-url");
+const syncBtn = document.getElementById("sync-btn");
+const progressContainer = document.getElementById("progress-container");
+const progressBar = document.getElementById("progress-bar");
+const progressText = document.getElementById("progress-text");
 
 function showView(view) {
   loginView.classList.toggle("hidden", view !== "login");
   connectedView.classList.toggle("hidden", view !== "connected");
+}
+
+function setProgress(pct, text) {
+  progressContainer.classList.remove("hidden");
+  progressBar.style.width = pct + "%";
+  progressText.textContent = text;
+}
+
+function hideProgress() {
+  progressContainer.classList.add("hidden");
+  progressBar.style.width = "0%";
 }
 
 async function checkAuth() {
@@ -80,20 +95,79 @@ saveUrlBtn.addEventListener("click", async () => {
   }
 });
 
-const injectBtn = document.getElementById("inject-btn");
-
-injectBtn.addEventListener("click", async () => {
+syncBtn.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
+  if (!tab?.id || !tab.url) {
+    setProgress(0, "Navigate to your Canvas LMS page first");
+    return;
+  }
+
+  const isCanvas =
+    tab.url.includes("instructure.com") ||
+    tab.url.includes("/courses") ||
+    tab.url.includes("canvas.");
+  if (!isCanvas) {
+    setProgress(0, "Navigate to your Canvas LMS page first");
+    setTimeout(hideProgress, 3000);
+    return;
+  }
+
+  syncBtn.disabled = true;
+  setProgress(5, "Injecting sync script...");
 
   try {
     await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["content.css"] });
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
-    injectBtn.textContent = "Injected!";
-    setTimeout(() => (injectBtn.textContent = "Inject Sync Button on This Tab"), 2000);
   } catch (e) {
-    injectBtn.textContent = "Failed — grant permission";
-    setTimeout(() => (injectBtn.textContent = "Inject Sync Button on This Tab"), 3000);
+    setProgress(0, "Cannot access this page — check extension permissions");
+    syncBtn.disabled = false;
+    setTimeout(hideProgress, 3000);
+    return;
+  }
+
+  setProgress(10, "Fetching Canvas data...");
+
+  try {
+    const canvasData = await chrome.tabs.sendMessage(tab.id, { type: "FETCH_CANVAS_DATA" });
+    if (!canvasData.ok) {
+      setProgress(0, canvasData.error || "Failed to fetch Canvas data");
+      syncBtn.disabled = false;
+      setTimeout(hideProgress, 3000);
+      return;
+    }
+
+    const payload = canvasData.data;
+    setProgress(30, `Found ${payload.courses.length} courses, ${payload.assignments.length} assignments`);
+
+    const port = chrome.runtime.connect({ name: "sync-progress" });
+
+    port.onMessage.addListener((msg) => {
+      if (msg.type === "PROGRESS") {
+        setProgress(msg.pct, msg.text);
+      }
+      if (msg.type === "DONE") {
+        const r = msg.result;
+        const parts = [`${r.courses} courses`, `${r.created} new`, `${r.updated} updated`];
+        if (r.skipped) parts.push(`${r.skipped} skipped`);
+        setProgress(100, `Synced! ${parts.join(", ")}`);
+        loadSyncStatus();
+        syncBtn.disabled = false;
+        setTimeout(hideProgress, 4000);
+        port.disconnect();
+      }
+      if (msg.type === "ERROR") {
+        setProgress(0, msg.error);
+        syncBtn.disabled = false;
+        setTimeout(hideProgress, 4000);
+        port.disconnect();
+      }
+    });
+
+    port.postMessage({ type: "SYNC_CANVAS", payload });
+  } catch (e) {
+    setProgress(0, e.message || "Sync failed");
+    syncBtn.disabled = false;
+    setTimeout(hideProgress, 3000);
   }
 });
 

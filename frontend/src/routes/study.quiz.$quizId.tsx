@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { ArrowLeft, FileQuestion } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
+import { EmptyState } from "../components/layout/EmptyState";
+import { Skeleton } from "../components/layout/Skeleton";
 import { QuizRunner } from "../components/study/QuizRunner";
 import { pb } from "../lib/pocketbase";
 import type { Quiz, QuizQuestion } from "../lib/types";
@@ -20,6 +22,7 @@ function QuizPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -29,7 +32,10 @@ function QuizPage() {
     if (!user) return;
     pb.collection("quizzes")
       .getOne<Quiz>(quizId)
-      .then(setQuiz)
+      .then((q) => {
+        setQuiz(q);
+        startedAtRef.current = Date.now();
+      })
       .catch(() => setError("Quiz not found"))
       .finally(() => setLoading(false));
   }, [user, quizId]);
@@ -51,8 +57,10 @@ function QuizPage() {
           })),
           score: totalEarned,
           max_score: totalPossible,
-          percentage: Math.round((totalEarned / totalPossible) * 100),
-          time_taken_secs: 0,
+          percentage: totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0,
+          time_taken_secs: startedAtRef.current
+            ? Math.max(0, Math.round((Date.now() - startedAtRef.current) / 1000))
+            : 0,
           completed_at: new Date().toISOString(),
         });
       } catch {
@@ -66,8 +74,12 @@ function QuizPage() {
     return (
       <AppShell>
         <PageHeader title="Quiz" />
-        <div className="p-6">
-          <p className="text-[var(--color-text-muted)]">Loading...</p>
+        <div className="px-6 lg:px-8 py-8 max-w-2xl mx-auto space-y-3">
+          <Skeleton className="h-1 rounded-md" />
+          <Skeleton className="h-8 w-2/3 rounded-md" />
+          <Skeleton className="h-12 rounded-md" />
+          <Skeleton className="h-12 rounded-md" />
+          <Skeleton className="h-12 rounded-md" />
         </div>
       </AppShell>
     );
@@ -77,14 +89,21 @@ function QuizPage() {
     return (
       <AppShell>
         <PageHeader title="Quiz" />
-        <div className="p-6 max-w-3xl mx-auto">
-          <button
-            onClick={() => navigate({ to: "/study" })}
-            className="flex items-center gap-1 text-[var(--color-text-muted)] hover:text-white mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Study
-          </button>
-          <p className="text-[var(--color-text-muted)]">{error || "Quiz not found"}</p>
+        <div className="px-6 lg:px-8 py-12 max-w-2xl mx-auto">
+          <EmptyState
+            icon={FileQuestion}
+            title={error || "Quiz not found"}
+            description="This quiz may have been deleted or never existed."
+            size="lg"
+            action={
+              <button
+                onClick={() => navigate({ to: "/study" })}
+                className="h-10 px-4 rounded-md border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] text-sm flex items-center gap-1"
+              >
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to Study
+              </button>
+            }
+          />
         </div>
       </AppShell>
     );
@@ -93,12 +112,18 @@ function QuizPage() {
   return (
     <AppShell>
       <PageHeader title={quiz.title} eyebrow="Quiz" />
-      <div className="p-6 max-w-3xl mx-auto">
+      <div className="px-6 lg:px-8 pt-4 pb-8 max-w-2xl mx-auto">
         <button
-          onClick={() => navigate({ to: "/study" })}
-          className="flex items-center gap-1 text-[var(--color-text-muted)] hover:text-white mb-4"
+          onClick={() => {
+            if (quiz.lecture) {
+              navigate({ to: "/lectures/$lectureId", params: { lectureId: quiz.lecture } });
+            } else {
+              navigate({ to: "/study" });
+            }
+          }}
+          className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Study
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to {quiz.lecture ? "lecture" : "study"}
         </button>
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}

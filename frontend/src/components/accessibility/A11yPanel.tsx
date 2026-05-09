@@ -1,23 +1,35 @@
-import { useEffect } from 'react';
-import { X, Volume2, Type, Eye, Brain, BookOpen } from 'lucide-react';
-import { usePreferences } from '../../lib/preferences';
+import { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { usePreferences, type Preferences } from '../../lib/preferences';
 
 interface A11yPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+/**
+ * Slide-out accessibility panel — quick access to the same preferences
+ * the full /settings page exposes, but available from anywhere.
+ *
+ * Visual chrome is intentionally minimal: hairline rows, no inner cards,
+ * no inner section headers. Settings live at /settings; this panel is
+ * a shortcut, not a replacement.
+ */
 export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
-  const { prefs: preferences, update } = usePreferences();
-  const updatePreference = <K extends keyof typeof preferences>(
-    key: K,
-    value: (typeof preferences)[K],
-  ) => {
-    update({ [key]: value } as Partial<typeof preferences>);
-  };
+  const { prefs, update } = usePreferences();
+  const liveRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+
+  function announce(msg: string) {
+    if (liveRef.current) liveRef.current.textContent = msg;
+  }
 
   useEffect(() => {
     if (!isOpen) return;
+    // Move focus into the panel so screen readers and keyboard users land here
+    // instead of on the now-hidden A11y trigger button.
+    closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
@@ -31,216 +43,184 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-md h-full bg-zinc-900 border-l border-zinc-700 overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-zinc-100">Accessibility</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200">
-            <X className="w-5 h-5" />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="a11y-panel-title"
+    >
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="relative w-full max-w-sm h-full bg-[var(--color-bg)] border-l border-[var(--color-border)] overflow-y-auto">
+        <div ref={liveRef} role="status" aria-live="polite" className="sr-only" />
+
+        <header className="sticky top-0 bg-[var(--color-bg)] flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] z-10">
+          <h2 id="a11y-panel-title" className="text-base font-semibold text-[var(--color-text)]">
+            Accessibility
+          </h2>
+          <button
+            ref={closeRef}
+            onClick={onClose}
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+            aria-label="Close accessibility panel"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
-        </div>
+        </header>
 
-        <div className="space-y-8">
-          <Section icon={<Eye className="w-4 h-4" />} title="Display">
-            <SelectOption
-              label="Theme"
-              value={preferences.theme}
-              options={[
-                { value: 'dark', label: 'Dark (default)' },
-                { value: 'high-contrast', label: 'High Contrast' },
-              ]}
-              onChange={(v) => updatePreference('theme', v as typeof preferences.theme)}
-            />
-            <SelectOption
-              label="Font"
-              value={preferences.font}
-              options={[
-                { value: 'system', label: 'System Default' },
-                { value: 'atkinson', label: 'Atkinson Hyperlegible' },
-                { value: 'opendyslexic', label: 'OpenDyslexic' },
-              ]}
-              onChange={(v) => updatePreference('font', v as typeof preferences.font)}
-            />
-            <SliderOption
-              label="Font Size"
-              value={preferences.fontSize}
-              min={14}
-              max={24}
-              unit="px"
-              onChange={(v) => updatePreference('fontSize', v)}
-            />
-            <SliderOption
-              label="Line Spacing"
-              value={preferences.lineSpacing}
-              min={1.2}
-              max={2.0}
-              step={0.1}
-              onChange={(v) => updatePreference('lineSpacing', v)}
-            />
-            <ToggleOption
-              label="Reduced Motion"
-              checked={preferences.reducedMotion}
-              onChange={(v) => updatePreference('reducedMotion', v)}
-            />
-          </Section>
+        <div className="px-6">
+          <PanelToggle
+            label="High contrast"
+            checked={prefs.theme === 'high-contrast'}
+            onChange={(v) => {
+              update({ theme: v ? 'high-contrast' : 'dark' });
+              announce(v ? 'High contrast on' : 'High contrast off');
+            }}
+          />
+          <PanelToggle
+            label="Dyslexia-friendly font"
+            checked={prefs.font === 'opendyslexic'}
+            onChange={(v) => {
+              update({ font: v ? 'opendyslexic' : 'system' });
+              announce(v ? 'Dyslexia font on' : 'Dyslexia font off');
+            }}
+          />
+          <PanelToggle
+            label="Reduced motion"
+            checked={prefs.reducedMotion}
+            onChange={(v) => {
+              update({ reducedMotion: v });
+              announce(v ? 'Reduced motion on' : 'Reduced motion off');
+            }}
+          />
 
-          <Section icon={<Type className="w-4 h-4" />} title="Reading">
-            <SelectOption
-              label="Reading Level"
-              value={preferences.readingLevel}
-              options={[
-                { value: 'original', label: 'Original' },
-                { value: 'simplified', label: 'Simplified' },
-                { value: 'basic', label: 'Basic' },
-              ]}
-              onChange={(v) => updatePreference('readingLevel', v as typeof preferences.readingLevel)}
-            />
-          </Section>
+          <PanelSlider
+            label="Font size"
+            value={prefs.fontSize}
+            min={14}
+            max={24}
+            unit="px"
+            onChange={(v) => update({ fontSize: v })}
+          />
+          <PanelSlider
+            label="Line spacing"
+            value={prefs.lineSpacing}
+            min={1.2}
+            max={2.0}
+            step={0.1}
+            onChange={(v) => update({ lineSpacing: Math.round(v * 10) / 10 })}
+          />
 
-          <Section icon={<BookOpen className="w-4 h-4" />} title="Reading Aids">
-            <SelectOption
-              label="Reading Ruler (Alt+R)"
-              value={preferences.readingRuler}
-              options={[
-                { value: 'off', label: 'Off' },
-                { value: 'bar', label: 'Bar' },
-                { value: 'window', label: 'Window' },
-              ]}
-              onChange={(v) => updatePreference('readingRuler', v as typeof preferences.readingRuler)}
-            />
-            {preferences.readingRuler !== 'off' && (
-              <>
-                <SliderOption
-                  label="Ruler Height"
-                  value={preferences.readingRulerHeight}
-                  min={16}
-                  max={80}
-                  step={2}
-                  unit="px"
-                  onChange={(v) => updatePreference('readingRulerHeight', v)}
-                />
-                <SelectOption
-                  label="Ruler Tint"
-                  value={preferences.readingRulerTint}
-                  options={[
-                    { value: 'none', label: 'None' },
-                    { value: 'yellow', label: 'Yellow' },
-                    { value: 'peach', label: 'Peach' },
-                    { value: 'blue', label: 'Blue' },
-                    { value: 'lavender', label: 'Lavender' },
-                    { value: 'mint', label: 'Mint' },
-                  ]}
-                  onChange={(v) =>
-                    updatePreference('readingRulerTint', v as typeof preferences.readingRulerTint)
-                  }
-                />
-                {preferences.readingRuler === 'window' && (
-                  <SliderOption
-                    label="Dim Opacity"
-                    value={preferences.readingRulerOpacity}
-                    min={0}
-                    max={90}
-                    step={5}
-                    unit="%"
-                    onChange={(v) => updatePreference('readingRulerOpacity', v)}
-                  />
-                )}
-              </>
-            )}
-            <SelectOption
-              label="Focus Mode (Alt+F)"
-              value={preferences.focusMode}
-              options={[
-                { value: 'off', label: 'Off' },
-                { value: 'paragraph', label: 'Paragraph' },
-                { value: 'sentence', label: 'Sentence' },
-              ]}
-              onChange={(v) => updatePreference('focusMode', v as typeof preferences.focusMode)}
-            />
-            {preferences.focusMode !== 'off' && (
-              <SliderOption
-                label="Surrounding Text Dim"
-                value={preferences.focusModeDim}
-                min={30}
-                max={95}
-                step={5}
-                unit="%"
-                onChange={(v) => updatePreference('focusModeDim', v)}
-              />
-            )}
-          </Section>
+          <PanelSelect
+            label="Reading ruler"
+            value={prefs.readingRuler}
+            options={[
+              { value: 'off', label: 'Off' },
+              { value: 'bar', label: 'Bar' },
+              { value: 'window', label: 'Window' },
+            ]}
+            onChange={(v) =>
+              update({ readingRuler: v as Preferences['readingRuler'] })
+            }
+          />
+          <PanelSelect
+            label="Focus mode"
+            value={prefs.focusMode}
+            options={[
+              { value: 'off', label: 'Off' },
+              { value: 'paragraph', label: 'Paragraph' },
+              { value: 'sentence', label: 'Sentence' },
+            ]}
+            onChange={(v) =>
+              update({ focusMode: v as Preferences['focusMode'] })
+            }
+          />
+          <PanelSelect
+            label="Reading level"
+            value={prefs.readingLevel}
+            options={[
+              { value: 'original', label: 'Original' },
+              { value: 'simplified', label: 'Simplified' },
+              { value: 'basic', label: 'Basic' },
+            ]}
+            onChange={(v) =>
+              update({ readingLevel: v as Preferences['readingLevel'] })
+            }
+          />
 
-          <Section icon={<Volume2 className="w-4 h-4" />} title="Text-to-Speech">
-            <ToggleOption
-              label="Enable TTS"
-              checked={preferences.ttsEnabled}
-              onChange={(v) => updatePreference('ttsEnabled', v)}
-            />
-            {preferences.ttsEnabled && (
-              <SliderOption
-                label="TTS Speed"
-                value={preferences.ttsSpeed}
-                min={0.5}
-                max={2.0}
-                step={0.1}
-                unit="x"
-                onChange={(v) => updatePreference('ttsSpeed', v)}
-              />
-            )}
-          </Section>
+          <PanelToggle
+            label="Text-to-speech"
+            checked={prefs.ttsEnabled}
+            onChange={(v) => {
+              update({ ttsEnabled: v });
+              announce(v ? 'Text to speech on' : 'Text to speech off');
+            }}
+          />
 
-          <Section icon={<Brain className="w-4 h-4" />} title="Study">
-            <SliderOption
-              label="Cards per Session"
-              value={preferences.cardsPerSession}
-              min={5}
-              max={50}
-              step={5}
-              onChange={(v) => updatePreference('cardsPerSession', v)}
-            />
-            <SliderOption
-              label="Pomodoro Length"
-              value={preferences.pomodoroLength}
-              min={10}
-              max={60}
-              step={5}
-              unit=" min"
-              onChange={(v) => updatePreference('pomodoroLength', v)}
-            />
-            <ToggleOption
-              label="Break Reminders"
-              checked={preferences.breakReminders}
-              onChange={(v) => updatePreference('breakReminders', v)}
-            />
-          </Section>
+          <p className="py-4 text-xs text-[var(--color-text-subtle)]">
+            More options in{" "}
+            <Link
+              to="/settings/accessibility"
+              onClick={onClose}
+              className="underline underline-offset-2 hover:text-[var(--color-text)]"
+            >
+              Settings → Accessibility
+            </Link>
+            .
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-function Section({
-  icon,
-  title,
-  children,
+function PanelRow({ label, control }: { label: string; control: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-[var(--color-border)]">
+      <span className="text-sm text-[var(--color-text)]">{label}</span>
+      {control}
+    </div>
+  );
+}
+
+function PanelToggle({
+  label,
+  checked,
+  onChange,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
 }) {
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-[var(--color-primary-strong)]">{icon}</span>
-        <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">{title}</h3>
-      </div>
-      <div className="space-y-4">{children}</div>
-    </div>
+    <PanelRow
+      label={label}
+      control={
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          aria-label={label}
+          onClick={() => onChange(!checked)}
+          className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${
+            checked ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-input)]'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+              checked ? 'translate-x-5' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      }
+    />
   );
 }
 
-function SelectOption({
+function PanelSelect({
   label,
   value,
   options,
@@ -249,27 +229,30 @@ function SelectOption({
   label: string;
   value: string;
   options: { value: string; label: string }[];
-  onChange: (value: string) => void;
+  onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <label className="text-zinc-300 text-sm">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]/60"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
+    <PanelRow
+      label={label}
+      control={
+        <select
+          aria-label={label}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="bg-[var(--color-input)] border border-[var(--color-border)] text-[var(--color-text)] rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[var(--color-primary)]"
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      }
+    />
   );
 }
 
-function SliderOption({
+function PanelSlider({
   label,
   value,
   min,
@@ -284,13 +267,13 @@ function SliderOption({
   max: number;
   step?: number;
   unit?: string;
-  onChange: (value: number) => void;
+  onChange: (v: number) => void;
 }) {
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <label className="text-zinc-300 text-sm">{label}</label>
-        <span className="text-zinc-400 text-sm">
+    <div className="py-3 border-b border-[var(--color-border)]">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-[var(--color-text)]">{label}</span>
+        <span className="text-xs tabular-nums text-[var(--color-text-muted)]">
           {value}
           {unit}
         </span>
@@ -302,38 +285,10 @@ function SliderOption({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
+        aria-valuetext={`${value}${unit}`}
         className="w-full accent-[var(--color-primary)]"
       />
-    </div>
-  );
-}
-
-function ToggleOption({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <label className="text-zinc-300 text-sm">{label}</label>
-      <button
-        onClick={() => onChange(!checked)}
-        className={`w-11 h-6 rounded-full transition-colors relative ${
-          checked ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'
-        }`}
-        role="switch"
-        aria-checked={checked}
-      >
-        <div
-          className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
-            checked ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
     </div>
   );
 }

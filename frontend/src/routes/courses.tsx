@@ -1,14 +1,28 @@
 import { createFileRoute, useNavigate, Outlet, useMatch, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
-import { Plus, BookOpen, Trash2, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { Plus, BookOpen, ChevronRight, Pencil, Trash2, Link2 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
 import { EmptyState } from "../components/layout/EmptyState";
 import { Skeleton } from "../components/layout/Skeleton";
+import { ConnectCanvasModal } from "../components/courses/ConnectCanvasModal";
 import { pb } from "../lib/pocketbase";
 import type { Course } from "../lib/types";
+
+// Palette of 7 swatches that read well against the cream/dark surfaces.
+const COLORS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "#5fbf78", label: "Green" },
+  { value: "#3b82f6", label: "Blue" },
+  { value: "#8b5cf6", label: "Violet" },
+  { value: "#ec4899", label: "Pink" },
+  { value: "#f59e0b", label: "Amber" },
+  { value: "#ef4444", label: "Red" },
+  { value: "#14b8a6", label: "Teal" },
+] as const;
+
+const DEFAULT_COLOR = COLORS[0].value;
 
 export const Route = createFileRoute("/courses")({
   component: CoursesPage,
@@ -32,86 +46,121 @@ function CoursesPage() {
   );
 }
 
-const COLORS: readonly string[] = [
-  '#5fbf78',
-  '#6366f1',
-  '#ec4899',
-  '#14b8a6',
-  '#f59e0b',
-  '#ef4444',
-  '#8b5cf6',
-  '#06b6d4',
-];
-
-interface CoursePatch {
-  name: string;
-  code: string;
-  semester: string;
-  color: string;
+interface CourseRow {
+  course: Course;
+  assignmentCount: number;
+  lectureCount: number;
+  lastActivity: string | null;
 }
 
 function CourseList({ userId }: { userId: string }) {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [rows, setRows] = useState<CourseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [semester, setSemester] = useState('');
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [semester, setSemester] = useState("");
+  const [color, setColor] = useState<string>(DEFAULT_COLOR);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showCanvasModal, setShowCanvasModal] = useState(false);
 
   async function fetchCourses() {
     try {
-      const records = await pb.collection('courses').getFullList<Course>({
+      const courses = await pb.collection("courses").getFullList<Course>({
         filter: `user = "${userId}"`,
-        sort: '-created',
+        sort: "-id",
       });
-      setCourses(records);
-    } catch { /* empty */ }
+
+      const enriched = await Promise.all(
+        courses.map(async (course) => {
+          const [assignments, lectures] = await Promise.all([
+            pb
+              .collection("assignments")
+              .getList(1, 1, { filter: `course = "${course.id}"`, requestKey: `asgn-${course.id}` })
+              .catch(() => ({ totalItems: 0, items: [] as Array<{ created?: string }> })),
+            pb
+              .collection("lectures")
+              .getList(1, 1, { filter: `course = "${course.id}"`, requestKey: `lec-${course.id}` })
+              .catch(() => ({ totalItems: 0, items: [] as Array<{ recorded_at?: string }> })),
+          ]);
+
+          const last =
+            (lectures.items[0] as { recorded_at?: string } | undefined)?.recorded_at ??
+            (assignments.items[0] as { created?: string } | undefined)?.created ??
+            course.updated ??
+            course.created ??
+            null;
+
+          return {
+            course,
+            assignmentCount: assignments.totalItems,
+            lectureCount: lectures.totalItems,
+            lastActivity: last,
+          };
+        }),
+      );
+      setRows(enriched);
+    } catch {
+      /* empty */
+    }
     setLoading(false);
   }
 
-  useEffect(() => { fetchCourses(); }, [userId]);
+  useEffect(() => {
+    fetchCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    await pb.collection('courses').create({
-      user: userId,
-      name,
-      code,
-      semester,
-      color: COLORS[courses.length % COLORS.length],
-    });
-    setName('');
-    setCode('');
-    setSemester('');
-    setShowForm(false);
-    fetchCourses();
-  }
-
-  async function handleSaveEdit(id: string, patch: CoursePatch) {
-    const previous = courses;
-    const optimistic = courses.map((c) =>
-      c.id === id ? { ...c, ...patch } : c
-    );
-    setCourses(optimistic);
-    setEditingId(null);
     try {
-      await pb.collection('courses').update(id, patch);
-    } catch {
-      setCourses(previous);
+      await pb.collection("courses").create({
+        user: userId,
+        name: name.trim(),
+        code: code.trim(),
+        semester: semester.trim(),
+        color,
+      });
+      setName("");
+      setCode("");
+      setSemester("");
+      setColor(DEFAULT_COLOR);
+      setShowForm(false);
+      setError(null);
+      fetchCourses();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create course");
     }
   }
 
-  async function handleConfirmDelete(id: string) {
-    const previous = courses;
-    setCourses((prev) => prev.filter((c) => c.id !== id));
-    setConfirmDeleteId(null);
+  async function handleSaveEdit(id: string, patch: Partial<Course>) {
     try {
-      await pb.collection('courses').delete(id);
-    } catch {
-      setCourses(previous);
+      const updated = await pb.collection("courses").update<Course>(id, patch);
+      setRows((prev) =>
+        prev.map((r) => (r.course.id === id ? { ...r, course: updated } : r)),
+      );
+      setEditingId(null);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save course");
+    }
+  }
+
+  async function handleDelete(id: string) {
+    const previous = rows;
+    // Optimistic removal.
+    setRows((prev) => prev.filter((r) => r.course.id !== id));
+    setConfirmingDeleteId(null);
+    try {
+      await pb.collection("courses").delete(id);
+      setError(null);
+    } catch (err: unknown) {
+      // Restore on failure.
+      setRows(previous);
+      setError(err instanceof Error ? err.message : "Failed to delete course");
     }
   }
 
@@ -119,194 +168,315 @@ function CourseList({ userId }: { userId: string }) {
     <>
       <PageHeader
         title="Courses"
-        subtitle="Organize your lectures and notes"
+        subtitle="Lectures, assignments, and notes by class."
         actions={
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold px-5 py-2 rounded-full transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add course
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCanvasModal(true)}
+              className="inline-flex items-center gap-2 border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] font-medium px-3 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            >
+              <Link2 className="w-4 h-4" aria-hidden="true" />
+              Connect Canvas
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm((s) => !s)}
+              aria-expanded={showForm}
+              className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Add course
+            </button>
+          </div>
         }
       />
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-6xl mx-auto space-y-6">
-        <p className="text-sm text-[var(--color-text-muted)]">
-          {courses.length} {courses.length === 1 ? 'course' : 'courses'}
-        </p>
+      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
+        {error && (
+          <div
+            role="alert"
+            className="mb-4 px-3 py-2 text-xs text-[var(--color-record)] border border-[var(--color-record)]/40 bg-[var(--color-record)]/10 rounded-sm"
+          >
+            {error}
+          </div>
+        )}
 
         {showForm && (
           <form
             onSubmit={handleCreate}
-            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5 space-y-4"
+            className="mb-6 border border-[var(--color-border)] bg-[var(--color-surface-raised)] rounded-sm p-6"
+            aria-label="Create course"
           >
-            <div>
-              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">Course name</label>
-              <input
-                type="text"
-                placeholder="e.g. Biology 201"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
-                autoFocus
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">Course code</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="block sm:col-span-2 text-xs font-medium text-[var(--color-text-muted)]">
+                Course name
                 <input
                   type="text"
-                  placeholder="e.g. BIO 201"
+                  placeholder="Biology 201"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-base focus:outline-none focus:border-[var(--color-primary)]"
+                  autoFocus
+                />
+              </label>
+              <label className="block text-xs font-medium text-[var(--color-text-muted)]">
+                Code
+                <input
+                  type="text"
+                  placeholder="BIO 201"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
+                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">Semester</label>
+              </label>
+              <label className="block text-xs font-medium text-[var(--color-text-muted)]">
+                Semester
                 <input
                   type="text"
-                  placeholder="e.g. Fall 2026"
+                  placeholder="Fall 2026"
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
-                  className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
+                  className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
                 />
+              </label>
+              <div className="block sm:col-span-2 text-xs font-medium text-[var(--color-text-muted)]">
+                Color
+                <ColorPicker value={color} onChange={setColor} />
               </div>
             </div>
-            <div className="flex gap-2 justify-end pt-1">
+            <div className="flex gap-2 justify-end mt-6">
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
-                className="bg-black border border-[var(--color-border)] text-white hover:border-[var(--color-border-strong)] rounded-full px-4 py-2 text-sm transition-colors"
+                onClick={() => {
+                  setShowForm(false);
+                  setColor(DEFAULT_COLOR);
+                }}
+                className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-4 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold rounded-full px-5 py-2 text-sm transition-colors"
+                disabled={!name.trim()}
+                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
               >
-                Create course
+                Create
               </button>
             </div>
           </form>
         )}
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-px" aria-busy="true">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-28" />
+              <Skeleton key={i} className="h-14 rounded-sm" />
             ))}
           </div>
-        ) : courses.length === 0 ? (
+        ) : rows.length === 0 ? (
           <EmptyState
             icon={BookOpen}
             title="No courses yet"
-            description="Add a course to organize your lectures"
+            description="Add one by hand, or connect Canvas to sync your existing courses and assignments."
             size="lg"
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCanvasModal(true)}
+                  className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+                >
+                  <Link2 className="w-4 h-4" aria-hidden="true" />
+                  Connect Canvas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(true)}
+                  className="inline-flex items-center gap-2 border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] font-medium px-4 py-2 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+                >
+                  <Plus className="w-4 h-4" aria-hidden="true" />
+                  Add course manually
+                </button>
+              </div>
+            }
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {courses.map((course) =>
-              editingId === course.id ? (
-                <EditCourseForm
-                  key={course.id}
-                  course={course}
-                  onCancel={() => setEditingId(null)}
-                  onSave={(patch) => handleSaveEdit(course.id, patch)}
+          <ul
+            className="border-t border-b border-[var(--color-border)] divide-y divide-[var(--color-border)]"
+            role="list"
+          >
+            {rows.map((row) => (
+              <li key={row.course.id}>
+                <CourseRow
+                  row={row}
+                  isEditing={editingId === row.course.id}
+                  isConfirmingDelete={confirmingDeleteId === row.course.id}
+                  onEdit={() => {
+                    setEditingId(row.course.id);
+                    setConfirmingDeleteId(null);
+                  }}
+                  onCancelEdit={() => setEditingId(null)}
+                  onSaveEdit={(patch) => handleSaveEdit(row.course.id, patch)}
+                  onRequestDelete={() => {
+                    setConfirmingDeleteId(row.course.id);
+                    setEditingId(null);
+                  }}
+                  onCancelDelete={() => setConfirmingDeleteId(null)}
+                  onConfirmDelete={() => handleDelete(row.course.id)}
                 />
-              ) : confirmDeleteId === course.id ? (
-                <ConfirmDeleteRow
-                  key={course.id}
-                  course={course}
-                  onCancel={() => setConfirmDeleteId(null)}
-                  onConfirm={() => handleConfirmDelete(course.id)}
-                />
-              ) : (
-                <div
-                  key={course.id}
-                  className="group rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5 hover:border-[var(--color-border-strong)] transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <Link to="/courses/$courseId" params={{ courseId: course.id }} className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div
-                          className="w-4 h-4 rounded-full shrink-0 ring-2 ring-offset-2"
-                          style={{ backgroundColor: course.color, ['--tw-ring-offset-color' as string]: 'var(--color-surface)' }}
-                        />
-                        <h3 className="font-semibold text-white truncate">{course.name}</h3>
-                      </div>
-                      <div className="flex items-center gap-2 ml-7">
-                        {course.code && (
-                          <span className="text-xs bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)] px-2 py-0.5 rounded-md">
-                            {course.code}
-                          </span>
-                        )}
-                        {course.semester && (
-                          <span className="text-xs text-[var(--color-text-muted)]">
-                            {course.semester}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setConfirmDeleteId(null);
-                          setEditingId(course.id);
-                        }}
-                        className="text-[var(--color-text-subtle)] hover:text-[var(--color-primary-strong)] transition-colors p-1.5 rounded-lg hover:bg-white/5"
-                        aria-label="Edit course"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingId(null);
-                          setConfirmDeleteId(course.id);
-                        }}
-                        className="text-[var(--color-text-subtle)] hover:text-[var(--color-record)] transition-colors p-1.5 rounded-lg hover:bg-white/5"
-                        aria-label="Delete course"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <Link
-                        to="/courses/$courseId"
-                        params={{ courseId: course.id }}
-                        className="text-[var(--color-text-subtle)] hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
-                        aria-label="Open course"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              )
-            )}
-          </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
+      <ConnectCanvasModal
+        open={showCanvasModal}
+        onClose={() => setShowCanvasModal(false)}
+      />
     </>
+  );
+}
+
+interface CourseRowProps {
+  row: CourseRow;
+  isEditing: boolean;
+  isConfirmingDelete: boolean;
+  onEdit: () => void;
+  onCancelEdit: () => void;
+  onSaveEdit: (patch: Partial<Course>) => void;
+  onRequestDelete: () => void;
+  onCancelDelete: () => void;
+  onConfirmDelete: () => void;
+}
+
+function CourseRow({
+  row,
+  isEditing,
+  isConfirmingDelete,
+  onEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onRequestDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: CourseRowProps) {
+  const { course, assignmentCount, lectureCount, lastActivity } = row;
+
+  if (isEditing) {
+    return (
+      <EditCourseForm course={course} onCancel={onCancelEdit} onSave={onSaveEdit} />
+    );
+  }
+
+  const stripeColor = course.color || DEFAULT_COLOR;
+
+  return (
+    <div className="grid grid-cols-[1fr_auto] items-center gap-4 py-4 px-2 hover:bg-[var(--color-surface-raised)] transition-colors">
+      <Link
+        to="/courses/$courseId"
+        params={{ courseId: course.id }}
+        title={course.name}
+        className="group min-w-0 flex items-center gap-3 focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] rounded-sm"
+      >
+        <span
+          aria-hidden="true"
+          className="w-1 self-stretch rounded-sm shrink-0"
+          style={{ backgroundColor: stripeColor }}
+        />
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h2 className="text-base font-medium text-[var(--color-text)] truncate">
+              {course.name}
+            </h2>
+            {course.code && (
+              <span className="text-xs font-mono text-[var(--color-text-muted)] shrink-0">
+                {course.code}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-xs text-[var(--color-text-subtle)]">
+            <span>
+              {lectureCount} {lectureCount === 1 ? "lecture" : "lectures"}
+            </span>
+            <span>
+              {assignmentCount} {assignmentCount === 1 ? "assignment" : "assignments"}
+            </span>
+            {course.semester && <span>{course.semester}</span>}
+            {lastActivity && <span>Active {formatActivity(lastActivity)}</span>}
+          </div>
+        </div>
+      </Link>
+
+      {isConfirmingDelete ? (
+        <div className="flex items-center gap-3 text-xs" role="alertdialog" aria-label={`Confirm delete ${course.name}`}>
+          <span className="text-[var(--color-text-muted)]">
+            Delete <span className="font-semibold text-[var(--color-text)]">{course.name}</span>
+            {(lectureCount > 0 || assignmentCount > 0) && (
+              <>
+                {" "}and its {lectureCount > 0 && `${lectureCount} ${lectureCount === 1 ? "lecture" : "lectures"}`}
+                {lectureCount > 0 && assignmentCount > 0 && " + "}
+                {assignmentCount > 0 && `${assignmentCount} ${assignmentCount === 1 ? "assignment" : "assignments"}`}
+              </>
+            )}
+            ?
+          </span>
+          <button
+            type="button"
+            onClick={onConfirmDelete}
+            autoFocus
+            className="text-[var(--color-record)] font-semibold px-2 py-1 rounded-md hover:bg-[var(--color-record)]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-record)]"
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={onCancelDelete}
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-2 py-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)]"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Edit ${course.name}`}
+            className="p-2 rounded-md text-[var(--color-text-subtle)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+          >
+            <Pencil className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={onRequestDelete}
+            aria-label={`Delete ${course.name}`}
+            className="p-2 rounded-md text-[var(--color-text-subtle)] hover:text-[var(--color-record)] hover:bg-[var(--color-surface-raised)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-record)]"
+          >
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <ChevronRight
+            className="w-4 h-4 ml-1 text-[var(--color-text-subtle)]"
+            aria-hidden="true"
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
 interface EditCourseFormProps {
   course: Course;
   onCancel: () => void;
-  onSave: (patch: CoursePatch) => void;
+  onSave: (patch: Partial<Course>) => void;
 }
 
 function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
   const [name, setName] = useState(course.name);
   const [code, setCode] = useState(course.code);
   const [semester, setSemester] = useState(course.semester);
-  const [color, setColor] = useState(
-    course.color && COLORS.includes(course.color) ? course.color : COLORS[0]
-  );
+  const [color, setColor] = useState<string>(course.color || DEFAULT_COLOR);
 
-  function submit() {
+  function commit() {
     if (!name.trim()) return;
     onSave({
       name: name.trim(),
@@ -318,100 +488,81 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    submit();
+    commit();
   }
 
-  function handleKeyDown(e: KeyboardEvent<HTMLFormElement>) {
-    if (e.key === 'Escape') {
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape") {
       e.preventDefault();
       onCancel();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      commit();
     }
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      onKeyDown={handleKeyDown}
-      className="rounded-2xl border border-[var(--color-primary)]/40 bg-[var(--color-surface)] soft-shadow p-5 space-y-4"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
+      className="py-4 px-2 bg-[var(--color-surface-raised)]"
       aria-label={`Edit ${course.name}`}
     >
-      <div>
-        <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5" htmlFor={`edit-name-${course.id}`}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label className="block sm:col-span-2 text-xs font-medium text-[var(--color-text-muted)]">
           Course name
-        </label>
-        <input
-          id={`edit-name-${course.id}`}
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
-          autoFocus
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5" htmlFor={`edit-code-${course.id}`}>
-            Course code
-          </label>
           <input
-            id={`edit-code-${course.id}`}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-base focus:outline-none focus:border-[var(--color-primary)]"
+          />
+        </label>
+        <label className="block text-xs font-medium text-[var(--color-text-muted)]">
+          Code
+          <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
+            onKeyDown={handleKeyDown}
+            className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5" htmlFor={`edit-sem-${course.id}`}>
-            Semester
-          </label>
+        </label>
+        <label className="block text-xs font-medium text-[var(--color-text-muted)]">
+          Semester
           <input
-            id={`edit-sem-${course.id}`}
             type="text"
             value={semester}
             onChange={(e) => setSemester(e.target.value)}
-            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
+            onKeyDown={handleKeyDown}
+            className="mt-2 w-full bg-transparent border-0 border-b border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] px-0 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]"
           />
+        </label>
+        <div className="block sm:col-span-2 text-xs font-medium text-[var(--color-text-muted)]">
+          Color
+          <ColorPicker value={color} onChange={setColor} />
         </div>
       </div>
-      <div>
-        <span className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">Color</span>
-        <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Course color">
-          {COLORS.map((swatch) => {
-            const selected = swatch === color;
-            return (
-              <button
-                key={swatch}
-                type="button"
-                onClick={() => setColor(swatch)}
-                aria-label={`Color: ${swatch}`}
-                aria-pressed={selected}
-                className={`w-7 h-7 rounded-full transition-transform focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 ${
-                  selected
-                    ? 'ring-2 ring-white ring-offset-2 scale-110'
-                    : 'hover:scale-105'
-                }`}
-                style={{ backgroundColor: swatch, ['--tw-ring-offset-color' as string]: 'var(--color-surface)' }}
-              />
-            );
-          })}
-        </div>
-      </div>
-      <div className="flex gap-2 justify-end pt-1">
+      <div className="flex gap-2 justify-end mt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-1.5 bg-black border border-[var(--color-border)] text-white hover:border-[var(--color-border-strong)] rounded-full px-4 py-2 text-sm transition-colors"
+          className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] px-4 py-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)]"
         >
-          <X className="w-4 h-4" />
           Cancel
         </button>
         <button
           type="submit"
-          className="flex items-center gap-1.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold rounded-full px-5 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!name.trim()}
+          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
         >
-          <Check className="w-4 h-4" />
           Save
         </button>
       </div>
@@ -419,50 +570,48 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
   );
 }
 
-interface ConfirmDeleteRowProps {
-  course: Course;
-  onCancel: () => void;
-  onConfirm: () => void;
+interface ColorPickerProps {
+  value: string;
+  onChange: (color: string) => void;
 }
 
-function ConfirmDeleteRow({ course, onCancel, onConfirm }: ConfirmDeleteRowProps) {
-  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
-    }
-  }
+function formatActivity(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffMs = Date.now() - then;
+  const day = Math.floor(diffMs / 86_400_000);
+  if (day < 1) return "today";
+  if (day < 2) return "yesterday";
+  if (day < 7) return `${day} days ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
+function ColorPicker({ value, onChange }: ColorPickerProps) {
   return (
     <div
-      role="alertdialog"
-      aria-label={`Delete ${course.name}?`}
-      onKeyDown={handleKeyDown}
-      className="rounded-2xl border border-[var(--color-record)]/40 bg-[var(--color-surface)] soft-shadow p-5 flex items-center justify-between gap-4"
+      role="radiogroup"
+      aria-label="Course color"
+      className="mt-2 flex items-center gap-2 flex-wrap"
     >
-      <div className="min-w-0">
-        <p className="font-medium text-white truncate">Delete this course?</p>
-        <p className="text-xs text-[var(--color-text-muted)] mt-1 truncate">
-          {course.name} will be removed. Lectures will be orphaned.
-        </p>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="bg-black border border-[var(--color-border)] text-white hover:border-[var(--color-border-strong)] rounded-full px-3 py-1.5 text-sm transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          autoFocus
-          className="bg-[var(--color-record)] hover:opacity-90 text-black font-semibold rounded-full px-4 py-1.5 text-sm transition-colors"
-        >
-          Yes, delete
-        </button>
-      </div>
+      {COLORS.map((c) => {
+        const selected = c.value === value;
+        return (
+          <button
+            key={c.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            aria-label={c.label}
+            onClick={() => onChange(c.value)}
+            className={`w-6 h-6 rounded-full transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] ${
+              selected
+                ? "ring-2 ring-offset-2 ring-[var(--color-text)] ring-offset-[var(--color-surface-raised)] scale-110"
+                : "hover:scale-110"
+            }`}
+            style={{ backgroundColor: c.value }}
+          />
+        );
+      })}
     </div>
   );
 }

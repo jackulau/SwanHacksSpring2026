@@ -38,8 +38,23 @@
         <p class="status-label">Last sync</p>
         <p id="last-sync" class="status-value">Never</p>
       </div>
-      <p class="hint">Navigate to Canvas and click the "Sync to Converge" button</p>
-      <button id="inject-btn" class="btn-inject">Inject Sync Button on This Tab</button>
+
+      <div id="progress-container" class="progress-container hidden">
+        <div class="progress-bar-track">
+          <div id="progress-bar" class="progress-bar-fill"></div>
+        </div>
+        <p id="progress-text" class="progress-text">Preparing...</p>
+      </div>
+
+      <button id="sync-btn" class="btn-sync">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+          <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+          <path d="M16 16h5v5"/>
+        </svg>
+        Sync Canvas
+      </button>
       <button id="logout-btn" class="btn-logout">Sign Out</button>
     </div>
   </div>

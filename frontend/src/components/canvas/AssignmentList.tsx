@@ -1,48 +1,57 @@
 import { useEffect, useState } from "react";
-import { Calendar, ExternalLink, Clock, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { Calendar, ExternalLink } from "lucide-react";
 import { pb } from "../../lib/pocketbase";
 import type { Assignment, Course } from "../../lib/types";
+import { EmptyState } from "../layout/EmptyState";
+import { Skeleton } from "../layout/Skeleton";
 
 interface Props {
   userId: string;
+  /** Restrict to a single course. Optional. */
+  courseId?: string;
   limit?: number;
   showAll?: boolean;
 }
 
-export function AssignmentList({ userId, limit, showAll }: Props) {
+export function AssignmentList({ userId, courseId, limit, showAll }: Props) {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<Map<string, Course>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetch() {
+    let cancelled = false;
+    async function run() {
       try {
-        const filter = showAll
-          ? `user = "${userId}"`
-          : `user = "${userId}" && status = "upcoming"`;
-        const items = await pb.collection("assignments").getFullList<Assignment>({
-          filter,
-          sort: "due_at",
-        });
+        const filters = [`user = "${userId}"`];
+        if (courseId) filters.push(`course = "${courseId}"`);
+        if (!showAll) filters.push(`status = "upcoming"`);
+        const items = await pb
+          .collection("assignments")
+          .getFullList<Assignment>({ filter: filters.join(" && "), sort: "due_at" });
+        if (cancelled) return;
         setAssignments(limit ? items.slice(0, limit) : items);
 
         const courseRecords = await pb
           .collection("courses")
           .getFullList<Course>({ filter: `user = "${userId}"` });
+        if (cancelled) return;
         setCourses(new Map(courseRecords.map((c) => [c.id, c])));
       } catch {
         /* assignments collection may not exist yet */
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
-    fetch();
-  }, [userId, limit, showAll]);
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, courseId, limit, showAll]);
 
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-px" aria-busy="true">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-14 bg-[var(--color-surface-raised)] rounded-xl animate-pulse" />
+          <Skeleton key={i} className="h-12 rounded-sm" />
         ))}
       </div>
     );
@@ -50,123 +59,92 @@ export function AssignmentList({ userId, limit, showAll }: Props) {
 
   if (assignments.length === 0) {
     return (
-      <div className="text-center py-8">
-        <Calendar className="w-10 h-10 text-[var(--color-text-subtle)] mx-auto mb-3" />
-        <p className="text-sm text-[var(--color-text-muted)]">No assignments</p>
-        <p className="text-xs text-[var(--color-text-subtle)] mt-1">
-          Connect Canvas to import your assignments
-        </p>
-      </div>
+      <EmptyState
+        icon={Calendar}
+        title="No assignments"
+        description="Sync Canvas to import assignments."
+        size="md"
+      />
     );
   }
 
   return (
-    <div className="space-y-2">
+    <ul
+      className="border-t border-b border-[var(--color-border)] divide-y divide-[var(--color-border)]"
+      role="list"
+    >
       {assignments.map((a) => {
         const course = courses.get(a.course);
         const dueDate = a.due_at ? new Date(a.due_at) : null;
-        const isOverdue = dueDate && dueDate < new Date() && a.status === "upcoming";
+        const isOverdue = !!dueDate && dueDate < new Date() && a.status === "upcoming";
         const daysUntil = dueDate
           ? Math.ceil((dueDate.getTime() - Date.now()) / 86400000)
           : null;
+        const effectiveStatus: Assignment["status"] = isOverdue ? "missing" : a.status;
+
+        const dueLabel = !dueDate
+          ? "—"
+          : isOverdue
+            ? "Overdue"
+            : daysUntil === 0
+              ? "Today"
+              : daysUntil === 1
+                ? "Tomorrow"
+                : daysUntil !== null && daysUntil > 0 && daysUntil <= 6
+                  ? `${daysUntil}d`
+                  : dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+        const dueTone = isOverdue
+          ? "text-[var(--color-record)]"
+          : daysUntil !== null && daysUntil <= 1
+            ? "text-amber-400"
+            : "text-[var(--color-text-muted)]";
 
         return (
-          <div
-            key={a.id}
-            className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--color-surface-raised)] border border-transparent hover:border-[var(--color-border)] transition-colors"
-          >
-            <StatusIcon status={isOverdue ? "missing" : a.status} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium truncate text-white">{a.title}</p>
-                {a.canvas_url && (
-                  <a
-                    href={a.canvas_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[var(--color-text-subtle)] hover:text-[var(--color-primary-strong)] transition-colors shrink-0"
+          <li key={a.id}>
+            <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-3 px-2 hover:bg-[var(--color-surface-raised)] transition-colors">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <p
+                    className="text-sm font-medium text-[var(--color-text)] truncate"
+                    title={a.title}
                   >
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                {course && (
-                  <span className="flex items-center gap-1 text-xs text-[var(--color-text-muted)]">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: course.color }}
-                    />
-                    {course.code || course.name}
-                  </span>
-                )}
-                {a.points_possible > 0 && (
-                  <span className="text-xs text-[var(--color-text-subtle)]">
-                    {a.points_possible} pts
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              {dueDate ? (
-                <div>
-                  <p className={`text-xs font-medium ${
-                    isOverdue ? "text-[var(--color-record)]" :
-                    daysUntil !== null && daysUntil <= 1 ? "text-amber-400" :
-                    daysUntil !== null && daysUntil <= 3 ? "text-amber-500" :
-                    "text-[var(--color-text-muted)]"
-                  }`}>
-                    {isOverdue
-                      ? "Overdue"
-                      : daysUntil === 0
-                        ? "Due today"
-                        : daysUntil === 1
-                          ? "Due tomorrow"
-                          : `${daysUntil}d left`}
+                    {a.title}
                   </p>
-                  <p className="text-xs text-[var(--color-text-subtle)]">
-                    {dueDate.toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
+                  {a.canvas_url && (
+                    <a
+                      href={a.canvas_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open ${a.title} in Canvas`}
+                      className="text-[var(--color-text-subtle)] hover:text-[var(--color-primary-strong)] transition-colors shrink-0 rounded-md p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                    >
+                      <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                    </a>
+                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-[var(--color-text-subtle)]">No due date</p>
-              )}
+                <div className="flex items-center gap-3 mt-1 text-xs text-[var(--color-text-subtle)]">
+                  {course && <span className="truncate">{course.code || course.name}</span>}
+                  {a.points_possible > 0 && <span>{a.points_possible} pts</span>}
+                </div>
+              </div>
+              <span className={`text-xs font-medium tabular-nums ${dueTone}`}>{dueLabel}</span>
+              <StatusLabel status={effectiveStatus} />
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
-function StatusIcon({ status }: { status: Assignment["status"] }) {
-  switch (status) {
-    case "submitted":
-      return (
-        <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-soft)] flex items-center justify-center shrink-0">
-          <CheckCircle className="w-4 h-4 text-[var(--color-primary-strong)]" />
-        </div>
-      );
-    case "graded":
-      return (
-        <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-soft)] flex items-center justify-center shrink-0">
-          <CheckCircle className="w-4 h-4 text-[var(--color-primary-strong)]" />
-        </div>
-      );
-    case "missing":
-      return (
-        <div className="w-8 h-8 rounded-lg bg-red-600/10 flex items-center justify-center shrink-0">
-          <XCircle className="w-4 h-4 text-[var(--color-record)]" />
-        </div>
-      );
-    default:
-      return (
-        <div className="w-8 h-8 rounded-lg bg-amber-600/10 flex items-center justify-center shrink-0">
-          <Clock className="w-4 h-4 text-amber-400" />
-        </div>
-      );
-  }
+function StatusLabel({ status }: { status: Assignment["status"] }) {
+  const map: Record<Assignment["status"], { label: string; cls: string }> = {
+    upcoming: { label: "Open", cls: "text-[var(--color-text-muted)]" },
+    submitted: { label: "Submitted", cls: "text-[var(--color-primary-strong)]" },
+    graded: { label: "Graded", cls: "text-[var(--color-primary-strong)]" },
+    missing: { label: "Missing", cls: "text-[var(--color-record)]" },
+  };
+  const { label, cls } = map[status];
+  return <span className={`text-xs font-medium w-20 text-right ${cls}`}>{label}</span>;
 }

@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
+import { renderInlineMarkdown } from '../workspace/markdown';
 
 interface FlashcardCardProps {
   front: string;
@@ -7,38 +8,56 @@ interface FlashcardCardProps {
   onFlip: () => void;
 }
 
+/**
+ * The flashcard itself — the only element in the suite allowed `rounded-lg`
+ * and a subtle shadow, since it carries the physical card metaphor. Big type,
+ * generous whitespace, no decorative chrome.
+ */
 export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardProps) {
+  const reduceMotion = useReducedMotion();
   return (
     <div
-      className="relative w-full max-w-lg mx-auto cursor-pointer perspective-1000"
-      style={{ minHeight: 280 }}
+      className="relative w-full perspective-1000"
+      style={{ minHeight: 360 }}
       onClick={onFlip}
-      onKeyDown={(e) => e.key === ' ' && onFlip()}
+      onKeyDown={(e) => {
+        // Only Enter — Space is handled by FlashcardDeck's global shortcut.
+        // Handling both here would double-fire and cancel out the toggle.
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onFlip();
+        }
+      }}
       role="button"
       tabIndex={0}
-      aria-label={isFlipped ? 'Showing answer. Click to show question.' : 'Showing question. Click to show answer.'}
+      aria-label={
+        isFlipped
+          ? 'Showing answer. Tap or press space to show question.'
+          : 'Showing question. Tap or press space to show answer.'
+      }
     >
       <motion.div
-        className="relative w-full h-full"
-        style={{ minHeight: 280, transformStyle: 'preserve-3d' }}
+        className="relative w-full"
+        style={{ minHeight: 360, transformStyle: 'preserve-3d' }}
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.4, ease: 'easeInOut' }}
+        transition={{ duration: reduceMotion ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <div
-          className="absolute inset-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-8 flex flex-col items-center justify-center backface-hidden soft-shadow"
+          className="absolute inset-0 bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-lg p-12 flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <p className="text-sm text-[var(--color-text-subtle)] mb-4 uppercase tracking-wider">Question</p>
-          <p className="text-xl text-white text-center leading-relaxed">{front}</p>
-          <p className="text-sm text-[var(--color-text-subtle)] mt-6">Click or press Space to flip</p>
+          <p className="text-3xl sm:text-4xl text-[var(--color-text)] text-center leading-snug font-medium tracking-tight">
+            {renderInlineMarkdown(front)}
+          </p>
         </div>
 
         <div
-          className="absolute inset-0 bg-[var(--color-surface)] border border-[var(--color-primary)]/50 rounded-2xl p-8 flex flex-col items-center justify-center soft-shadow"
+          className="absolute inset-0 bg-[var(--color-surface-raised)] border border-[var(--color-primary)]/40 rounded-lg p-12 flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          <p className="text-sm text-[var(--color-primary-strong)] mb-4 uppercase tracking-wider">Answer</p>
-          <p className="text-xl text-white text-center leading-relaxed">{back}</p>
+          <p className="text-3xl sm:text-4xl text-[var(--color-text)] text-center leading-snug font-medium tracking-tight">
+            {renderInlineMarkdown(back)}
+          </p>
         </div>
       </motion.div>
     </div>

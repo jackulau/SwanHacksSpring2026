@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useCallback, useEffect } from "react";
 import { FileUpload } from "../components/capture/FileUpload";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
 import { PageHeader } from "../components/layout/PageHeader";
+import { ModeTabs } from "./capture";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
+import { transcribeAudioFile } from "../hooks/useLocalWhisper";
 
 export const Route = createFileRoute("/capture/upload")({
   component: UploadPage,
@@ -12,11 +14,32 @@ export const Route = createFileRoute("/capture/upload")({
 
 type PipelineStage = 'transcribing' | 'cleaning' | 'notes' | 'flashcards' | 'quiz' | 'done' | 'error';
 
+/**
+ * Upload route — twin of `/capture`. Drag-and-drop dropzone, then inline
+ * processing status. No nested cards; the dropzone *is* the surface.
+ */
 function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
   const [pipelineError, setPipelineError] = useState('');
+  const [pipelineLectureId, setPipelineLectureId] = useState<string | null>(null);
+
+  // Block accidental tab close while upload + pipeline are in flight.
+  const inFlight =
+    isUploading ||
+    (pipelineStage !== null &&
+      pipelineStage !== 'done' &&
+      pipelineStage !== 'error');
+  useEffect(() => {
+    if (!inFlight) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [inFlight]);
 
   const handleUpload = useCallback(async (file: File) => {
     setIsUploading(true);
@@ -34,35 +57,16 @@ function UploadPage() {
 
       setProgress(50);
       const lecture = await pb.collection('lectures').create(formData);
+      setPipelineLectureId(lecture.id);
       setProgress(100);
       setIsUploading(false);
 
       setPipelineStage('transcribing');
 
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey) {
-        setPipelineStage('error');
-        setPipelineError('VITE_OPENAI_API_KEY not set');
-        return;
+      const transcript = await transcribeAudioFile(file);
+      if (!transcript.trim()) {
+        throw new Error('No speech detected in audio file.');
       }
-
-      const whisperForm = new FormData();
-      whisperForm.append('file', file);
-      whisperForm.append('model', 'whisper-1');
-      whisperForm.append('language', 'en');
-
-      const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: whisperForm,
-      });
-
-      if (!whisperRes.ok) {
-        throw new Error(`Whisper API error: ${whisperRes.status}`);
-      }
-
-      const whisperData = await whisperRes.json();
-      const transcript = whisperData.text;
 
       setPipelineStage('cleaning');
       const result = await runPipeline(lecture.id, transcript);
@@ -82,19 +86,39 @@ function UploadPage() {
 
   return (
     <>
-      <PageHeader title="Upload Lecture" subtitle="Drop in an audio file to transcribe and generate study materials" />
+      <PageHeader
+        title="Upload"
+        subtitle="Drop in an audio file to transcribe and generate study materials."
+        actions={<ModeTabs current="upload" />}
+      />
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-2xl mx-auto">
         {pipelineStage && (
-          <div className="mb-6">
-            <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
+          <div className="mb-8">
+            <ProcessingStatus
+              currentStage={pipelineStage}
+              error={pipelineError}
+              finalAction={
+                pipelineLectureId ? (
+                  <Link
+                    to="/lectures/$lectureId"
+                    params={{ lectureId: pipelineLectureId }}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)]"
+                  >
+                    {pipelineStage === 'done' ? 'Open lecture →' : 'View partial result →'}
+                  </Link>
+                ) : null
+              }
+            />
           </div>
         )}
 
         {!pipelineStage && (
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5">
-            <FileUpload onUpload={handleUpload} isUploading={isUploading} progress={progress} />
-          </div>
+          <FileUpload
+            onUpload={handleUpload}
+            isUploading={isUploading}
+            progress={progress}
+          />
         )}
       </div>
     </>

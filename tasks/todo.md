@@ -1,71 +1,117 @@
-# HackStack Implementation Plan
+# Converge — Full Feature Verification Spec (2026-05-03)
 
-## Phase 1: Foundation (Hours 0-4)
-- [x] Install all dependencies (TanStack Query, lucide-react, framer-motion, MediaPipe, fonts)
-- [x] Extend PocketBase schema: create all collections with migrations
-- [x] Define TypeScript types for all data models
-- [x] Build AppShell layout with sidebar navigation
-- [x] Build route structure (all routes with placeholder pages)
-- [x] User preferences context + CSS custom properties
-- [x] Basic accessibility panel (font size, theme toggle)
+## 1. Infrastructure
+- [x] PocketBase :8090 healthy
+- [x] Dev server :3000 healthy
+- [x] TypeScript compiles clean (tsc --noEmit)
+- [x] Vite build succeeds
+- [x] All 10 DB collections exist (users, courses, lectures, transcripts, notes, flashcards, quizzes, quiz_attempts, assignments, study_sessions)
+- [x] All collections have created/updated autodate fields (migration 1777700000)
 
-## Phase 2: Capture (Hours 4-8)
-- [x] `useAudioRecorder` hook
-- [x] `useDeepgramSTT` hook
-- [x] `useMediaPipeHands` hook
-- [x] `useSignLanguage` hook
-- [x] SignLanguageDetector component
-- [x] Caption merger (audio STT + sign-to-text)
-- [x] Live recording page
-- [x] File upload page
-- [x] Processing status component
+## 2. Auth & Landing
+- [x] Dashboard renders (cream bg, green branding, Georgia serif logo)
+- [x] Hero greeting with user name ("Good evening, demo")
+- [x] Login/signup functional (demo user active)
+- [x] User menu with sign out
 
-## Phase 3: AI Pipeline (Hours 8-12)
-- [x] Prompt templates
-- [x] AI pipeline orchestrator
-- [x] Transcript cleanup
-- [x] Note generation
-- [x] Flashcard generation
-- [x] Quiz generation
-- [x] Error handling + partial result saving
+## 3. Dashboard (authenticated)
+- [x] Study streak displays (0 days)
+- [x] Quick actions (Start recording, Upload, Notes, Review, Calendar)
+- [x] Recent notes section (empty state shown correctly)
+- [x] Upcoming assignments — "Extra Credit Opportunity" from Canvas sync
+- [x] Zero console errors
 
-## Phase 4: Workspace (Hours 12-16)
-- [x] Dashboard
-- [x] Course CRUD
-- [x] Lecture detail page with tabs
-- [x] Transcript viewer with audio sync
-- [x] Note editor (block-based)
-- [x] Audio player bar
+## 4. Courses
+- [x] Course list renders — 16 courses from Canvas sync
+- [x] "Add course" button present
+- [x] Course detail page loads with Lectures/Assignments/Notes tabs
+- [x] Course code and name displayed correctly
 
-## Phase 5: Study Tools (Hours 16-20)
-- [x] SM-2 algorithm
-- [x] Flashcard review UI
-- [x] Quiz runner
-- [x] Quiz results
-- [x] Study session tracking
+## 5. Capture
+- [x] Record page loads with mic button
+- [x] Record/Upload tab toggle works
+- [x] Upload page loads with drag-drop zone (mp3, m4a, wav, webm, ogg, flac)
+- [x] Sign language toggle button present
+- [x] STT status shows "Press record to begin"
+- [x] Uses local Whisper (not Deepgram) — verified in code
 
-## Phase 6: Polish & Accessibility (Hours 20-24)
-- [x] Full accessibility panel
-- [x] Font loading (OpenDyslexic, Atkinson Hyperlegible)
-- [x] TTS integration (hook)
-- [x] Reading ruler + focus mode
-- [x] High contrast + sepia themes
-- [x] Pomodoro timer (hook)
-- [x] Study streak
-- [x] Responsive design pass
-- [x] Demo data seeding
+## 6. Calendar
+- [x] Calendar renders with school week view
+- [x] Day/Week/Month view toggles present
+- [x] Mini calendar sidebar with month navigation
+- [x] "New event" button present
+- [x] 10 assignments displayed from Canvas sync
+- [x] Time slot grid for creating events
 
-## Post-implementation hardening (this round)
-- [x] Security migration: locked down `transcripts`/`notes`/`flashcards`/`quizzes`/`quiz_attempts`/`study_sessions` rules
-- [x] Fixed user-id spoofing on `courses`/`lectures`/`assignments` createRule (now `@request.auth.id = @request.body.user`)
-- [x] Fixed duplicate-record bug in `routes/capture.tsx` (StrictMode + stale closure → ref-guarded)
-- [x] Bottom-padding reservation in AppShell `<main>` for MobileNav + AudioPlayer
-- [x] Floating accessibility button auto-lifts above MobileNav and AudioPlayer
+## 7. Study Hub
+- [x] Study page renders with launcher rows
+- [x] Flashcard count shows ("No cards due")
+- [x] Quiz count shows ("None yet")
+- [x] "Start Pomodoro" button present and links to planner
 
-## Documentation produced this round
-- [x] `tasks/architecture-audit.md`
-- [x] `tasks/typescript-audit.md`
-- [x] `tasks/database-audit.md`
-- [x] `tasks/security-audit.md`
-- [x] `tasks/e2e-test-plan.md`
-- [x] `tasks/_done/01-course-crud.md` … `06-demo-data.md`
+## 8. Planner
+- [x] Pomodoro timer displays (25:00 ready)
+- [x] Tasks section with 13 open tasks from Canvas
+- [x] "Add a task" input present
+
+## 9. Flashcards
+- [x] Flashcard review page loads
+- [x] Empty state when no cards ("Record or upload a lecture to generate flashcards")
+
+## 10. Quiz
+- [x] Quiz disabled in study hub when none available
+- [x] Shows "None yet" count
+
+## 11. Settings
+- [x] Profile section: name, email display
+- [x] Preferences: theme (Converge Light / High Contrast), font (System/Atkinson/OpenDyslexic), reading level
+- [x] Canvas integration section with URL input + sync button + manual fallback
+- [x] AI model section: provider dropdown (Ollama/OpenRouter/Google/OpenAI/Custom), model field, test button
+- [x] Account section with sign out
+- [x] Data section with export
+
+## 12. Accessibility
+- [x] A11y floating button visible on all pages (bottom-right corner)
+- [x] Skip to main content link present
+
+## 13. Trash
+- [x] Trash page renders with empty state
+- [x] "Back to dashboard" link
+
+## 14. Theme Consistency
+- [x] No white-on-white text — verified via screenshot
+- [x] Sidebar: white text on dark green
+- [x] Content: dark text on cream/white
+- [x] Primary buttons: white text on green
+- [x] Readable contrast on all text
+
+## 15. Local AI
+- [x] ai-pipeline.ts uses configurable LLM (Ollama/OpenRouter/Google/OpenAI/Custom)
+- [x] useLocalWhisper.ts exists and replaces Deepgram
+- [x] capture.tsx imports useLocalWhisper (not useDeepgramSTT)
+- [x] capture.upload.tsx uses transcribeAudioFile (not OpenAI API)
+- [x] Settings AI model section allows provider selection
+- [x] Dead useDeepgramSTT.ts removed
+- [x] Zero references to VITE_DEEPGRAM_API_KEY or VITE_OPENAI_API_KEY in active code
+
+## 16. Database Fix
+- [x] Added autodate migration (created/updated fields) for all collections
+- [x] sort=-updated queries work (was failing with 400)
+- [x] PocketBase restarted with migration applied
+
+## 17. Final Sweep (2026-05-03)
+- [x] TypeScript compiles clean (tsc --noEmit)
+- [x] Vite build succeeds (2329 modules, 4.2s)
+- [x] All PB sort queries return 200 (courses, lectures, notes, flashcards)
+- [x] Zero console errors across all 9 pages (dashboard, courses, capture, upload, study, calendar, planner, settings, trash)
+- [x] Deep codebase sweep: 16 routes, 28 components, 13 hooks — all imports valid
+- [x] 7 backend migrations — all syntactically correct
+- [x] No dead imports, no TODO/FIXME/HACK in source
+- [x] No references to VITE_DEEPGRAM_API_KEY or VITE_OPENAI_API_KEY
+- [x] Favicon added (SVG, Converge branding)
+
+## Ship
+- [x] All checks pass
+- [ ] Commit
+- [ ] Push
+- [ ] Merge jack → main

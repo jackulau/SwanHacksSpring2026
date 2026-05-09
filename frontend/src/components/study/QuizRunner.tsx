@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
 import { useStudySession } from '../../hooks/useStudySession';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { renderInlineMarkdown } from '../workspace/markdown';
 import type { QuizQuestion } from '../../lib/types';
 
 interface QuizRunnerProps {
@@ -23,12 +25,13 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
   const [results, setResults] = useState<QuizAnswer[]>([]);
 
   const question = questions[currentIdx];
+  const isLast = currentIdx === questions.length - 1;
+  const hasAnswer = question ? answers[question.id] !== undefined : false;
 
   const { start, finish } = useStudySession();
   const sessionIdRef = useRef<string | null>(null);
   const finishedRef = useRef(false);
 
-  // Start a quiz session on mount (once questions are available).
   useEffect(() => {
     if (questions.length === 0) return;
     if (sessionIdRef.current) return;
@@ -39,16 +42,13 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
         if (cancelled) return;
         sessionIdRef.current = id;
       })
-      .catch(() => {
-        // Errors are already logged in the hook.
-      });
+      .catch(() => {});
 
     return () => {
       cancelled = true;
     };
   }, [questions.length, lectureId, start]);
 
-  // Finish the session on unmount if it wasn't submitted.
   useEffect(() => {
     return () => {
       const id = sessionIdRef.current;
@@ -60,9 +60,10 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
 
   const handleAnswer = useCallback(
     (value: number | boolean | string) => {
+      if (!question) return;
       setAnswers((a) => ({ ...a, [question.id]: value }));
     },
-    [question?.id],
+    [question],
   );
 
   const handleSubmit = useCallback(() => {
@@ -100,7 +101,7 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
     if (sessionId && !finishedRef.current) {
       finishedRef.current = true;
       const correctAnswers = quizAnswers.reduce(
-        (count, answer) => count + (answer.correct ? 1 : 0),
+        (count, a) => count + (a.correct ? 1 : 0),
         0,
       );
       void finish(sessionId, {
@@ -112,106 +113,241 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
     onComplete(quizAnswers);
   }, [questions, answers, onComplete, finish]);
 
+  // Keyboard: Enter submits when on last question and answered; otherwise advances.
+  useKeyboardShortcuts([
+    {
+      key: 'Enter',
+      handler: () => {
+        if (submitted || !hasAnswer) return;
+        if (isLast) {
+          handleSubmit();
+        } else {
+          setCurrentIdx((i) => Math.min(questions.length - 1, i + 1));
+        }
+      },
+    },
+  ]);
+
   if (submitted) {
     const totalEarned = results.reduce((s, r) => s + r.pointsEarned, 0);
     const totalPossible = questions.reduce((s, q) => s + q.points, 0);
-    const pct = Math.round((totalEarned / totalPossible) * 100);
+    const pct = totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0;
+
+    // Group correctness by concept_tag for a per-concept breakdown.
+    const conceptStats = questions.reduce<
+      Record<string, { correct: number; total: number }>
+    >((acc, q, idx) => {
+      const tag = (q.concept_tag || '').trim() || 'Uncategorized';
+      const bucket = acc[tag] ?? { correct: 0, total: 0 };
+      const isCorrect = results[idx]?.correct ?? false;
+      acc[tag] = {
+        correct: bucket.correct + (isCorrect ? 1 : 0),
+        total: bucket.total + 1,
+      };
+      return acc;
+    }, {});
+    const conceptRows = Object.entries(conceptStats).sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
 
     return (
-      <div className="space-y-6">
-        <div className="text-center py-8">
-          <p className="text-4xl font-bold text-white mb-2">{pct}%</p>
-          <p className="text-[var(--color-text-muted)]">
-            {totalEarned}/{totalPossible} points
+      <div className="space-y-8">
+        <div className="text-center py-12">
+          <p className="text-6xl font-semibold text-[var(--color-text)] tracking-tight tabular-nums">
+            {pct}%
+          </p>
+          <p className="text-[var(--color-text-muted)] mt-2 tabular-nums">
+            {totalEarned.toLocaleString()} of {totalPossible.toLocaleString()} points
           </p>
         </div>
 
-        <div className="space-y-4">
+        {conceptRows.length > 0 && (
+          <section aria-label="Score by concept" className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              By concept
+            </h3>
+            <dl className="divide-y divide-[var(--color-border)]">
+              {conceptRows.map(([tag, { correct, total }]) => (
+                <div
+                  key={tag}
+                  className="flex items-baseline justify-between gap-4 py-2 text-sm"
+                >
+                  <dt className="text-[var(--color-text)] truncate">{tag}</dt>
+                  <dd className="shrink-0 tabular-nums text-[var(--color-text-muted)]">
+                    <span
+                      className={
+                        correct === total
+                          ? 'text-[var(--color-primary)] font-medium'
+                          : ''
+                      }
+                    >
+                      {correct}
+                    </span>
+                    {' / '}
+                    {total}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+
+        <ul className="space-y-2">
           {questions.map((q, idx) => {
             const result = results[idx];
             return (
-              <div
+              <li
                 key={q.id}
-                className={`border rounded-2xl p-4 ${
-                  result.correct
-                    ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary-soft)]/40'
-                    : 'border-[var(--color-record)]/40 bg-red-900/20'
-                }`}
+                className="flex items-start gap-3 p-4 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)]"
               >
-                <div className="flex items-start gap-2">
-                  {result.correct ? (
-                    <CheckCircle2 className="w-5 h-5 text-[var(--color-primary-strong)] mt-0.5 shrink-0" />
-                  ) : (
-                    <XCircle className="w-5 h-5 text-[var(--color-record)] mt-0.5 shrink-0" />
+                {result.correct ? (
+                  <CheckCircle2
+                    className="w-5 h-5 text-[var(--color-primary-strong)] mt-0.5 shrink-0"
+                    aria-label="Correct"
+                  />
+                ) : (
+                  <XCircle
+                    className="w-5 h-5 text-[var(--color-record)] mt-0.5 shrink-0"
+                    aria-label="Incorrect"
+                  />
+                )}
+                <div className="min-w-0">
+                  <p className="text-[var(--color-text)]">{renderInlineMarkdown(q.question)}</p>
+                  {q.explanation && (
+                    <p className="text-[var(--color-text-muted)] text-sm mt-2">
+                      {renderInlineMarkdown(q.explanation)}
+                    </p>
                   )}
-                  <div>
-                    <p className="text-white font-medium">{q.question}</p>
-                    {q.explanation && (
-                      <p className="text-[var(--color-text-muted)] text-sm mt-2">{q.explanation}</p>
-                    )}
-                  </div>
                 </div>
-              </div>
+              </li>
             );
           })}
+        </ul>
+
+        <div className="flex justify-center pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              setAnswers({});
+              setResults([]);
+              setSubmitted(false);
+              setCurrentIdx(0);
+              finishedRef.current = false;
+              sessionIdRef.current = null;
+            }}
+            className="text-sm font-medium text-[var(--color-text)] border border-[var(--color-border-strong)] hover:bg-[var(--color-surface-raised)] rounded-md px-4 py-2 transition-colors"
+          >
+            Retake quiz
+          </button>
         </div>
       </div>
     );
   }
 
+  if (!question) return null;
+
+  const progress = ((currentIdx + 1) / questions.length) * 100;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)]">
-        <span>
-          Question {currentIdx + 1} of {questions.length}
-        </span>
-        <span className="capitalize">{question.difficulty}</span>
-      </div>
-
-      <div className="w-full h-1.5 bg-[var(--color-input)] rounded-full overflow-hidden">
+    <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 220px)' }}>
+      <div className="space-y-2">
         <div
-          className="h-full bg-[var(--color-primary)] transition-all duration-300"
-          style={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }}
-        />
+          className="w-full h-1 bg-[var(--color-border)] rounded-md overflow-hidden"
+          role="progressbar"
+          aria-valuenow={currentIdx + 1}
+          aria-valuemin={1}
+          aria-valuemax={questions.length}
+        >
+          <div
+            className="h-full bg-[var(--color-primary)] transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-xs text-[var(--color-text-subtle)] tabular-nums">
+          <span>
+            Question {currentIdx + 1} of {questions.length}
+          </span>
+          <span className="capitalize">{question.difficulty}</span>
+        </div>
       </div>
 
-      <div className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-2xl p-6 soft-shadow">
-        <p className="text-lg text-white mb-6">{question.question}</p>
+      <div className="flex-1 flex flex-col justify-center py-12 max-w-2xl mx-auto w-full">
+        <h2 className="text-2xl sm:text-3xl text-[var(--color-text)] font-medium tracking-tight leading-snug mb-8">
+          {renderInlineMarkdown(question.question)}
+        </h2>
 
         {question.type === 'multiple_choice' && (
-          <div className="space-y-3">
-            {question.options.map((opt, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleAnswer(idx)}
-                className={`w-full text-left p-4 rounded-xl border transition-colors ${
-                  answers[question.id] === idx
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-white'
-                    : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] bg-black'
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+          <fieldset
+            role="radiogroup"
+            aria-label="Answer choices"
+            className="space-y-2 border-0 p-0 m-0"
+          >
+            {question.options.map((opt, idx) => {
+              const selected = answers[question.id] === idx;
+              return (
+                <label
+                  key={idx}
+                  className={`flex items-center gap-3 p-4 rounded-md border cursor-pointer transition-colors ${
+                    selected
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)]'
+                      : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] bg-[var(--color-surface-raised)]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={question.id}
+                    checked={selected}
+                    onChange={() => handleAnswer(idx)}
+                    className="sr-only"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                      selected
+                        ? 'border-[var(--color-primary)]'
+                        : 'border-[var(--color-border-strong)]'
+                    }`}
+                  >
+                    {selected && (
+                      <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+                    )}
+                  </span>
+                  <span className="text-[var(--color-text)] text-base">{renderInlineMarkdown(opt)}</span>
+                </label>
+              );
+            })}
+          </fieldset>
         )}
 
         {question.type === 'true_false' && (
-          <div className="flex gap-4">
-            {[true, false].map((val) => (
-              <button
-                key={String(val)}
-                onClick={() => handleAnswer(val)}
-                className={`flex-1 p-4 rounded-xl border transition-colors font-medium ${
-                  answers[question.id] === val
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-white'
-                    : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-muted)] bg-black'
-                }`}
-              >
-                {val ? 'True' : 'False'}
-              </button>
-            ))}
-          </div>
+          <fieldset
+            role="radiogroup"
+            aria-label="True or false"
+            className="grid grid-cols-2 gap-2 border-0 p-0 m-0"
+          >
+            {[true, false].map((val) => {
+              const selected = answers[question.id] === val;
+              return (
+                <label
+                  key={String(val)}
+                  className={`flex items-center justify-center p-6 rounded-md border cursor-pointer transition-colors text-lg font-medium ${
+                    selected
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-text)]'
+                      : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={question.id}
+                    checked={selected}
+                    onChange={() => handleAnswer(val)}
+                    className="sr-only"
+                  />
+                  {val ? 'True' : 'False'}
+                </label>
+              );
+            })}
+          </fieldset>
         )}
 
         {(question.type === 'short_answer' || question.type === 'fill_blank') && (
@@ -219,36 +355,47 @@ export function QuizRunner({ questions, onComplete, lectureId }: QuizRunnerProps
             type="text"
             value={String(answers[question.id] ?? '')}
             onChange={(e) => handleAnswer(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' || submitted || !hasAnswer) return;
+              e.preventDefault();
+              if (isLast) handleSubmit();
+              else setCurrentIdx((i) => Math.min(questions.length - 1, i + 1));
+            }}
             placeholder={
-              question.type === 'fill_blank' ? 'Fill in the blank...' : 'Type your answer...'
+              question.type === 'fill_blank' ? 'Fill in the blank…' : 'Type your answer…'
             }
-            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)]"
+            autoFocus
+            className="w-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-md px-4 h-12 text-lg text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)]"
+            aria-label="Your answer"
           />
         )}
       </div>
 
-      <div className="flex justify-between">
+      <div className="flex items-center justify-between">
         <button
           onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
           disabled={currentIdx === 0}
-          className="flex items-center gap-1 text-[var(--color-text-muted)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+          className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
         >
-          <ChevronLeft className="w-4 h-4" /> Previous
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" /> Previous
         </button>
 
-        {currentIdx === questions.length - 1 ? (
+        {isLast ? (
           <button
             onClick={handleSubmit}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold px-6 py-2 rounded-full transition-colors"
+            disabled={!hasAnswer}
+            className="h-10 px-6 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Submit Quiz
+            Submit
+            <span className="ml-2 text-[11px] opacity-70">Enter</span>
           </button>
         ) : (
           <button
             onClick={() => setCurrentIdx((i) => Math.min(questions.length - 1, i + 1))}
-            className="flex items-center gap-1 text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)]"
+            disabled={!hasAnswer}
+            className="h-10 px-4 rounded-md text-sm text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
           >
-            Next <ChevronRight className="w-4 h-4" />
+            Next <ChevronRight className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
       </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { FlashcardCard } from './FlashcardCard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useStudySession } from '../../hooks/useStudySession';
@@ -12,11 +13,11 @@ interface FlashcardDeckProps {
   lectureId?: string;
 }
 
-const RATINGS: { key: QualityRating; label: string; color: string; shortcut: string }[] = [
-  { key: 'again', label: 'Again', color: 'bg-[var(--color-record)] hover:bg-red-500 text-white', shortcut: '1' },
-  { key: 'hard', label: 'Hard', color: 'bg-orange-600 hover:bg-orange-500 text-white', shortcut: '2' },
-  { key: 'good', label: 'Good', color: 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black', shortcut: '3' },
-  { key: 'easy', label: 'Easy', color: 'bg-[var(--color-primary-strong)] hover:bg-[var(--color-primary-hover)] text-black', shortcut: '4' },
+const RATINGS: { key: QualityRating; label: string; shortcut: string }[] = [
+  { key: 'again', label: 'Again', shortcut: '1' },
+  { key: 'hard', label: 'Hard', shortcut: '2' },
+  { key: 'good', label: 'Good', shortcut: '3' },
+  { key: 'easy', label: 'Easy', shortcut: '4' },
 ];
 
 export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: FlashcardDeckProps) {
@@ -32,7 +33,6 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
   const finishedRef = useRef(false);
   const sessionStateRef = useRef({ reviewed: 0, correct: 0 });
 
-  // Start a session as soon as the deck has cards to show.
   useEffect(() => {
     if (cards.length === 0) return;
     if (sessionIdRef.current) return;
@@ -43,16 +43,13 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
         if (cancelled) return;
         sessionIdRef.current = id;
       })
-      .catch(() => {
-        // start() failure already logged inside the hook; sessions are best-effort.
-      });
+      .catch(() => {});
 
     return () => {
       cancelled = true;
     };
   }, [cards.length, lectureId, start]);
 
-  // Finish the session on unmount if not already done.
   useEffect(() => {
     return () => {
       const id = sessionIdRef.current;
@@ -103,8 +100,19 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
     [currentCard, isFlipped, currentIndex, cards.length, onRate, onComplete, update, finish],
   );
 
+  const goPrev = useCallback(() => {
+    setIsFlipped(false);
+    setCurrentIndex((i) => Math.max(0, i - 1));
+  }, []);
+  const goNext = useCallback(() => {
+    setIsFlipped(false);
+    setCurrentIndex((i) => Math.min(cards.length - 1, i + 1));
+  }, [cards.length]);
+
   useKeyboardShortcuts([
     { key: ' ', handler: () => setIsFlipped((f) => !f) },
+    { key: 'ArrowLeft', handler: goPrev },
+    { key: 'ArrowRight', handler: goNext },
     { key: '1', handler: () => handleRate('again') },
     { key: '2', handler: () => handleRate('hard') },
     { key: '3', handler: () => handleRate('good') },
@@ -113,60 +121,109 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
 
   if (!currentCard) {
     return (
-      <div className="text-center py-12">
-        <p className="text-2xl font-bold text-white mb-2">Session Complete</p>
-        <p className="text-[var(--color-text-muted)]">
-          Reviewed {reviewed} cards — {correct}/{reviewed} correct
+      <div className="text-center py-24">
+        <p className="text-3xl font-semibold text-[var(--color-text)] tracking-tight mb-2">
+          Session complete
+        </p>
+        <p className="text-[var(--color-text-muted)] tabular-nums">
+          {correct} of {reviewed} correct
         </p>
       </div>
     );
   }
 
-  const progress = cards.length > 0 ? ((currentIndex) / cards.length) * 100 : 0;
+  const progress = cards.length > 0 ? (currentIndex / cards.length) * 100 : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)]">
-        <span>
-          Card {currentIndex + 1} of {cards.length}
-        </span>
-        <span>
-          {correct}/{reviewed} correct
-        </span>
-      </div>
-
-      <div className="w-full h-1.5 bg-[var(--color-input)] rounded-full overflow-hidden">
+    <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 220px)' }}>
+      {/* Progress strip — top of frame */}
+      <div className="space-y-2">
         <div
-          className="h-full bg-[var(--color-primary)] transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        />
+          className="w-full h-1 bg-[var(--color-border)] rounded-md overflow-hidden"
+          role="progressbar"
+          aria-valuenow={currentIndex + 1}
+          aria-valuemin={1}
+          aria-valuemax={cards.length}
+          aria-label={`Card ${currentIndex + 1} of ${cards.length}`}
+        >
+          <div
+            className="h-full bg-[var(--color-primary)] transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-xs text-[var(--color-text-subtle)] tabular-nums">
+          <span>
+            {currentIndex + 1} / {cards.length}
+          </span>
+          <span>
+            {correct}/{reviewed} correct
+          </span>
+        </div>
       </div>
 
-      <FlashcardCard
-        front={currentCard.front}
-        back={currentCard.back}
-        isFlipped={isFlipped}
-        onFlip={() => setIsFlipped((f) => !f)}
-      />
-
-      {isFlipped && (
-        <div className="flex justify-center gap-3 flex-wrap">
-          {RATINGS.map((r) => (
-            <button
-              key={r.key}
-              onClick={() => handleRate(r.key)}
-              className={`${r.color} font-semibold px-5 py-2.5 rounded-full transition-colors`}
-            >
-              {r.label}
-              <span className="ml-1.5 text-xs opacity-60">({r.shortcut})</span>
-            </button>
-          ))}
+      {/* Centered card */}
+      <div className="flex-1 flex items-center justify-center py-12">
+        <div className="w-full max-w-2xl">
+          <FlashcardCard
+            front={currentCard.front}
+            back={currentCard.back}
+            isFlipped={isFlipped}
+            onFlip={() => setIsFlipped((f) => !f)}
+          />
         </div>
-      )}
+      </div>
 
-      <p className="text-center text-[var(--color-text-subtle)] text-xs">
-        Space: flip — 1-4: rate
-      </p>
+      {/* Footer controls */}
+      <div className="space-y-4">
+        {isFlipped ? (
+          <div className="flex justify-center gap-2 flex-wrap">
+            {RATINGS.map((r) => (
+              <button
+                key={r.key}
+                onClick={() => handleRate(r.key)}
+                className={`h-10 px-4 rounded-md text-sm font-medium transition-colors ${
+                  r.key === 'good'
+                    ? 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white'
+                    : 'border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] bg-transparent'
+                }`}
+              >
+                {r.label}
+                <span className="ml-2 text-[11px] opacity-60">{r.shortcut}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <button
+              onClick={goPrev}
+              disabled={currentIndex === 0}
+              className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+              aria-label="Previous card"
+            >
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" /> Prev
+            </button>
+            <button
+              onClick={() => setIsFlipped(true)}
+              className="h-10 px-6 rounded-md bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium transition-colors"
+            >
+              Flip
+              <span className="ml-2 text-[11px] opacity-70">Space</span>
+            </button>
+            <button
+              onClick={goNext}
+              disabled={currentIndex === cards.length - 1}
+              className="h-10 px-3 rounded-md text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+              aria-label="Next card"
+            >
+              Next <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
+        <p className="text-center text-[11px] text-[var(--color-text-subtle)]">
+          Space to flip · 1–4 to rate · ←/→ to navigate
+        </p>
+      </div>
     </div>
   );
 }

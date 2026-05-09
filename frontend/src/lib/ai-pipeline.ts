@@ -7,36 +7,136 @@ import {
 } from './prompts';
 import type { NoteBlock, QuizQuestion } from './types';
 
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+// ── LLM provider config ────────────────────────────────────────────────────
+// Supports any OpenAI-compatible endpoint: Ollama (local, no key), OpenRouter,
+// Google Gemini, OpenAI, or a custom URL.
 
-async function callOpenAI(
+const LLM_CONFIG_KEY = 'converge_llm_config';
+
+export type LLMProvider = 'ollama' | 'openrouter' | 'google' | 'openai' | 'custom';
+
+export interface LLMConfig {
+  provider: LLMProvider;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+export const PROVIDER_PRESETS: Record<LLMProvider, { label: string; baseUrl: string; needsKey: boolean; defaultModel: string }> = {
+  ollama:      { label: 'Ollama (local)',  baseUrl: 'http://localhost:11434/v1', needsKey: false, defaultModel: 'llama3.2' },
+  openrouter:  { label: 'OpenRouter',      baseUrl: 'https://openrouter.ai/api/v1', needsKey: true, defaultModel: 'meta-llama/llama-3.1-8b-instruct:free' },
+  google:      { label: 'Google Gemini',   baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', needsKey: true, defaultModel: 'gemini-2.0-flash' },
+  openai:      { label: 'OpenAI',          baseUrl: 'https://api.openai.com/v1', needsKey: true, defaultModel: 'gpt-4o-mini' },
+  custom:      { label: 'Custom endpoint', baseUrl: '', needsKey: false, defaultModel: '' },
+};
+
+const DEFAULT_CONFIG: LLMConfig = {
+  provider: 'ollama',
+  baseUrl: PROVIDER_PRESETS.ollama.baseUrl,
+  apiKey: '',
+  model: PROVIDER_PRESETS.ollama.defaultModel,
+};
+
+export function getLLMConfig(): LLMConfig {
+  try {
+    const raw = localStorage.getItem(LLM_CONFIG_KEY);
+    if (!raw) return DEFAULT_CONFIG;
+    return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_CONFIG;
+  }
+}
+
+export function setLLMConfig(config: LLMConfig) {
+  localStorage.setItem(LLM_CONFIG_KEY, JSON.stringify(config));
+}
+
+export async function testLLMConnection(): Promise<{ ok: boolean; model: string; error?: string }> {
+  const cfg = getLLMConfig();
+  const preset = PROVIDER_PRESETS[cfg.provider];
+
+  if (preset.needsKey && !cfg.apiKey) {
+    return { ok: false, model: cfg.model, error: `${preset.label} requires an API key.` };
+  }
+  if (!cfg.baseUrl) {
+    return { ok: false, model: cfg.model, error: 'No endpoint URL configured.' };
+  }
+
+  const base = cfg.baseUrl.replace(/\/+$/, '');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+
+  try {
+    const res = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [{ role: 'user', content: 'Say "ok" and nothing else.' }],
+        max_tokens: 4,
+      }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      return { ok: false, model: cfg.model, error: `${res.status}: ${txt.slice(0, 200)}` };
+    }
+    return { ok: true, model: cfg.model };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (cfg.provider === 'ollama') {
+      return { ok: false, model: cfg.model, error: `Cannot reach Ollama at ${base}. Is it running? (ollama serve)` };
+    }
+    return { ok: false, model: cfg.model, error: msg };
+  }
+}
+
+async function callLLM(
   systemPrompt: string,
   userPrompt: string,
-  model = 'gpt-4o-mini',
 ): Promise<string> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!apiKey) throw new Error('VITE_OPENAI_API_KEY not set');
+  const cfg = getLLMConfig();
+  const preset = PROVIDER_PRESETS[cfg.provider];
 
-  const res = await fetch(OPENAI_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
-  });
+  if (preset.needsKey && !cfg.apiKey) {
+    throw new Error(
+      `${preset.label} requires an API key. Go to Settings → AI Model to add one.`,
+    );
+  }
+
+  if (!cfg.baseUrl) {
+    throw new Error('No LLM endpoint configured. Go to Settings → AI Model.');
+  }
+
+  const base = cfg.baseUrl.replace(/\/+$/, '');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+      }),
+    });
+  } catch (e) {
+    if (cfg.provider === 'ollama') {
+      throw new Error(
+        'Cannot reach Ollama at ' + base + '. Is it running? (ollama serve)',
+      );
+    }
+    throw new Error(`Cannot reach ${preset.label}: ${e instanceof Error ? e.message : e}`);
+  }
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`OpenAI API error (${res.status}): ${err}`);
+    throw new Error(`LLM error (${res.status}): ${err.slice(0, 300)}`);
   }
 
   const data = await res.json();
@@ -44,8 +144,39 @@ async function callOpenAI(
 }
 
 function parseJSON<T>(raw: string): T {
-  const cleaned = raw.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
-  return JSON.parse(cleaned);
+  let cleaned = raw.trim();
+
+  // Strip a code fence anywhere in the response. Handles ```json … ```,
+  // ```js … ```, plain ``` … ```, and intro/outro chatter around the fence
+  // (Llama and friends like to say "Here's the JSON:" before and "Hope this
+  // helps!" after).
+  const fenceMatch = cleaned.match(/```[a-zA-Z]*\s*\n?([\s\S]*?)```/);
+  if (fenceMatch) {
+    cleaned = fenceMatch[1].trim();
+  }
+
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch (err) {
+    // Last resort: extract the substring between the first opening bracket
+    // and the last matching closing bracket. Catches outputs like
+    // "Here's an array: [ ... ] — hope this helps." that escape the fence
+    // strip above.
+    const firstArr = cleaned.indexOf('[');
+    const firstObj = cleaned.indexOf('{');
+    const start =
+      firstArr === -1
+        ? firstObj
+        : firstObj === -1
+          ? firstArr
+          : Math.min(firstArr, firstObj);
+    if (start === -1) throw err;
+    const open = cleaned[start];
+    const close = open === '[' ? ']' : '}';
+    const end = cleaned.lastIndexOf(close);
+    if (end <= start) throw err;
+    return JSON.parse(cleaned.slice(start, end + 1)) as T;
+  }
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -70,13 +201,13 @@ async function updateLectureStatus(lectureId: string, status: string, errorMessa
 
 export async function cleanTranscript(rawText: string): Promise<string> {
   return withRetry(() =>
-    callOpenAI(TRANSCRIPT_CLEANUP_SYSTEM, `Clean this transcript:\n\n${rawText}`),
+    callLLM(TRANSCRIPT_CLEANUP_SYSTEM, `Clean this transcript:\n\n${rawText}`),
   );
 }
 
 export async function generateNotes(transcript: string): Promise<NoteBlock[]> {
   const raw = await withRetry(() =>
-    callOpenAI(
+    callLLM(
       NOTE_GENERATION_SYSTEM,
       `Generate structured notes from this lecture transcript:\n\n${transcript}`,
     ),
@@ -93,7 +224,7 @@ interface RawFlashcard {
 
 export async function generateFlashcards(transcript: string): Promise<RawFlashcard[]> {
   const raw = await withRetry(() =>
-    callOpenAI(
+    callLLM(
       FLASHCARD_GENERATION_SYSTEM,
       `Generate flashcards from this lecture transcript:\n\n${transcript}`,
     ),
@@ -103,7 +234,7 @@ export async function generateFlashcards(transcript: string): Promise<RawFlashca
 
 export async function generateQuiz(transcript: string): Promise<QuizQuestion[]> {
   const raw = await withRetry(() =>
-    callOpenAI(
+    callLLM(
       QUIZ_GENERATION_SYSTEM,
       `Generate a quiz from this lecture transcript:\n\n${transcript}`,
     ),

@@ -57,13 +57,13 @@ export function EmptyState({
   return (
     <div className={`text-center ${tokens.wrap} ${className}`}>
       <div
-        className={`${tokens.iconWrap} mx-auto rounded-2xl bg-zinc-900/70 border border-zinc-800 flex items-center justify-center text-zinc-500`}
+        className={`${tokens.iconWrap} mx-auto rounded-2xl bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-subtle)]`}
       >
         <Icon className={tokens.icon} aria-hidden="true" />
       </div>
-      <p className={`font-medium text-zinc-200 ${tokens.title}`}>{title}</p>
+      <p className={`font-medium text-[var(--color-text)] ${tokens.title}`}>{title}</p>
       {description && (
-        <p className={`text-zinc-500 ${tokens.description}`}>{description}</p>
+        <p className={`text-[var(--color-text-subtle)] ${tokens.description}`}>{description}</p>
       )}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
