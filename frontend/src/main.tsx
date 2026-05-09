@@ -4,6 +4,7 @@ import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "./lib/auth";
 import { PreferencesProvider } from "./lib/preferences";
 import { AudioPlayerProvider } from "./lib/audioPlayer";
+import { ToastProvider } from "./lib/toast";
 
 const router = createRouter({ routeTree });
 
@@ -17,7 +18,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <AuthProvider>
     <PreferencesProvider>
       <AudioPlayerProvider>
-        <RouterProvider router={router} />
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
       </AudioPlayerProvider>
     </PreferencesProvider>
   </AuthProvider>,

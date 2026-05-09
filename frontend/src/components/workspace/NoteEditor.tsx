@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NotebookPen } from 'lucide-react';
 import { NoteBlock } from './NoteBlock';
 import { EmptyState } from '../layout/EmptyState';
+import { AIChip } from '../layout/AIChip';
 import type { NoteBlock as NoteBlockType } from '../../lib/types';
 
 interface NoteEditorProps {
@@ -15,6 +16,8 @@ interface NoteEditorProps {
   onPersonalNotesChange?: (next: string) => void;
   /** Disables the personal-notes textarea while a save is in flight. */
   saving?: boolean;
+  /** When true, shows an AI chip next to the document title. */
+  aiGenerated?: boolean;
 }
 
 /**
@@ -28,6 +31,7 @@ export function NoteEditor({
   personalNotes,
   onPersonalNotesChange,
   saving = false,
+  aiGenerated = false,
 }: NoteEditorProps) {
   const [draft, setDraft] = useState(personalNotes ?? '');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -60,10 +64,11 @@ export function NoteEditor({
       aria-label="Lecture notes"
     >
       {title && (
-        <header className="mb-6">
+        <header className="mb-6 flex items-center gap-3 flex-wrap">
           <h2 className="text-3xl font-semibold text-[var(--color-text)] tracking-tight">
             {title}
           </h2>
+          {aiGenerated && <AIChip />}
         </header>
       )}
 

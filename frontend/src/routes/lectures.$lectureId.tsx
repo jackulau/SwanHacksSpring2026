@@ -15,6 +15,7 @@ import { Skeleton } from "../components/layout/Skeleton";
 import { EmptyState } from "../components/layout/EmptyState";
 import { TranscriptViewer } from "../components/workspace/TranscriptViewer";
 import { NoteEditor } from "../components/workspace/NoteEditor";
+import { AIChip } from "../components/layout/AIChip";
 import { useAudioPlayer } from "../lib/audioPlayer";
 import { pb } from "../lib/pocketbase";
 import type {
@@ -394,6 +395,7 @@ function LectureDetailPage() {
               title={notes?.title}
               personalNotes={notes?.summary}
               onPersonalNotesChange={handlePersonalNotesChange}
+              aiGenerated={notes?.content_type === "auto_generated"}
             />
           )}
           {view === "flashcards" && (
@@ -401,6 +403,7 @@ function LectureDetailPage() {
               total={flashcards.length}
               due={dueCount}
               lectureId={lecture.id}
+              aiGenerated={flashcards.some((c) => c.source === "auto_generated")}
               // The /study/flashcards route doesn't (yet) validate a `lecture`
               // search param, so we just send the user to the global review
               // queue. Lecture-scoped filtering can be added by extending the
@@ -457,9 +460,10 @@ interface FlashcardsTabProps {
   due: number;
   lectureId: string;
   onStart: () => void;
+  aiGenerated?: boolean;
 }
 
-function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
+function FlashcardsTab({ total, due, onStart, aiGenerated }: FlashcardsTabProps) {
   if (total === 0) {
     return (
       <div className="max-w-3xl mx-auto">
@@ -475,6 +479,11 @@ function FlashcardsTab({ total, due, onStart }: FlashcardsTabProps) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-6">
+        {aiGenerated && (
+          <div className="mb-4">
+            <AIChip />
+          </div>
+        )}
         <div className="flex items-center gap-6 mb-6">
           <div>
             <p className="text-3xl font-semibold text-[var(--color-text)] tabular-nums">
@@ -529,12 +538,16 @@ function QuizTab({ quiz, onStart }: QuizTabProps) {
   const questionCount = Array.isArray(quiz.questions)
     ? quiz.questions.length
     : 0;
+  const aiGenerated = (quiz as { source?: string }).source === "auto_generated";
   return (
     <div className="max-w-3xl mx-auto">
       <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-6">
-        <p className="text-base font-medium text-[var(--color-text)] mb-1">
-          {quiz.title}
-        </p>
+        <div className="flex items-center gap-3 mb-1">
+          <p className="text-base font-medium text-[var(--color-text)]">
+            {quiz.title}
+          </p>
+          {aiGenerated && <AIChip />}
+        </div>
         <p className="text-sm text-[var(--color-text-muted)] mb-6">
           {questionCount} {questionCount === 1 ? "question" : "questions"}
           {quiz.total_points ? ` · ${quiz.total_points} pts` : ""}

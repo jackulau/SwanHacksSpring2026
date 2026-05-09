@@ -37,7 +37,10 @@ function QuizPage() {
   }, [user, quizId]);
 
   const handleComplete = useCallback(
-    async (answers: { questionId: string; answer: number | boolean | string; correct: boolean; pointsEarned: number }[]) => {
+    async (
+      answers: { questionId: string; answer: number | boolean | string; correct: boolean; pointsEarned: number }[],
+      elapsedSecs: number,
+    ) => {
       if (!quiz || !user) return;
       const totalEarned = answers.reduce((s, a) => s + a.pointsEarned, 0);
       const totalPossible = (quiz.questions as QuizQuestion[]).reduce((s, q) => s + q.points, 0);
@@ -54,7 +57,7 @@ function QuizPage() {
           score: totalEarned,
           max_score: totalPossible,
           percentage: totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0,
-          time_taken_secs: 0,
+          time_taken_secs: elapsedSecs,
           completed_at: new Date().toISOString(),
         });
       } catch {
@@ -116,6 +119,7 @@ function QuizPage() {
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}
           onComplete={handleComplete}
+          quizId={quiz.id}
         />
       </div>
     </AppShell>

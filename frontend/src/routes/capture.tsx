@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, Outlet, useMatch } from "@tanstack/react-router";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Hand, Mic, Upload } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
@@ -8,6 +8,7 @@ import { RecordButton } from "../components/capture/RecordButton";
 import { LiveCaptions } from "../components/capture/LiveCaptions";
 import { SignLanguageDetector } from "../components/capture/SignLanguageDetector";
 import { ProcessingStatus } from "../components/capture/ProcessingStatus";
+import { MicLevelMeter } from "../components/capture/MicLevelMeter";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useLocalWhisper, transcribeAudioFile } from "../hooks/useLocalWhisper";
 import { useMediaPipeHands } from "../hooks/useMediaPipeHands";
@@ -15,6 +16,9 @@ import { useSignLanguage } from "../hooks/useSignLanguage";
 import { useWordSignRecognition } from "../hooks/useWordSignRecognition";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
+import type { Course } from "../lib/types";
+
+const LAST_COURSE_KEY = "converge_last_capture_course";
 
 export const Route = createFileRoute("/capture")({
   component: CapturePage,
@@ -47,6 +51,27 @@ function formatDuration(secs: number) {
 }
 
 /**
+ * Map an empty-transcript outcome to a friendlier explanation. The user is
+ * almost never helped by the literal "No speech detected" string — the cause
+ * is usually one of: clip-too-short, mic-muted, or model still warming up.
+ */
+function buildNoSpeechMessage(opts: {
+  durationSecs: number;
+  modelLoading: boolean;
+  modelProgress: number;
+}): string {
+  if (opts.modelLoading) {
+    return `Whisper is still warming up (${opts.modelProgress}%). Try recording again in a few seconds — the model is now loaded and the next attempt should transcribe cleanly.`;
+  }
+  if (opts.durationSecs > 0 && opts.durationSecs < 8) {
+    return `Recording was very short (${opts.durationSecs}s). Try at least 10 seconds for best results — Whisper needs a bit of audio to lock onto.`;
+  }
+  return "We couldn't hear anything in this recording. Check your microphone input level and that the right device is selected, then try again.";
+}
+
+const STALE_CAPTION_THRESHOLD_MS = 8000;
+
+/**
  * Capture / Record surface.
  *
  * Layout intent (top to bottom):
@@ -68,6 +93,49 @@ function RecordingInterface() {
   const [pipelineError, setPipelineError] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const recordRegionRef = useRef<HTMLDivElement>(null);
+
+  // Optional pre-record metadata. Both fields are skippable — when omitted,
+  // behavior is identical to the original "Lecture {date}" / no-course flow.
+  const { user: authUser } = useAuth();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(LAST_COURSE_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [customTitle, setCustomTitle] = useState<string>("");
+
+  useEffect(() => {
+    if (!authUser) return;
+    let cancelled = false;
+    pb.collection("courses")
+      .getFullList<Course>({
+        filter: `user = "${authUser.id}"`,
+        sort: "-id",
+        requestKey: "capture-courses",
+      })
+      .then((items) => {
+        if (cancelled) return;
+        setCourses(items);
+        // Drop the persisted selection if the course was deleted between
+        // sessions — otherwise the dropdown would silently target a missing id.
+        if (
+          selectedCourseId &&
+          !items.some((c) => c.id === selectedCourseId)
+        ) {
+          setSelectedCourseId("");
+        }
+      })
+      .catch(() => {
+        /* offline / not authenticated yet — leave empty */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.id]);
 
   const signLanguage = useSignLanguage((word) => {
     stt.addSignCaption(word);
@@ -174,12 +242,20 @@ function RecordingInterface() {
 
       try {
         const lectureData = new FormData();
-        lectureData.append('title', `Lecture ${new Date().toLocaleDateString()}`);
+        const trimmedTitle = customTitle.trim();
+        const courseForLecture = courses.find((c) => c.id === selectedCourseId);
+        const fallbackTitle = courseForLecture
+          ? `${courseForLecture.code || courseForLecture.name} — ${new Date().toLocaleDateString()}`
+          : `Lecture ${new Date().toLocaleDateString()}`;
+        lectureData.append('title', trimmedTitle || fallbackTitle);
         lectureData.append('audio_file', blob, 'recording.webm');
         lectureData.append('duration_secs', String(audio.duration));
         lectureData.append('status', 'transcribing');
         lectureData.append('recorded_at', new Date().toISOString());
         lectureData.append('user', pb.authStore.record?.id || '');
+        if (selectedCourseId) {
+          lectureData.append('course', selectedCourseId);
+        }
 
         const lecture = await pb.collection('lectures').create(lectureData);
 
@@ -205,7 +281,13 @@ function RecordingInterface() {
 
         if (!fullTranscript) {
           setPipelineStage('error');
-          setPipelineError('No speech detected in recording.');
+          setPipelineError(
+            buildNoSpeechMessage({
+              durationSecs: audio.duration,
+              modelLoading: stt.modelLoading,
+              modelProgress: stt.modelProgress,
+            }),
+          );
           return;
         }
 
@@ -225,16 +307,58 @@ function RecordingInterface() {
     };
 
     processAudio();
-  }, [audio.audioBlob, audio.duration, stt.captions]);
+    // The effect intentionally re-registers when the user changes the title,
+    // course, or course list so that the closure used to build `lectureData`
+    // holds the latest values when audio.audioBlob actually arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audio.audioBlob, audio.duration, stt.captions, customTitle, selectedCourseId, courses]);
 
   const isRecording = audio.isRecording;
-  const sttStatus = isRecording
-    ? stt.isConnected
-      ? 'Whisper transcribing'
-      : stt.modelLoading
-        ? `Loading model… ${stt.modelProgress}%`
-        : 'Starting Whisper…'
-    : 'Press record to begin';
+  const isPaused = audio.isPaused;
+
+  // Track the timestamp of the most recent caption update so we can flag a
+  // stale caption stream while recording (Whisper occasionally falls behind
+  // on heavy CPU; the user has no signal otherwise).
+  const [lastCaptionAt, setLastCaptionAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (stt.captions.length === 0) return;
+    setLastCaptionAt(Date.now());
+  }, [stt.captions.length]);
+  useEffect(() => {
+    if (!isRecording) {
+      setLastCaptionAt(null);
+    }
+  }, [isRecording]);
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (!isRecording || isPaused) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [isRecording, isPaused]);
+  const captionsAreStale =
+    isRecording &&
+    !isPaused &&
+    stt.isConnected &&
+    lastCaptionAt !== null &&
+    now - lastCaptionAt > STALE_CAPTION_THRESHOLD_MS;
+
+  const sttStatus = !isRecording
+    ? 'Press record to begin'
+    : isPaused
+      ? 'Paused — captions resume on play'
+      : stt.isConnected
+        ? 'Whisper transcribing'
+        : stt.modelLoading
+          ? `Loading model… ${stt.modelProgress}%`
+          : 'Starting Whisper…';
+
+  // Hot ref to the current MediaStream — passed into the VU meter once
+  // recording starts. We don't need to subscribe to changes since the
+  // recorder owns the stream lifecycle.
+  const recordingStream = useMemo(
+    () => (isRecording ? audioControls.getStream() : null),
+    [isRecording, audioControls],
+  );
 
   return (
     <>
@@ -253,6 +377,23 @@ function RecordingInterface() {
 
         {!processing && (
           <>
+            {!isRecording && (
+              <PreRecordForm
+                courses={courses}
+                selectedCourseId={selectedCourseId}
+                onCourseChange={(id) => {
+                  setSelectedCourseId(id);
+                  try {
+                    if (id) localStorage.setItem(LAST_COURSE_KEY, id);
+                    else localStorage.removeItem(LAST_COURSE_KEY);
+                  } catch {
+                    /* localStorage unavailable — non-fatal */
+                  }
+                }}
+                title={customTitle}
+                onTitleChange={setCustomTitle}
+              />
+            )}
             {/* Record surface — centered, breathing, single primary action. */}
             <div
               ref={recordRegionRef}
@@ -276,11 +417,16 @@ function RecordingInterface() {
                     aria-live="off"
                   >
                     <span
-                      className="w-2 h-2 rounded-full bg-[var(--color-record)] animate-pulse"
+                      className={`w-2 h-2 rounded-full bg-[var(--color-record)] ${
+                        isPaused ? '' : 'animate-pulse'
+                      }`}
                       aria-hidden="true"
                     />
                     {formatDuration(audio.duration)}
                   </span>
+                )}
+                {isRecording && (
+                  <MicLevelMeter stream={recordingStream} active={!isPaused} />
                 )}
                 <span
                   className={
@@ -292,6 +438,18 @@ function RecordingInterface() {
                   {sttStatus}
                 </span>
               </div>
+              {captionsAreStale && (
+                <p
+                  role="status"
+                  className="text-xs text-[var(--color-warning)] inline-flex items-center gap-1.5 -mt-2"
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)] animate-pulse"
+                    aria-hidden="true"
+                  />
+                  Captions catching up — Whisper is a few seconds behind.
+                </p>
+              )}
 
               {!isRecording && (
                 <div className="flex flex-col items-center gap-2">
@@ -367,6 +525,83 @@ function RecordingInterface() {
         )}
       </div>
     </>
+  );
+}
+
+/**
+ * Optional pre-record metadata form. Rendered above the Record button when
+ * the user is not currently recording. Both fields are entirely optional —
+ * leaving them empty produces the same `Lecture {date}` / unlinked-course
+ * outcome as before. The selected course id is mirrored to localStorage so
+ * the next session opens with the same default.
+ */
+interface PreRecordFormProps {
+  courses: Course[];
+  selectedCourseId: string;
+  onCourseChange: (id: string) => void;
+  title: string;
+  onTitleChange: (next: string) => void;
+}
+
+function PreRecordForm({
+  courses,
+  selectedCourseId,
+  onCourseChange,
+  title,
+  onTitleChange,
+}: PreRecordFormProps) {
+  if (courses.length === 0) {
+    // Nothing to pick — render only the title input so the form doesn't
+    // confuse first-run users with an empty dropdown.
+    return (
+      <div className="max-w-md mx-auto -mt-2 mb-2 grid gap-2">
+        <label className="block">
+          <span className="block text-[11px] uppercase tracking-wider text-[var(--color-text-subtle)] mb-1">
+            Title (optional)
+          </span>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            placeholder="e.g. Lecture 7 — Memory & encoding"
+            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)]"
+          />
+        </label>
+      </div>
+    );
+  }
+  return (
+    <div className="max-w-md mx-auto -mt-2 mb-2 grid gap-3">
+      <label className="block">
+        <span className="block text-[11px] uppercase tracking-wider text-[var(--color-text-subtle)] mb-1">
+          Course (optional)
+        </span>
+        <select
+          value={selectedCourseId}
+          onChange={(e) => onCourseChange(e.target.value)}
+          className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
+        >
+          <option value="">No course</option>
+          {courses.map((c) => (
+            <option key={c.id} value={c.id}>
+              {[c.code, c.name].filter(Boolean).join(" · ") || "Untitled course"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block">
+        <span className="block text-[11px] uppercase tracking-wider text-[var(--color-text-subtle)] mb-1">
+          Title (optional)
+        </span>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="Auto-titled if left blank"
+          className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)]"
+        />
+      </label>
+    </div>
   );
 }
 

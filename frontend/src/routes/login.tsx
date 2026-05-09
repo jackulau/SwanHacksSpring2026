@@ -18,7 +18,18 @@ function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignup, setIsSignup] = useState(false);
+  // First-time visitors land on the signup tab. We treat anyone who has signed
+  // in at least once on this device as a returning user and default to sign-in.
+  // The flag is set the first time `useAuth` succeeds (see effect below).
+  const [isSignup, setIsSignup] = useState(() => {
+    try {
+      return typeof window !== "undefined"
+        ? localStorage.getItem("converge_returning_user") !== "true"
+        : false;
+    } catch {
+      return false;
+    }
+  });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,6 +67,11 @@ function LoginPage() {
         await signup(email, password);
       } else {
         await login(email, password);
+      }
+      try {
+        localStorage.setItem("converge_returning_user", "true");
+      } catch {
+        /* localStorage may be unavailable in private browsing; non-fatal. */
       }
       navigate({ to: "/" });
     } catch (err: unknown) {
