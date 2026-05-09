@@ -71,7 +71,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 flex justify-around border-t border-zinc-800 bg-zinc-900/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-40 flex justify-around border-t border-[var(--color-border)] bg-black/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]"
     >
       {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
         const active = isActiveRoute(location.pathname, to);
@@ -81,10 +81,10 @@ export function MobileNav() {
             to={to}
             aria-label={label}
             aria-current={active ? "page" : undefined}
-            className={`group relative flex flex-1 flex-col items-center justify-center gap-1 min-h-14 py-2 text-[11px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-0 ${
+            className={`group relative flex flex-1 flex-col items-center justify-center gap-1 min-h-14 py-2 text-[11px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-0 ${
               active
-                ? "text-indigo-400"
-                : "text-zinc-400 hover:text-zinc-100"
+                ? "text-[var(--color-primary-strong)]"
+                : "text-[var(--color-text-muted)] hover:text-white"
             }`}
           >
             <Icon
@@ -97,7 +97,7 @@ export function MobileNav() {
             {active && (
               <span
                 aria-hidden="true"
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-b-full bg-indigo-400"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-b-full bg-[var(--color-primary)]"
               />
             )}
           </Link>

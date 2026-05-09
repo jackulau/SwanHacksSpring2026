@@ -1,37 +1,47 @@
 /**
- * Dashboard hero — the "Good morning, Jef" card.
+ * Dashboard hero — the greeting / streak band that runs along the top of
+ * the home page.
  *
- * Layout:
- *   ┌─ aurora-vibe background ─────────────────────────────┐
- *   │  Good morning, Jef                          [🔥 12d] │
- *   │  Here's your study overview                          │
- *   └──────────────────────────────────────────────────────┘
+ * Layout (matches `dark-mode-empty.png` and `light-mode-filled.png`):
+ *   ┌─ vibe-aurora (grey gradient w/ subtle green glow) ─────────────────┐
+ *   │  Good Morning, Name                       🔥 12d                   │
+ *   │  WEDNESDAY, AUGUST 17, 2022                                        │
+ *   └────────────────────────────────────────────────────────────────────┘
  *
- * The streak chip is intentionally placed **inside the greeting card** (not
- * as a separate row below) per the redesign brief. Loading and empty states
- * are both handled here so callers can pass values directly without wrapping
- * the chip in conditional logic of their own.
+ * The user dropdown sits *above* this strip in `<AppShell>` (top-right
+ * floating); we leave room for it on the right. The streak chip lives in
+ * the greeting card so the user always sees their current streak when they
+ * land on the dashboard, per the brief.
  */
 
 import { Flame } from "lucide-react";
 import { SkeletonText } from "../layout/Skeleton";
 
 interface HeroHeaderProps {
-  /** First-name or pre-`@` portion of the user's email. */
   name: string;
   streak: number;
   todayCompleted: boolean;
-  /** When the streak hook is still loading we render a discreet placeholder chip. */
   streakLoading?: boolean;
 }
 
 function getGreeting(): string {
   const h = new Date().getHours();
-  if (h < 5) return "Good night";
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  if (h < 21) return "Good evening";
-  return "Good night";
+  if (h < 5) return "Good Night";
+  if (h < 12) return "Good Morning";
+  if (h < 17) return "Good Afternoon";
+  if (h < 21) return "Good Evening";
+  return "Good Night";
+}
+
+function formatToday(): string {
+  return new Date()
+    .toLocaleDateString(undefined, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+    .toUpperCase();
 }
 
 export function HeroHeader({
@@ -41,19 +51,17 @@ export function HeroHeader({
   streakLoading = false,
 }: HeroHeaderProps) {
   const greeting = getGreeting();
+  const dateLabel = formatToday();
 
   return (
-    <section className="vibe-aurora rounded-3xl p-6 sm:p-8 soft-shadow">
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <section className="vibe-aurora px-4 sm:px-6 lg:px-8 pt-10 pb-8">
+      <div className="max-w-6xl mx-auto relative z-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pr-0 lg:pr-44">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            {greeting},{" "}
-            <span className="bg-gradient-to-r from-indigo-200 via-fuchsia-200 to-sky-200 bg-clip-text text-transparent">
-              {name}
-            </span>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+            {greeting}, {name}
           </h1>
-          <p className="text-sm sm:text-base text-zinc-300/80 mt-1.5">
-            Here&apos;s your study overview
+          <p className="text-xs sm:text-sm tracking-[0.18em] text-[var(--color-text-muted)] mt-2">
+            {dateLabel}
           </p>
         </div>
 
@@ -76,7 +84,7 @@ interface StreakChipProps {
 function StreakChip({ streak, todayCompleted, loading }: StreakChipProps) {
   if (loading) {
     return (
-      <div className="inline-flex items-center gap-3 self-start sm:self-center px-4 py-2.5 rounded-2xl glass-strong">
+      <div className="inline-flex items-center gap-3 self-start sm:self-end px-4 py-2.5 rounded-2xl bg-black/40 border border-white/10">
         <SkeletonText width="2rem" />
         <SkeletonText width="4rem" />
       </div>
@@ -88,7 +96,7 @@ function StreakChip({ streak, todayCompleted, loading }: StreakChipProps) {
 
   return (
     <div
-      className={`inline-flex items-center gap-3 self-start sm:self-center px-4 py-2.5 rounded-2xl glass-strong ${
+      className={`inline-flex items-center gap-3 self-start sm:self-end px-4 py-2.5 rounded-2xl bg-black/40 border ${
         active ? "border-orange-500/30" : "border-white/10"
       }`}
       aria-label={

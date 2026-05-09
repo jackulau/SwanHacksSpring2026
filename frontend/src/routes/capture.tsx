@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate, Outlet, useMatch } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Mic, Hand } from "lucide-react";
+import { Mic } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
+import { PageHeader } from "../components/layout/PageHeader";
 import { RecordButton } from "../components/capture/RecordButton";
 import { LiveCaptions } from "../components/capture/LiveCaptions";
 import { SignLanguageDetector } from "../components/capture/SignLanguageDetector";
@@ -157,77 +158,79 @@ function RecordingInterface() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-zinc-100 mb-6">Record Lecture</h1>
+    <>
+      <PageHeader title="Record Lecture" subtitle="Capture audio with live captions and optional sign language detection" />
 
-      {pipelineStage && (
-        <div className="mb-6">
-          <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
-        </div>
-      )}
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-6xl mx-auto">
+        {pipelineStage && (
+          <div className="mb-6">
+            <ProcessingStatus currentStage={pipelineStage} error={pipelineError} />
+          </div>
+        )}
 
-      {!processing && (
-        <>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <RecordButton
-                isRecording={audio.isRecording}
-                isPaused={audio.isPaused}
-                onStart={handleStart}
-                onStop={handleStop}
-                onPause={audioControls.pause}
-                onResume={audioControls.resume}
-              />
+        {!processing && (
+          <>
+            <div className="flex items-center justify-between mb-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5">
+              <div className="flex items-center gap-4">
+                <RecordButton
+                  isRecording={audio.isRecording}
+                  isPaused={audio.isPaused}
+                  onStart={handleStart}
+                  onStop={handleStop}
+                  onPause={audioControls.pause}
+                  onResume={audioControls.resume}
+                />
+                {audio.isRecording && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[var(--color-record)] animate-pulse" />
+                    <span className="text-white font-mono text-lg">
+                      {formatDuration(audio.duration)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {audio.isRecording && (
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-zinc-300 font-mono text-lg">
-                    {formatDuration(audio.duration)}
+                  <Mic className={`w-4 h-4 ${stt.isConnected ? 'text-[var(--color-primary-strong)]' : 'text-[var(--color-text-subtle)]'}`} />
+                  <span className="text-sm text-[var(--color-text-muted)]">
+                    {stt.isConnected ? 'STT connected' : 'Connecting...'}
                   </span>
                 </div>
               )}
             </div>
 
-            {audio.isRecording && (
-              <div className="flex items-center gap-2">
-                <Mic className={`w-4 h-4 ${stt.isConnected ? 'text-green-400' : 'text-zinc-600'}`} />
-                <span className="text-sm text-zinc-400">
-                  {stt.isConnected ? 'STT Connected' : 'Connecting...'}
-                </span>
+            {audio.error && (
+              <div className="bg-[var(--color-record)]/10 border border-[var(--color-record)]/40 rounded-2xl p-4 mb-6 text-[var(--color-record)] text-sm">
+                {audio.error}
               </div>
             )}
-          </div>
+            {stt.error && (
+              <div className="bg-[var(--color-record)]/10 border border-[var(--color-record)]/40 rounded-2xl p-4 mb-6 text-[var(--color-record)] text-sm">
+                {stt.error}
+              </div>
+            )}
 
-          {audio.error && (
-            <div className="bg-red-900/50 border border-red-700 rounded-lg p-4 mb-6 text-red-200 text-sm">
-              {audio.error}
-            </div>
-          )}
-          {stt.error && (
-            <div className="bg-red-900/50 border border-red-700 rounded-lg p-4 mb-6 text-red-200 text-sm">
-              {stt.error}
-            </div>
-          )}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 flex flex-col" style={{ minHeight: 400 }}>
+                <LiveCaptions captions={stt.captions} />
+              </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 flex flex-col" style={{ minHeight: 400 }}>
-              <LiveCaptions captions={stt.captions} />
+              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5 space-y-4">
+                <video ref={videoRef} className="hidden" autoPlay playsInline muted />
+                <SignLanguageDetector
+                  isActive={signEnabled}
+                  currentLandmarks={mediapipe.currentLandmarks}
+                  currentBuffer={signLanguage.currentBuffer}
+                  confidence={signLanguage.confidence}
+                  lastWord={signLanguage.lastWord}
+                  onToggle={handleToggleSign}
+                />
+              </div>
             </div>
-
-            <div className="space-y-4">
-              <video ref={videoRef} className="hidden" autoPlay playsInline muted />
-              <SignLanguageDetector
-                isActive={signEnabled}
-                currentLandmarks={mediapipe.currentLandmarks}
-                currentBuffer={signLanguage.currentBuffer}
-                confidence={signLanguage.confidence}
-                lastWord={signLanguage.lastWord}
-                onToggle={handleToggleSign}
-              />
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { FileText, BookOpen, Brain, HelpCircle } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
+import { PageHeader } from "../components/layout/PageHeader";
 import { TranscriptViewer } from "../components/workspace/TranscriptViewer";
 import { NoteEditor } from "../components/workspace/NoteEditor";
 import { FlashcardDeck } from "../components/study/FlashcardDeck";
@@ -94,8 +95,11 @@ function LectureDetailPage() {
   if (authLoading || !user || loading) {
     return (
       <AppShell>
-        <div className="p-6">
-          <p className="text-zinc-500">Loading...</p>
+        <PageHeader title="Lecture" subtitle="Loading lecture details…" />
+        <div className="px-4 sm:px-6 lg:px-8 pb-8">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-[var(--color-text-subtle)] text-sm">Loading...</p>
+          </div>
         </div>
       </AppShell>
     );
@@ -104,81 +108,91 @@ function LectureDetailPage() {
   if (!lecture) {
     return (
       <AppShell>
-        <div className="p-6">
-          <p className="text-zinc-400">Lecture not found.</p>
+        <PageHeader title="Lecture not found" subtitle="We couldn't find that lecture in your library." />
+        <div className="px-4 sm:px-6 lg:px-8 pb-8">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-[var(--color-text-muted)] text-sm">Lecture not found.</p>
+          </div>
         </div>
       </AppShell>
     );
   }
 
+  const recordedDate = lecture.recorded_at
+    ? new Date(lecture.recorded_at).toLocaleDateString()
+    : "";
+  const durationMin = lecture.duration_secs
+    ? `${Math.ceil(lecture.duration_secs / 60)} min`
+    : "";
+  const subtitleParts = [recordedDate, durationMin].filter(Boolean);
+
   return (
     <AppShell>
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-zinc-100">{lecture.title}</h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            {new Date(lecture.recorded_at).toLocaleDateString()} · {Math.ceil(lecture.duration_secs / 60)} min
-          </p>
-        </div>
+      <PageHeader
+        title={lecture.title}
+        subtitle={subtitleParts.join(" · ")}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex gap-1 border-b border-[var(--color-border)] mb-6 overflow-x-auto">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    activeTab === tab.key
+                      ? 'border-[var(--color-primary)] text-[var(--color-primary-strong)]'
+                      : 'border-transparent text-[var(--color-text-muted)] hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-        <div className="flex gap-1 border-b border-zinc-700 mb-6">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.key
-                    ? 'border-indigo-500 text-indigo-400'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {activeTab === 'transcript' && (
-          <TranscriptViewer
-            rawText={transcript?.raw_text || ''}
-            cleanText={transcript?.clean_text || ''}
-          />
-        )}
-
-        {activeTab === 'notes' && (
-          <NoteEditor
-            blocks={(notes?.content as NoteBlock[]) || []}
-            title={notes?.title}
-          />
-        )}
-
-        {activeTab === 'flashcards' && (
-          flashcards.length > 0 ? (
-            <FlashcardDeck
-              cards={flashcards}
-              onRate={(card, rating) => rateCard(card, rating as QualityRating)}
-              onComplete={() => {}}
-              lectureId={lectureId}
+          {activeTab === 'transcript' && (
+            <TranscriptViewer
+              rawText={transcript?.raw_text || ''}
+              cleanText={transcript?.clean_text || ''}
             />
-          ) : (
-            <p className="text-zinc-500 text-center py-12">No flashcards generated.</p>
-          )
-        )}
+          )}
 
-        {activeTab === 'quiz' && (
-          quiz ? (
-            <QuizRunner
-              questions={(quiz.questions as QuizQuestion[]) || []}
-              onComplete={() => {}}
-              lectureId={lectureId}
+          {activeTab === 'notes' && (
+            <NoteEditor
+              blocks={(notes?.content as NoteBlock[]) || []}
+              title={notes?.title}
             />
-          ) : (
-            <p className="text-zinc-500 text-center py-12">No quiz generated.</p>
-          )
-        )}
+          )}
+
+          {activeTab === 'flashcards' && (
+            flashcards.length > 0 ? (
+              <FlashcardDeck
+                cards={flashcards}
+                onRate={(card, rating) => rateCard(card, rating as QualityRating)}
+                onComplete={() => {}}
+                lectureId={lectureId}
+              />
+            ) : (
+              <p className="text-[var(--color-text-subtle)] text-center py-12 text-sm">No flashcards generated.</p>
+            )
+          )}
+
+          {activeTab === 'quiz' && (
+            quiz ? (
+              <QuizRunner
+                questions={(quiz.questions as QuizQuestion[]) || []}
+                onComplete={() => {}}
+                lectureId={lectureId}
+              />
+            ) : (
+              <p className="text-[var(--color-text-subtle)] text-center py-12 text-sm">No quiz generated.</p>
+            )
+          )}
+        </div>
       </div>
     </AppShell>
   );

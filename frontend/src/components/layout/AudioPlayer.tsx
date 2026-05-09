@@ -80,7 +80,7 @@ export function AudioPlayer() {
       <button
         type="button"
         onClick={() => { void togglePlay(); }}
-        className="rounded-full bg-indigo-600 p-2 text-white hover:bg-indigo-500"
+        className="rounded-full bg-[var(--color-primary)] p-2 text-black hover:bg-[var(--color-primary-hover)]"
         aria-label={playing ? "Pause" : "Play"}
         aria-pressed={playing}
       >
@@ -107,7 +107,7 @@ export function AudioPlayer() {
         step={0.1}
         value={Math.min(currentTime, duration || 0)}
         onChange={handleScrub}
-        className="flex-1 h-1 accent-indigo-500"
+        className="flex-1 h-1 accent-[var(--color-primary)]"
         aria-label="Seek"
       />
 

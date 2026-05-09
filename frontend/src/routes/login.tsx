@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "../lib/auth";
-import { GraduationCap, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { ConvergeLogo } from "../components/layout/ConvergeLogo";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -41,33 +42,33 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
+    <div className="min-h-screen bg-[var(--color-bg)] text-white flex">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 flex-col justify-between p-12">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="w-7 h-7 text-white" />
-          <span className="text-xl font-bold text-white">HackStack</span>
+      <div className="hidden lg:flex lg:w-1/2 vibe-aurora flex-col justify-between p-12 border-r border-[var(--color-border)]">
+        <div className="relative z-10 flex items-center gap-2 text-white">
+          <ConvergeLogo className="w-7 h-7" />
+          <span className="text-xl font-bold tracking-tight">Converge</span>
         </div>
-        <div>
-          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
+        <div className="relative z-10">
+          <h2 className="text-4xl font-bold text-white leading-tight mb-4 tracking-tight">
             Turn any lecture into study material
           </h2>
-          <p className="text-indigo-200 text-lg leading-relaxed">
+          <p className="text-[var(--color-text-muted)] text-lg leading-relaxed">
             Record, transcribe, and generate flashcards, notes, and quizzes —
             all powered by AI. Built accessibility-first.
           </p>
         </div>
-        <div className="flex gap-6 text-sm text-indigo-200">
+        <div className="relative z-10 flex gap-6 text-sm text-[var(--color-text-muted)]">
           <div>
-            <p className="text-2xl font-bold text-white">10+</p>
+            <p className="text-2xl font-bold text-[var(--color-primary-strong)]">10+</p>
             <p>Accessibility features</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white">4</p>
+            <p className="text-2xl font-bold text-[var(--color-primary-strong)]">4</p>
             <p>Quiz types</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white">SM-2</p>
+            <p className="text-2xl font-bold text-[var(--color-primary-strong)]">SM-2</p>
             <p>Spaced repetition</p>
           </div>
         </div>
@@ -78,35 +79,35 @@ function LoginPage() {
         <div className="w-full max-w-sm">
           <Link
             to="/"
-            className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors mb-8"
+            className="inline-flex items-center gap-1 text-sm text-[var(--color-text-subtle)] hover:text-white transition-colors mb-8"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back
           </Link>
 
-          <div className="flex items-center gap-2 mb-2 lg:hidden">
-            <GraduationCap className="w-6 h-6 text-indigo-400" />
-            <span className="text-lg font-bold">HackStack</span>
+          <div className="flex items-center gap-2 mb-2 lg:hidden text-white">
+            <ConvergeLogo className="w-6 h-6" />
+            <span className="text-lg font-bold tracking-tight">Converge</span>
           </div>
 
-          <h1 className="text-2xl font-bold mb-1">
+          <h1 className="text-2xl font-bold mb-1 tracking-tight">
             {isSignup ? "Create account" : "Welcome back"}
           </h1>
-          <p className="text-zinc-500 text-sm mb-8">
+          <p className="text-[var(--color-text-muted)] text-sm mb-8">
             {isSignup
               ? "Sign up to start studying smarter"
               : "Sign in to your account"}
           </p>
 
           {error && (
-            <div className="bg-red-900/30 border border-red-800 rounded-xl p-3 mb-5 text-red-300 text-sm">
+            <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-3 mb-5 text-red-300 text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
                 Email
               </label>
               <input
@@ -115,11 +116,11 @@ function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
                 Password
               </label>
               <input
@@ -129,13 +130,13 @@ function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
               />
             </div>
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting
                 ? "..."
@@ -145,14 +146,14 @@ function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-zinc-500 text-sm">
+          <p className="mt-6 text-center text-[var(--color-text-muted)] text-sm">
             {isSignup ? "Already have an account?" : "No account?"}{" "}
             <button
               onClick={() => {
                 setIsSignup(!isSignup);
                 setError("");
               }}
-              className="text-indigo-400 hover:text-indigo-300 font-medium"
+              className="text-[var(--color-primary-strong)] hover:text-[var(--color-primary-hover)] font-medium"
             >
               {isSignup ? "Sign in" : "Sign up"}
             </button>

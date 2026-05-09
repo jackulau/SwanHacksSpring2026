@@ -4,6 +4,9 @@ import type { FormEvent, KeyboardEvent } from "react";
 import { Plus, BookOpen, Trash2, ChevronRight, Pencil, Check, X } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
+import { PageHeader } from "../components/layout/PageHeader";
+import { EmptyState } from "../components/layout/EmptyState";
+import { Skeleton } from "../components/layout/Skeleton";
 import { pb } from "../lib/pocketbase";
 import type { Course } from "../lib/types";
 
@@ -30,6 +33,7 @@ function CoursesPage() {
 }
 
 const COLORS: readonly string[] = [
+  '#5fbf78',
   '#6366f1',
   '#ec4899',
   '#14b8a6',
@@ -112,166 +116,179 @@ function CourseList({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Courses</h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            {courses.length} {courses.length === 1 ? 'course' : 'courses'}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2.5 rounded-xl transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Course
-        </button>
-      </div>
+    <>
+      <PageHeader
+        title="Courses"
+        subtitle="Organize your lectures and notes"
+        actions={
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold px-5 py-2 rounded-full transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add course
+          </button>
+        }
+      />
 
-      {showForm && (
-        <form onSubmit={handleCreate} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Course name</label>
-            <input
-              type="text"
-              placeholder="e.g. Biology 201"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              autoFocus
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-6xl mx-auto space-y-6">
+        <p className="text-sm text-[var(--color-text-muted)]">
+          {courses.length} {courses.length === 1 ? 'course' : 'courses'}
+        </p>
+
+        {showForm && (
+          <form
+            onSubmit={handleCreate}
+            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5 space-y-4"
+          >
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">Course code</label>
+              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">Course name</label>
               <input
                 type="text"
-                placeholder="e.g. BIO 201"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                placeholder="e.g. Biology 201"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
+                autoFocus
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">Semester</label>
-              <input
-                type="text"
-                placeholder="e.g. Fall 2026"
-                value={semester}
-                onChange={(e) => setSemester(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">Course code</label>
+                <input
+                  type="text"
+                  placeholder="e.g. BIO 201"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">Semester</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Fall 2026"
+                  value={semester}
+                  onChange={(e) => setSemester(e.target.value)}
+                  className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
+                />
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2 justify-end pt-1">
-            <button type="button" onClick={() => setShowForm(false)} className="text-zinc-400 hover:text-zinc-200 px-4 py-2 text-sm">
-              Cancel
-            </button>
-            <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2 rounded-xl text-sm transition-colors">
-              Create Course
-            </button>
-          </div>
-        </form>
-      )}
-
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-zinc-900/50 border border-zinc-800 rounded-2xl animate-pulse" />
-          ))}
-        </div>
-      ) : courses.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="w-8 h-8 text-zinc-600" />
-          </div>
-          <p className="text-zinc-400 font-medium">No courses yet</p>
-          <p className="text-zinc-600 text-sm mt-1">Add a course to organize your lectures</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {courses.map((course) =>
-            editingId === course.id ? (
-              <EditCourseForm
-                key={course.id}
-                course={course}
-                onCancel={() => setEditingId(null)}
-                onSave={(patch) => handleSaveEdit(course.id, patch)}
-              />
-            ) : confirmDeleteId === course.id ? (
-              <ConfirmDeleteRow
-                key={course.id}
-                course={course}
-                onCancel={() => setConfirmDeleteId(null)}
-                onConfirm={() => handleConfirmDelete(course.id)}
-              />
-            ) : (
-              <div
-                key={course.id}
-                className="group bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition-colors"
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="bg-black border border-[var(--color-border)] text-white hover:border-[var(--color-border-strong)] rounded-full px-4 py-2 text-sm transition-colors"
               >
-                <div className="flex items-start justify-between">
-                  <Link to="/courses/$courseId" params={{ courseId: course.id }} className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div
-                        className="w-4 h-4 rounded-full shrink-0 ring-2 ring-offset-2 ring-offset-zinc-900"
-                        style={{ backgroundColor: course.color }}
-                      />
-                      <h3 className="font-semibold truncate">{course.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-2 ml-7">
-                      {course.code && (
-                        <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-md">
-                          {course.code}
-                        </span>
-                      )}
-                      {course.semester && (
-                        <span className="text-xs text-zinc-500">
-                          {course.semester}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setConfirmDeleteId(null);
-                        setEditingId(course.id);
-                      }}
-                      className="text-zinc-700 hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-zinc-800"
-                      aria-label="Edit course"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingId(null);
-                        setConfirmDeleteId(course.id);
-                      }}
-                      className="text-zinc-700 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-zinc-800"
-                      aria-label="Delete course"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <Link
-                      to="/courses/$courseId"
-                      params={{ courseId: course.id }}
-                      className="text-zinc-700 hover:text-zinc-300 transition-colors p-1.5 rounded-lg hover:bg-zinc-800"
-                      aria-label="Open course"
-                    >
-                      <ChevronRight className="w-4 h-4" />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold rounded-full px-5 py-2 text-sm transition-colors"
+              >
+                Create course
+              </button>
+            </div>
+          </form>
+        )}
+
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-28" />
+            ))}
+          </div>
+        ) : courses.length === 0 ? (
+          <EmptyState
+            icon={BookOpen}
+            title="No courses yet"
+            description="Add a course to organize your lectures"
+            size="lg"
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {courses.map((course) =>
+              editingId === course.id ? (
+                <EditCourseForm
+                  key={course.id}
+                  course={course}
+                  onCancel={() => setEditingId(null)}
+                  onSave={(patch) => handleSaveEdit(course.id, patch)}
+                />
+              ) : confirmDeleteId === course.id ? (
+                <ConfirmDeleteRow
+                  key={course.id}
+                  course={course}
+                  onCancel={() => setConfirmDeleteId(null)}
+                  onConfirm={() => handleConfirmDelete(course.id)}
+                />
+              ) : (
+                <div
+                  key={course.id}
+                  className="group rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow p-5 hover:border-[var(--color-border-strong)] transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <Link to="/courses/$courseId" params={{ courseId: course.id }} className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div
+                          className="w-4 h-4 rounded-full shrink-0 ring-2 ring-offset-2"
+                          style={{ backgroundColor: course.color, ['--tw-ring-offset-color' as string]: 'var(--color-surface)' }}
+                        />
+                        <h3 className="font-semibold text-white truncate">{course.name}</h3>
+                      </div>
+                      <div className="flex items-center gap-2 ml-7">
+                        {course.code && (
+                          <span className="text-xs bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)] px-2 py-0.5 rounded-md">
+                            {course.code}
+                          </span>
+                        )}
+                        {course.semester && (
+                          <span className="text-xs text-[var(--color-text-muted)]">
+                            {course.semester}
+                          </span>
+                        )}
+                      </div>
                     </Link>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmDeleteId(null);
+                          setEditingId(course.id);
+                        }}
+                        className="text-[var(--color-text-subtle)] hover:text-[var(--color-primary-strong)] transition-colors p-1.5 rounded-lg hover:bg-white/5"
+                        aria-label="Edit course"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingId(null);
+                          setConfirmDeleteId(course.id);
+                        }}
+                        className="text-[var(--color-text-subtle)] hover:text-[var(--color-record)] transition-colors p-1.5 rounded-lg hover:bg-white/5"
+                        aria-label="Delete course"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <Link
+                        to="/courses/$courseId"
+                        params={{ courseId: course.id }}
+                        className="text-[var(--color-text-subtle)] hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
+                        aria-label="Open course"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          )}
-        </div>
-      )}
-    </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -315,11 +332,11 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
     <form
       onSubmit={handleSubmit}
       onKeyDown={handleKeyDown}
-      className="bg-zinc-900/50 border border-indigo-500/40 rounded-2xl p-5 space-y-4"
+      className="rounded-2xl border border-[var(--color-primary)]/40 bg-[var(--color-surface)] soft-shadow p-5 space-y-4"
       aria-label={`Edit ${course.name}`}
     >
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5" htmlFor={`edit-name-${course.id}`}>
+        <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5" htmlFor={`edit-name-${course.id}`}>
           Course name
         </label>
         <input
@@ -327,13 +344,13 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+          className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
           autoFocus
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5" htmlFor={`edit-code-${course.id}`}>
+          <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5" htmlFor={`edit-code-${course.id}`}>
             Course code
           </label>
           <input
@@ -341,11 +358,11 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5" htmlFor={`edit-sem-${course.id}`}>
+          <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5" htmlFor={`edit-sem-${course.id}`}>
             Semester
           </label>
           <input
@@ -353,13 +370,13 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
             type="text"
             value={semester}
             onChange={(e) => setSemester(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] text-white placeholder:text-[var(--color-text-muted)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 transition-colors"
           />
         </div>
       </div>
       <div>
-        <span className="block text-xs font-medium text-zinc-400 mb-1.5">Color</span>
-        <div className="flex items-center gap-2" role="group" aria-label="Course color">
+        <span className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">Color</span>
+        <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Course color">
           {COLORS.map((swatch) => {
             const selected = swatch === color;
             return (
@@ -369,12 +386,12 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
                 onClick={() => setColor(swatch)}
                 aria-label={`Color: ${swatch}`}
                 aria-pressed={selected}
-                className={`w-7 h-7 rounded-full transition-transform focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-zinc-900 ${
+                className={`w-7 h-7 rounded-full transition-transform focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 ${
                   selected
-                    ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900 scale-110'
+                    ? 'ring-2 ring-white ring-offset-2 scale-110'
                     : 'hover:scale-105'
                 }`}
-                style={{ backgroundColor: swatch }}
+                style={{ backgroundColor: swatch, ['--tw-ring-offset-color' as string]: 'var(--color-surface)' }}
               />
             );
           })}
@@ -384,14 +401,14 @@ function EditCourseForm({ course, onCancel, onSave }: EditCourseFormProps) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 px-4 py-2 text-sm rounded-xl"
+          className="flex items-center gap-1.5 bg-black border border-[var(--color-border)] text-white hover:border-[var(--color-border-strong)] rounded-full px-4 py-2 text-sm transition-colors"
         >
           <X className="w-4 h-4" />
           Cancel
         </button>
         <button
           type="submit"
-          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2 rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold rounded-full px-5 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!name.trim()}
         >
           <Check className="w-4 h-4" />
@@ -421,11 +438,11 @@ function ConfirmDeleteRow({ course, onCancel, onConfirm }: ConfirmDeleteRowProps
       role="alertdialog"
       aria-label={`Delete ${course.name}?`}
       onKeyDown={handleKeyDown}
-      className="bg-zinc-900/50 border border-red-500/40 rounded-2xl p-5 flex items-center justify-between gap-4"
+      className="rounded-2xl border border-[var(--color-record)]/40 bg-[var(--color-surface)] soft-shadow p-5 flex items-center justify-between gap-4"
     >
       <div className="min-w-0">
-        <p className="font-medium text-zinc-100 truncate">Delete this course?</p>
-        <p className="text-xs text-zinc-500 mt-1 truncate">
+        <p className="font-medium text-white truncate">Delete this course?</p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-1 truncate">
           {course.name} will be removed. Lectures will be orphaned.
         </p>
       </div>
@@ -433,7 +450,7 @@ function ConfirmDeleteRow({ course, onCancel, onConfirm }: ConfirmDeleteRowProps
         <button
           type="button"
           onClick={onCancel}
-          className="text-zinc-400 hover:text-zinc-200 px-3 py-1.5 text-sm rounded-lg"
+          className="bg-black border border-[var(--color-border)] text-white hover:border-[var(--color-border-strong)] rounded-full px-3 py-1.5 text-sm transition-colors"
         >
           Cancel
         </button>
@@ -441,7 +458,7 @@ function ConfirmDeleteRow({ course, onCancel, onConfirm }: ConfirmDeleteRowProps
           type="button"
           onClick={onConfirm}
           autoFocus
-          className="bg-red-600 hover:bg-red-500 text-white font-medium px-4 py-1.5 rounded-lg text-sm transition-colors"
+          className="bg-[var(--color-record)] hover:opacity-90 text-black font-semibold rounded-full px-4 py-1.5 text-sm transition-colors"
         >
           Yes, delete
         </button>

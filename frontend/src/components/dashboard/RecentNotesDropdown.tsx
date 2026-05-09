@@ -17,7 +17,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, FileText } from "lucide-react";
+import { ChevronDown, NotebookPen, FileText } from "lucide-react";
 import type { Lecture } from "../../lib/types";
 import { Skeleton } from "../layout/Skeleton";
 import { EmptyState } from "../layout/EmptyState";
@@ -58,12 +58,13 @@ export function RecentNotesDropdown({
   if (variant === "sidebar") {
     return (
       <div>
-        <div className="flex items-center">
+        <div className="flex items-center mx-1">
+          {/* Label routes to /courses (notes hub). The chevron alone toggles the dropdown. */}
           <Link
             to="/courses"
-            className="flex-1 flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-800/60 rounded-lg transition-colors"
+            className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-sm text-[var(--color-text-muted)] hover:text-white rounded-l-lg transition-colors"
           >
-            <FileText className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <NotebookPen className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />
             <span>Notes</span>
           </Link>
           <button
@@ -71,39 +72,43 @@ export function RecentNotesDropdown({
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
             aria-label={open ? "Collapse recent notes" : "Expand recent notes"}
-            className="p-1.5 mr-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800/60 transition-colors"
+            className="p-2 rounded-r-lg text-[var(--color-text-muted)] hover:text-white transition-colors"
           >
-            <ChevronRight
-              className="w-4 h-4 caret-rotate"
-              data-open={open}
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
               aria-hidden="true"
             />
           </button>
         </div>
 
         {open && (
-          <div ref={listRef} className="mt-1 ml-4 pl-3 border-l border-zinc-800/80">
+          <div ref={listRef} className="mt-1 ml-4 pl-2">
             {loading ? (
-              <div className="space-y-1.5 py-1.5">
+              <div className="space-y-1.5 py-1.5 pr-2">
                 <Skeleton className="h-7" />
                 <Skeleton className="h-7" />
                 <Skeleton className="h-7" />
               </div>
             ) : items.length === 0 ? (
-              <p className="px-2 py-2 text-xs text-zinc-500 italic">
-                No notes yet
+              <p className="px-3 py-2 text-xs text-[var(--color-text-subtle)] italic">
+                No recent notes — open a lecture to start one.
               </p>
             ) : (
-              <ul className="py-1 space-y-0.5">
+              <ul className="py-0.5 space-y-0.5">
                 {items.map((lec) => (
                   <li key={lec.id}>
                     <Link
                       to="/lectures/$lectureId"
                       params={{ lectureId: lec.id }}
-                      className="block px-2 py-1.5 text-xs text-zinc-400 hover:text-white truncate rounded-md hover:bg-zinc-800/60 transition-colors"
+                      className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-[var(--color-text-muted)] hover:text-white truncate rounded-md hover:bg-white/[0.04] transition-colors"
                       title={lec.title}
                     >
-                      {lec.title || "Untitled"}
+                      <span className="truncate">{lec.title || "Untitled"}</span>
+                      {lec.duration_secs > 0 && (
+                        <span className="shrink-0 text-[10px] tabular-nums text-[var(--color-text-subtle)] bg-white/5 px-1.5 py-0.5 rounded">
+                          {Math.round(lec.duration_secs / 60)}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 ))}
@@ -115,27 +120,26 @@ export function RecentNotesDropdown({
     );
   }
 
-  // ── Card variant (dashboard) ────────────────────────────────────────
+  // ── Card variant (dashboard "Recents" panel) ────────────────────────
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 soft-shadow">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] soft-shadow flex flex-col min-h-[260px]">
       {!hideHeader && (
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <Link
             to="/courses"
-            className="font-semibold text-zinc-100 hover:text-indigo-300 transition-colors"
+            className="font-semibold text-white text-lg hover:text-[var(--color-primary-strong)] transition-colors"
           >
-            Recent Notes
+            Recents
           </Link>
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
             aria-label={open ? "Collapse" : "Expand"}
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800/60 transition-colors"
+            className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-white transition-colors"
           >
-            <ChevronRight
-              className="w-4 h-4 caret-rotate"
-              data-open={open}
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
               aria-hidden="true"
             />
           </button>
@@ -143,65 +147,55 @@ export function RecentNotesDropdown({
       )}
 
       {open && (
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-3 flex-1">
           {loading ? (
-            <div className="space-y-2 px-2 py-2">
-              <Skeleton className="h-12" />
-              <Skeleton className="h-12" />
-              <Skeleton className="h-12" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-2 py-2">
+              <Skeleton className="h-40" />
+              <Skeleton className="h-40" />
             </div>
           ) : items.length === 0 ? (
             <EmptyState
-              size="sm"
+              size="md"
               icon={FileText}
-              title="No notes yet"
-              description="Record or upload a lecture to generate notes"
+              title="No recent notes"
+              description="Record or upload a lecture and your most-recent notes will appear here."
             />
           ) : (
-            <ul>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-2 py-2">
               {items.map((lec) => (
-                <li key={lec.id}>
-                  <Link
-                    to="/lectures/$lectureId"
-                    params={{ lectureId: lec.id }}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-800/50 transition-colors"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800 shrink-0">
-                      <FileText className="w-4 h-4 text-zinc-400" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-zinc-100 truncate">
-                        {lec.title || "Untitled"}
-                      </p>
-                      <p className="text-[11px] text-zinc-500">
-                        {formatRecency(lec.updated || lec.recorded_at)}
-                      </p>
-                    </div>
-                    <StatusPill status={lec.status} />
-                  </Link>
-                </li>
+                <Link
+                  key={lec.id}
+                  to="/lectures/$lectureId"
+                  params={{ lectureId: lec.id }}
+                  className="group rounded-xl border border-[var(--color-border)] bg-black overflow-hidden hover:border-[var(--color-primary)]/60 transition-colors"
+                >
+                  <div className="aspect-video bg-gradient-to-br from-[var(--color-surface-raised)] to-black flex items-center justify-center">
+                    <FileText className="w-7 h-7 text-[var(--color-text-subtle)] group-hover:text-[var(--color-primary)] transition-colors" />
+                  </div>
+                  <div className="p-3">
+                    <p className="text-[12px] font-semibold text-[var(--color-primary-strong)] uppercase tracking-wider truncate">
+                      {lec.title || "Untitled"}
+                    </p>
+                    <p className="text-[11px] text-[var(--color-text-muted)] mt-1">
+                      {formatRecency(lec.updated || lec.recorded_at)}
+                      {lec.duration_secs > 0 && (
+                        <>
+                          {" · "}
+                          {Math.round(lec.duration_secs / 60)} min
+                        </>
+                      )}
+                    </p>
+                    <span className="mt-2 inline-flex items-center justify-center w-full text-xs font-semibold text-[var(--color-primary-strong)] bg-black border border-[var(--color-border)] rounded-full px-3 py-1.5">
+                      Edit Notes
+                    </span>
+                  </div>
+                </Link>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       )}
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: Lecture["status"] }) {
-  const tone =
-    status === "ready"
-      ? "bg-emerald-900/40 text-emerald-300"
-      : status === "error"
-        ? "bg-red-900/40 text-red-300"
-        : "bg-amber-900/40 text-amber-300";
-  return (
-    <span
-      className={`shrink-0 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full ${tone}`}
-    >
-      {status}
-    </span>
   );
 }
 

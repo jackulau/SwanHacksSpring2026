@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface FlashcardCardProps {
@@ -26,20 +25,20 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
         transition={{ duration: 0.4, ease: 'easeInOut' }}
       >
         <div
-          className="absolute inset-0 bg-zinc-800 border border-zinc-700 rounded-2xl p-8 flex flex-col items-center justify-center backface-hidden"
+          className="absolute inset-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-8 flex flex-col items-center justify-center backface-hidden soft-shadow"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <p className="text-sm text-zinc-500 mb-4 uppercase tracking-wider">Question</p>
-          <p className="text-xl text-zinc-100 text-center leading-relaxed">{front}</p>
-          <p className="text-sm text-zinc-600 mt-6">Click or press Space to flip</p>
+          <p className="text-sm text-[var(--color-text-subtle)] mb-4 uppercase tracking-wider">Question</p>
+          <p className="text-xl text-white text-center leading-relaxed">{front}</p>
+          <p className="text-sm text-[var(--color-text-subtle)] mt-6">Click or press Space to flip</p>
         </div>
 
         <div
-          className="absolute inset-0 bg-zinc-800 border border-indigo-600/50 rounded-2xl p-8 flex flex-col items-center justify-center"
+          className="absolute inset-0 bg-[var(--color-surface)] border border-[var(--color-primary)]/50 rounded-2xl p-8 flex flex-col items-center justify-center soft-shadow"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          <p className="text-sm text-indigo-400 mb-4 uppercase tracking-wider">Answer</p>
-          <p className="text-xl text-zinc-100 text-center leading-relaxed">{back}</p>
+          <p className="text-sm text-[var(--color-primary-strong)] mb-4 uppercase tracking-wider">Answer</p>
+          <p className="text-xl text-white text-center leading-relaxed">{back}</p>
         </div>
       </motion.div>
     </div>

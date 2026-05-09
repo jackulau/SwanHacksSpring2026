@@ -86,7 +86,7 @@ async function logout() {
 
 async function syncCanvasData(payload) {
   const auth = await getAuth();
-  if (!auth) throw new Error("Not logged in to HackStack");
+  if (!auth) throw new Error("Not logged in to Converge");
 
   const { userId } = auth;
 

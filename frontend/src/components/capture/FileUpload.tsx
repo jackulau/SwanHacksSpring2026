@@ -59,19 +59,19 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors ${
           dragOver
-            ? 'border-indigo-500 bg-indigo-500/10'
-            : 'border-zinc-700 hover:border-zinc-500'
+            ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)]/30'
+            : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
         }`}
         role="button"
         aria-label="Upload audio file"
       >
-        <Upload className="w-12 h-12 mx-auto mb-4 text-zinc-500" />
-        <p className="text-zinc-300 font-medium">
+        <Upload className="w-12 h-12 mx-auto mb-4 text-[var(--color-text-muted)]" />
+        <p className="text-white font-medium">
           Drop audio file here or click to browse
         </p>
-        <p className="text-zinc-500 text-sm mt-2">
+        <p className="text-[var(--color-text-muted)] text-sm mt-2">
           mp3, mp4, m4a, wav, webm, ogg, flac — max {MAX_SIZE_MB}MB
         </p>
         <input
@@ -87,18 +87,18 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
       </div>
 
       {error && (
-        <div className="bg-red-900/50 border border-red-700 rounded-lg p-3 text-red-200 text-sm">
+        <div className="bg-[var(--color-record)]/10 border border-[var(--color-record)]/40 rounded-xl p-3 text-[var(--color-record)] text-sm">
           {error}
         </div>
       )}
 
       {selectedFile && (
-        <div className="flex items-center justify-between bg-zinc-800 rounded-lg p-4">
+        <div className="flex items-center justify-between bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-2xl p-4">
           <div className="flex items-center gap-3">
-            <FileAudio className="w-5 h-5 text-indigo-400" />
+            <FileAudio className="w-5 h-5 text-[var(--color-primary-strong)]" />
             <div>
-              <p className="text-zinc-100 font-medium">{selectedFile.name}</p>
-              <p className="text-zinc-500 text-sm">
+              <p className="text-white font-medium">{selectedFile.name}</p>
+              <p className="text-[var(--color-text-muted)] text-sm">
                 {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
               </p>
             </div>
@@ -111,15 +111,15 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
                     e.stopPropagation();
                     setSelectedFile(null);
                   }}
-                  className="text-zinc-500 hover:text-zinc-300"
+                  className="text-[var(--color-text-muted)] hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => onUpload(selectedFile)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+                  className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black font-semibold px-5 py-2 rounded-full transition-colors"
                 >
-                  Upload & Process
+                  Upload & process
                 </button>
               </>
             )}
@@ -129,13 +129,13 @@ export function FileUpload({ onUpload, isUploading, progress }: FileUploadProps)
 
       {isUploading && progress !== undefined && (
         <div className="space-y-2">
-          <div className="flex justify-between text-sm text-zinc-400">
+          <div className="flex justify-between text-sm text-[var(--color-text-muted)]">
             <span>Uploading...</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <div className="w-full h-2 bg-zinc-700 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-[var(--color-input)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-indigo-500 transition-all duration-300"
+              className="h-full bg-[var(--color-primary)] transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
