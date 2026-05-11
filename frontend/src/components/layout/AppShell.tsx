@@ -29,7 +29,6 @@ import { pb } from "../../lib/pocketbase";
 import type { Lecture, UserBadge } from "../../lib/types";
 import {
   Home,
-  Mic,
   Settings,
   Accessibility,
   ListTodo,
@@ -88,6 +87,7 @@ export function AppShell({ children }: AppShellProps) {
   const [a11yOpen, setA11yOpen] = useState<boolean>(false);
   const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
   const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
+  const userMenuInSidebar = location.pathname !== "/";
 
   // Recent lectures for the sidebar Notes dropdown.
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
@@ -98,6 +98,7 @@ export function AppShell({ children }: AppShellProps) {
   useEffect(() => {
     const main = document.getElementById("main");
     if (main) main.scrollTop = 0;
+    setUserMenuOpen(false);
   }, [location.pathname]);
 
   useReadingAidsShortcuts();
@@ -283,11 +284,19 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Floating user menu (desktop) — sits on top of the page header band */}
-        <div className="hidden lg:block absolute top-10 right-12 z-30">
+        <div
+          className={`fixed z-30 hidden w-[18rem] transition-[left,top,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:block ${
+            userMenuInSidebar
+              ? "left-7 top-[calc(100vh-5.75rem)] translate-x-0"
+              : "left-[calc(100vw-3rem)] top-10 -translate-x-full"
+          }`}
+        >
           <UserMenu
             email={user?.email}
             displayName={user?.display_name}
             badges={user?.badges}
+            menuPlacement={userMenuInSidebar ? "up" : "down"}
+            constrained
             open={userMenuOpen}
             onToggle={() => setUserMenuOpen((o) => !o)}
             onClose={() => setUserMenuOpen(false)}
@@ -474,6 +483,8 @@ function UserMenu({
   email,
   displayName,
   badges = [],
+  menuPlacement = "down",
+  constrained = false,
   open,
   onToggle,
   onClose,
@@ -482,6 +493,8 @@ function UserMenu({
   email: string | undefined;
   displayName?: string;
   badges?: UserBadge[];
+  menuPlacement?: "up" | "down";
+  constrained?: boolean;
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
@@ -490,6 +503,8 @@ function UserMenu({
   const friendly =
     (displayName && displayName.trim()) || email?.split("@")[0] || "User";
   const visibleBadges = normalizeBadges(badges);
+  const menuPositionClass =
+    menuPlacement === "up" ? "bottom-14 right-0" : "right-0 top-14";
 
   useEffect(() => {
     if (!open) return;
@@ -505,11 +520,17 @@ function UserMenu({
       <button
         type="button"
         onClick={onToggle}
-        className="flex min-h-12 items-center gap-2 rounded-full border border-white bg-white px-5 py-2 text-black shadow-sm transition-colors hover:border-black/10 focus:outline-none focus:ring-2 focus:ring-[#438937]"
+        className={`flex min-h-12 items-center gap-2 rounded-full border border-white bg-white px-5 py-2 text-black shadow-sm transition-colors hover:border-black/10 focus:outline-none focus:ring-2 focus:ring-[#438937] ${
+          constrained ? "w-full" : ""
+        }`}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="max-w-[140px] truncate text-lg font-bold leading-none">
+        <span
+          className={`truncate text-lg font-bold leading-none ${
+            constrained ? "min-w-0 flex-1" : "max-w-[140px]"
+          }`}
+        >
           {friendly}
         </span>
         {visibleBadges.map((badge) => (
@@ -537,29 +558,8 @@ function UserMenu({
           />
           <div
             role="menu"
-            className="absolute right-0 top-14 w-56 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl py-1 z-50"
+            className={`absolute ${menuPositionClass} z-50 w-44 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] py-1 shadow-xl`}
           >
-            <div className="px-3 py-2 text-xs text-[var(--color-text-subtle)] border-b border-[var(--color-border)] truncate">
-              {email}
-            </div>
-            <Link
-              to="/settings"
-              role="menuitem"
-              onClick={onClose}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
-            >
-              <Settings className="w-4 h-4" aria-hidden="true" />
-              Settings
-            </Link>
-            <Link
-              to="/capture"
-              role="menuitem"
-              onClick={onClose}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
-            >
-              <Mic className="w-4 h-4" aria-hidden="true" />
-              Start recording
-            </Link>
             <button
               type="button"
               role="menuitem"

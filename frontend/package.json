@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible": "^5.2.8",
+    "@fontsource/host-grotesk": "^5.2.8",
+    "@fontsource/opendyslexic": "^5.2.5",
     "@huggingface/transformers": "^4.2.0",
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/drawing_utils": "^0.3.1675466124",

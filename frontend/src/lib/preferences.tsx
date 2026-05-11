@@ -27,7 +27,7 @@ export interface Preferences {
    * sepia were removed when the app went dark-only.
    */
   theme: "dark" | "high-contrast";
-  font: "system" | "opendyslexic" | "atkinson";
+  font: "host" | "opendyslexic" | "atkinson";
   fontSize: number;
   lineSpacing: number;
   reducedMotion: boolean;
@@ -47,7 +47,7 @@ export interface Preferences {
 
 const defaults: Preferences = {
   theme: "dark",
-  font: "system",
+  font: "host",
   fontSize: 16,
   lineSpacing: 1.5,
   reducedMotion: false,
@@ -80,18 +80,37 @@ function loadFromStorage(): Preferences {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<Preferences> & {
         theme?: string;
+        font?: string;
       };
       // Migrate users who previously had `light` or `sepia` selected — the
       // app is dark-only now, so coerce any legacy theme back to `dark`
       // (or to `high-contrast` if they had that, which is still supported).
       const validTheme: Preferences["theme"] =
         parsed.theme === "high-contrast" ? "high-contrast" : "dark";
-      return { ...defaults, ...parsed, theme: validTheme };
+      const validFont = normalizeFontPreference(parsed.font);
+      return { ...defaults, ...parsed, theme: validTheme, font: validFont };
     }
   } catch {
     // ignore
   }
   return { ...defaults };
+}
+
+function normalizeFontPreference(font: string | undefined): Preferences["font"] {
+  if (font === "atkinson" || font === "opendyslexic") return font;
+  return "host";
+}
+
+function fontFamilyForPreference(font: Preferences["font"]): string {
+  switch (font) {
+    case "atkinson":
+      return '"Atkinson Hyperlegible", system-ui, sans-serif';
+    case "opendyslexic":
+      return '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif';
+    case "host":
+    default:
+      return '"Host Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif';
+  }
 }
 
 function applyToDOM(prefs: Preferences) {
@@ -105,13 +124,11 @@ function applyToDOM(prefs: Preferences) {
     root.classList.add("theme-high-contrast");
   }
 
-  // Font class
-  root.classList.remove("font-atkinson", "font-opendyslexic");
-  if (prefs.font === "atkinson") {
-    root.classList.add("font-atkinson");
-  } else if (prefs.font === "opendyslexic") {
-    root.classList.add("font-opendyslexic");
-  }
+  // Font class + variable. The body and form controls read the variable, so
+  // settings and accessibility toggles affect the whole app immediately.
+  root.classList.remove("font-host", "font-atkinson", "font-opendyslexic");
+  root.classList.add(`font-${prefs.font}`);
+  root.style.setProperty("--app-font-family", fontFamilyForPreference(prefs.font));
 
   // CSS custom properties
   root.style.setProperty("--user-font-size", `${prefs.fontSize}px`);

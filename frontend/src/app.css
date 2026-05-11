@@ -1,6 +1,12 @@
 @import "tailwindcss";
+@import "@fontsource/host-grotesk/400.css";
+@import "@fontsource/host-grotesk/500.css";
+@import "@fontsource/host-grotesk/600.css";
+@import "@fontsource/host-grotesk/700.css";
 @import "@fontsource/atkinson-hyperlegible/400.css";
 @import "@fontsource/atkinson-hyperlegible/700.css";
+@import "@fontsource/opendyslexic/400.css";
+@import "@fontsource/opendyslexic/700.css";
 
 /* ── Design tokens (Converge light) ───────────────────────────────────────── */
 
@@ -51,13 +57,19 @@ body,
 }
 
 body {
-  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI",
-    sans-serif;
+  font-family: var(--app-font-family);
   background-image: none;
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: var(--app-font-family);
+}
+
 .font-brand {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--app-font-family);
 }
 
 /* ── Global focus-visible ──────────────────────────────────────────────────
@@ -84,6 +96,11 @@ body {
 
 .font-opendyslexic {
   font-family: "OpenDyslexic", "Comic Sans MS", cursive, sans-serif;
+}
+
+.font-host {
+  font-family: "Host Grotesk", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
 }
 
 /* ── High-contrast accessibility theme (dark only) ─────────────────────── */
@@ -438,6 +455,8 @@ body {
 :root {
   --mobile-nav-height: 0px;
   --audio-player-height: 0px;
+  --app-font-family: "Host Grotesk", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
 }
 
 .has-mobile-nav-padding {

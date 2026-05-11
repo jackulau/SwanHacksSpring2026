@@ -420,7 +420,7 @@ function PreferencesSection({ userId }: { userId: string }) {
           value={prefs.font}
           onChange={(v) => update({ font: v })}
           options={[
-            { value: "system", label: "System default" },
+            { value: "host", label: "Host Grotesk" },
             { value: "atkinson", label: "Atkinson Hyperlegible" },
             { value: "opendyslexic", label: "OpenDyslexic" },
           ]}
@@ -613,7 +613,7 @@ export function AccessibilitySection() {
           label="Dyslexia-friendly font"
           checked={prefs.font === "opendyslexic"}
           onChange={(v) => {
-            update({ font: v ? "opendyslexic" : "system" });
+            update({ font: v ? "opendyslexic" : "host" });
             announce(v ? "Dyslexia font on" : "Dyslexia font off");
           }}
         />

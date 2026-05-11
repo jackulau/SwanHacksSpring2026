@@ -84,7 +84,7 @@ export function A11yPanel({ isOpen, onClose }: A11yPanelProps) {
             label="Dyslexia-friendly font"
             checked={prefs.font === 'opendyslexic'}
             onChange={(v) => {
-              update({ font: v ? 'opendyslexic' : 'system' });
+              update({ font: v ? 'opendyslexic' : 'host' });
               announce(v ? 'Dyslexia font on' : 'Dyslexia font off');
             }}
           />
