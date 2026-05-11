@@ -39,6 +39,7 @@ export function RecentNotesDropdown({
   limit = 5,
 }: RecentNotesDropdownProps) {
   const [open, setOpen] = useState<boolean>(defaultOpen);
+  const [renderSidebarList, setRenderSidebarList] = useState<boolean>(defaultOpen);
   const listRef = useRef<HTMLDivElement | null>(null);
   const { pathname } = useLocation();
   const activeLectureId =
@@ -55,6 +56,16 @@ export function RecentNotesDropdown({
     if (activeLectureId && variant === "sidebar") setOpen(true);
   }, [activeLectureId, variant]);
 
+  useEffect(() => {
+    if (variant !== "sidebar") return;
+    if (open) {
+      setRenderSidebarList(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setRenderSidebarList(false), 260);
+    return () => window.clearTimeout(timer);
+  }, [open, variant]);
+
   const items = lectures.slice(0, limit);
 
   // ── Sidebar variant ─────────────────────────────────────────────────
@@ -64,7 +75,7 @@ export function RecentNotesDropdown({
         <div className="flex h-16 items-center">
           <Link
             to="/courses"
-            className="flex h-full flex-1 items-center gap-5 pl-7 pr-2 text-[21px] font-normal text-white/90 transition-colors hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80"
+            className="flex h-full flex-1 items-center gap-5 pl-7 pr-2 text-[21px] font-normal text-white/90 transition-[background-color,color,transform] duration-200 ease-[var(--motion-ease)] hover:translate-x-1 hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80"
           >
             <NotebookPen className="h-7 w-7 shrink-0" aria-hidden="true" />
             <span>Notes</span>
@@ -74,56 +85,64 @@ export function RecentNotesDropdown({
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
             aria-label={open ? "Collapse recent notes" : "Expand recent notes"}
-            className="flex h-full w-14 items-center justify-center text-white transition-colors hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-white/80"
+            className="flex h-full w-14 items-center justify-center text-white transition-colors duration-200 ease-[var(--motion-ease)] hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-white/80"
           >
             <ChevronDown
-              className={`h-7 w-7 transition-transform ${open ? "" : "rotate-180"}`}
+              className={`h-7 w-7 transition-transform duration-200 ease-[var(--motion-ease)] ${
+                open ? "" : "rotate-180"
+              }`}
               aria-hidden="true"
             />
           </button>
         </div>
 
-        {open && (
-          <div ref={listRef} className="ml-14 pr-5">
-            {loading ? (
-              <div className="space-y-2 py-2 pr-2">
-                <Skeleton className="h-6" />
-                <Skeleton className="h-6" />
-                <Skeleton className="h-6" />
-              </div>
-            ) : items.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-white/65">
-                No recent notes yet.
-              </p>
-            ) : (
-              <ul className="py-1 space-y-0.5">
-                {items.map((lec) => {
-                  const isActive = lec.id === activeLectureId;
-                  return (
-                    <li key={lec.id}>
-                      <Link
-                        to="/lectures/$lectureId"
-                        params={{ lectureId: lec.id }}
-                        aria-current={isActive ? "page" : undefined}
-                        className={`flex items-center justify-between gap-2 px-3 py-2 text-sm truncate rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-white/80 ${
-                          isActive
-                            ? "bg-white/[0.12] text-white"
-                            : "text-white/60 hover:text-white hover:bg-white/[0.08]"
-                        }`}
-                        title={lec.title}
-                      >
-                        <span className="truncate">{lec.title || "Untitled"}</span>
-                        {lec.duration_secs > 0 && (
-                          <span className="shrink-0 text-[10px] tabular-nums text-[var(--color-text-subtle)]">
-                            {Math.round(lec.duration_secs / 60)}m
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+        {renderSidebarList && (
+          <div
+            className="sidebar-collapse ml-14 pr-5"
+            data-open={open ? "true" : "false"}
+            aria-hidden={!open}
+          >
+            <div ref={listRef}>
+              {loading ? (
+                <div className="space-y-2 py-2 pr-2">
+                  <Skeleton className="h-6" />
+                  <Skeleton className="h-6" />
+                  <Skeleton className="h-6" />
+                </div>
+              ) : items.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-white/65">
+                  No recent notes yet.
+                </p>
+              ) : (
+                <ul className="py-1 space-y-0.5">
+                  {items.map((lec) => {
+                    const isActive = lec.id === activeLectureId;
+                    return (
+                      <li key={lec.id}>
+                        <Link
+                          to="/lectures/$lectureId"
+                          params={{ lectureId: lec.id }}
+                          aria-current={isActive ? "page" : undefined}
+                          className={`flex items-center justify-between gap-2 px-3 py-2 text-sm truncate rounded-md transition-[background-color,color,transform] duration-200 ease-[var(--motion-ease)] focus:outline-none focus:ring-2 focus:ring-white/80 ${
+                            isActive
+                              ? "bg-white/[0.12] text-white"
+                              : "text-white/60 hover:translate-x-1 hover:text-white hover:bg-white/[0.08]"
+                          }`}
+                          title={lec.title}
+                        >
+                          <span className="truncate">{lec.title || "Untitled"}</span>
+                          {lec.duration_secs > 0 && (
+                            <span className="shrink-0 text-[10px] tabular-nums text-[var(--color-text-subtle)]">
+                              {Math.round(lec.duration_secs / 60)}m
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           </div>
         )}
       </div>

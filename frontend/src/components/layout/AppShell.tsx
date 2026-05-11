@@ -285,7 +285,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Floating user menu (desktop) — sits on top of the page header band */}
         <div
-          className={`fixed z-30 hidden w-max max-w-[18rem] transition-[left,top,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:block ${
+          className={`fixed z-30 hidden w-max max-w-[18rem] transition-[left,top,transform] duration-700 ease-[var(--motion-ease-emphasis)] lg:block ${
             userMenuInSidebar
               ? "left-7 top-[calc(100vh-5.75rem)] translate-x-0"
               : "left-[calc(100vw-3rem)] top-10 -translate-x-full"
@@ -425,7 +425,7 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
     <Link
       to={to as string}
       aria-current={active ? "page" : undefined}
-      className={`relative flex h-16 items-center gap-5 pl-7 pr-6 text-[21px] transition-colors group ${
+      className={`group relative flex h-16 items-center gap-5 pl-7 pr-6 text-[21px] transition-[background-color,color,transform] duration-200 ease-[var(--motion-ease)] hover:translate-x-1 ${
         active
           ? "font-bold text-white"
           : "font-normal text-white/90 hover:text-white hover:bg-white/[0.08]"
@@ -504,7 +504,7 @@ function UserMenu({
     (displayName && displayName.trim()) || email?.split("@")[0] || "User";
   const visibleBadges = normalizeBadges(badges);
   const menuPositionClass =
-    menuPlacement === "up" ? "bottom-14 right-0" : "right-0 top-14";
+    menuPlacement === "up" ? "bottom-full right-0 mb-2" : "right-0 top-full mt-2";
 
   useEffect(() => {
     if (!open) return;
@@ -544,7 +544,13 @@ function UserMenu({
             {badge.label}
           </span>
         ))}
-        <ChevronDown className="h-6 w-6 shrink-0 text-black" strokeWidth={4} aria-hidden="true" />
+        <ChevronDown
+          className={`h-6 w-6 shrink-0 text-black transition-transform duration-200 ease-[var(--motion-ease)] ${
+            open ? "rotate-180" : ""
+          }`}
+          strokeWidth={4}
+          aria-hidden="true"
+        />
       </button>
       {open && (
         <>
@@ -556,7 +562,8 @@ function UserMenu({
           />
           <div
             role="menu"
-            className={`absolute ${menuPositionClass} z-50 w-44 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] py-1 shadow-xl`}
+            data-placement={menuPlacement}
+            className={`menu-pop absolute ${menuPositionClass} z-50 w-44 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] py-1 shadow-xl`}
           >
             <button
               type="button"
@@ -565,7 +572,7 @@ function UserMenu({
                 onLogout();
                 onClose();
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] transition-colors"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] transition-colors duration-200 ease-[var(--motion-ease)] hover:bg-[var(--color-primary-soft)]"
             >
               <LogOut className="w-4 h-4" aria-hidden="true" />
               Sign out
