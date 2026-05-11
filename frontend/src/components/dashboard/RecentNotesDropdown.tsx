@@ -132,7 +132,7 @@ export function RecentNotesDropdown({
 
   // ── Card variant: typographic list (no thumbnails, no rounded card) ─
   return (
-    <section aria-label="Recent notes" className="rounded-lg border border-[#e8e8e8] bg-white p-5">
+    <section aria-label="Recent notes" className="flex min-h-[360px] flex-col rounded-lg border border-[#e8e8e8] bg-white p-5">
       {!hideHeader && (
         <div className="mb-5 flex items-baseline justify-between">
           <h2 className="text-4xl font-normal tracking-tight text-black">
@@ -154,14 +154,16 @@ export function RecentNotesDropdown({
           <Skeleton className="h-6" />
         </div>
       ) : items.length === 0 ? (
-        <EmptyState
-          size="sm"
-          icon={FileText}
-          title="No recent notes"
-          description="Record or upload a lecture and your notes appear here."
-        />
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState
+            size="sm"
+            icon={FileText}
+            title="No recent notes"
+            description="Record or upload a lecture and your notes appear here."
+          />
+        </div>
       ) : (
-        <ul className="grid gap-5 md:grid-cols-2">
+        <ul className="grid gap-5 overflow-y-auto pr-1 md:grid-cols-2">
           {items.map((lec) => (
             <li key={lec.id} className="min-w-0">
               <Link

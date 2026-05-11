@@ -644,9 +644,9 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
         streakLoading={streak.loading}
       />
 
-      <div className="px-2 pb-2 pt-6">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.58fr)_minmax(340px,0.9fr)]">
-          <div className="min-w-0 space-y-2">
+      <div className="px-2 pb-2 pt-2">
+        <div className="grid min-h-[calc(100vh-440px)] gap-4 xl:grid-cols-[minmax(0,1.58fr)_minmax(340px,0.9fr)]">
+          <div className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2">
             <QuickActions
               dueCount={loading ? null : dueCount}
               loading={loading}

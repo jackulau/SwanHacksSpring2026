@@ -66,7 +66,7 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
   return (
     <section
       aria-label="Upcoming assignments"
-      className="max-h-[850px] overflow-hidden rounded-lg border border-[#e8e8e8] bg-white p-5"
+      className="flex min-h-[360px] flex-col overflow-hidden rounded-lg border border-[#e8e8e8] bg-white p-5"
     >
       <h2 className="text-4xl font-normal tracking-tight text-black">
         Upcoming assignments
@@ -79,7 +79,7 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
           <Skeleton className="h-28 rounded-lg" />
         </div>
       ) : assignments.length === 0 ? (
-        <div className="mt-6">
+        <div className="flex flex-1 items-center justify-center">
           <EmptyState
             size="sm"
             icon={ClipboardList}
@@ -88,7 +88,7 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
           />
         </div>
       ) : (
-        <ul className="mt-6 max-h-[720px] space-y-4 overflow-y-auto pr-1">
+        <ul className="mt-6 flex-1 space-y-4 overflow-y-auto pr-1">
           {assignments.map((assignment, index) => {
             const course = assignment.course
               ? courseById.get(assignment.course)
