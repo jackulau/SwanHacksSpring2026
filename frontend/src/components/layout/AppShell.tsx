@@ -285,7 +285,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Floating user menu (desktop) — sits on top of the page header band */}
         <div
-          className={`fixed z-30 hidden w-[18rem] transition-[left,top,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:block ${
+          className={`fixed z-30 hidden w-max max-w-[18rem] transition-[left,top,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:block ${
             userMenuInSidebar
               ? "left-7 top-[calc(100vh-5.75rem)] translate-x-0"
               : "left-[calc(100vw-3rem)] top-10 -translate-x-full"
@@ -516,19 +516,17 @@ function UserMenu({
   }, [open, onClose]);
 
   return (
-    <div className="relative">
+    <div className="relative max-w-full">
       <button
         type="button"
         onClick={onToggle}
-        className={`flex min-h-12 items-center gap-2 rounded-full border border-white bg-white px-5 py-2 text-black shadow-sm transition-colors hover:border-black/10 focus:outline-none focus:ring-2 focus:ring-[#438937] ${
-          constrained ? "w-full" : ""
-        }`}
+        className="flex min-h-12 max-w-full items-center gap-2 rounded-full border border-white bg-white px-5 py-2 text-black shadow-sm transition-colors hover:border-black/10 focus:outline-none focus:ring-2 focus:ring-[#438937]"
         aria-haspopup="menu"
         aria-expanded={open}
       >
         <span
           className={`truncate text-lg font-bold leading-none ${
-            constrained ? "min-w-0 flex-1" : "max-w-[140px]"
+            constrained ? "min-w-0 max-w-[8.5rem]" : "max-w-[140px]"
           }`}
         >
           {friendly}
@@ -536,7 +534,7 @@ function UserMenu({
         {visibleBadges.map((badge) => (
           <span
             key={`${badge.label}-${badge.backgroundColor}`}
-            className="hidden items-center px-2.5 py-1 text-xs font-bold uppercase leading-none sm:inline-flex"
+            className="hidden max-w-[8rem] items-center truncate px-2.5 py-1 text-xs font-bold uppercase leading-none sm:inline-flex"
             style={{
               backgroundColor: badge.backgroundColor,
               color: badge.textColor,
