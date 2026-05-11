@@ -12,7 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { ChevronDown, NotebookPen, FileText } from "lucide-react";
+import { ChevronDown, NotebookPen, FileText, Play } from "lucide-react";
 import type { Lecture } from "../../lib/types";
 import { Skeleton } from "../layout/Skeleton";
 import { EmptyState } from "../layout/EmptyState";
@@ -61,12 +61,12 @@ export function RecentNotesDropdown({
   if (variant === "sidebar") {
     return (
       <div>
-        <div className="flex items-center mx-1">
+        <div className="flex h-16 items-center">
           <Link
             to="/courses"
-            className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2 text-sm text-white/70 hover:text-white rounded-l-md transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="flex h-full flex-1 items-center gap-5 pl-7 pr-2 text-[21px] font-normal text-white/90 transition-colors hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80"
           >
-            <NotebookPen className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />
+            <NotebookPen className="h-7 w-7 shrink-0" aria-hidden="true" />
             <span>Notes</span>
           </Link>
           <button
@@ -74,17 +74,17 @@ export function RecentNotesDropdown({
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
             aria-label={open ? "Collapse recent notes" : "Expand recent notes"}
-            className="p-2 rounded-r-md text-white/70 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="flex h-full w-14 items-center justify-center text-white transition-colors hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-white/80"
           >
             <ChevronDown
-              className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
+              className={`h-7 w-7 transition-transform ${open ? "" : "rotate-180"}`}
               aria-hidden="true"
             />
           </button>
         </div>
 
         {open && (
-          <div ref={listRef} className="mt-1 ml-4 pl-2">
+          <div ref={listRef} className="ml-14 pr-5">
             {loading ? (
               <div className="space-y-2 py-2 pr-2">
                 <Skeleton className="h-6" />
@@ -92,8 +92,8 @@ export function RecentNotesDropdown({
                 <Skeleton className="h-6" />
               </div>
             ) : items.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-[var(--color-text-subtle)] italic">
-                No recent notes — open a lecture to start one.
+              <p className="px-3 py-2 text-sm text-white/65">
+                No recent notes yet.
               </p>
             ) : (
               <ul className="py-1 space-y-0.5">
@@ -105,7 +105,7 @@ export function RecentNotesDropdown({
                         to="/lectures/$lectureId"
                         params={{ lectureId: lec.id }}
                         aria-current={isActive ? "page" : undefined}
-                        className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm truncate rounded-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${
+                        className={`flex items-center justify-between gap-2 px-3 py-2 text-sm truncate rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-white/80 ${
                           isActive
                             ? "bg-white/[0.12] text-white"
                             : "text-white/60 hover:text-white hover:bg-white/[0.08]"
@@ -132,15 +132,15 @@ export function RecentNotesDropdown({
 
   // ── Card variant: typographic list (no thumbnails, no rounded card) ─
   return (
-    <section aria-label="Recent notes" className="flex flex-col gap-4">
+    <section aria-label="Recent notes" className="rounded-lg border border-[#e8e8e8] bg-white p-5">
       {!hideHeader && (
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-base font-semibold text-[var(--color-text)]">
-            Recent notes
+        <div className="mb-5 flex items-baseline justify-between">
+          <h2 className="text-4xl font-normal tracking-tight text-black">
+            Recents
           </h2>
           <Link
             to="/courses"
-            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+            className="text-sm font-semibold text-[#438937] hover:text-[#326c29] transition-colors focus:outline-none focus:ring-2 focus:ring-[#438937] rounded-sm"
           >
             View all
           </Link>
@@ -161,27 +161,43 @@ export function RecentNotesDropdown({
           description="Record or upload a lecture and your notes appear here."
         />
       ) : (
-        <ul className="divide-y divide-[var(--color-border)]">
+        <ul className="grid gap-5 md:grid-cols-2">
           {items.map((lec) => (
-            <li key={lec.id}>
+            <li key={lec.id} className="min-w-0">
               <Link
                 to="/lectures/$lectureId"
                 params={{ lectureId: lec.id }}
                 title={lec.title || "Untitled"}
-                className="flex items-baseline justify-between gap-4 py-2 text-sm group focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm"
+                className="group block rounded-lg focus:outline-none focus:ring-2 focus:ring-[#438937]"
               >
-                <span className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-strong)] transition-colors">
-                  {lec.title || "Untitled"}
-                </span>
-                <span className="shrink-0 text-xs tabular-nums text-[var(--color-text-subtle)]">
-                  {formatRecency(lec.updated || lec.recorded_at)}
-                  {lec.duration_secs > 0 && (
-                    <>
-                      {" · "}
-                      {Math.round(lec.duration_secs / 60)}m
-                    </>
-                  )}
-                </span>
+                <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-[linear-gradient(135deg,#1f321e,#111),radial-gradient(circle_at_72%_30%,rgba(244,112,23,0.85),transparent_19%),radial-gradient(circle_at_14%_78%,rgba(244,112,23,0.65),transparent_16%)]">
+                  <span className="absolute inset-0 bg-[radial-gradient(circle_at_78%_35%,rgba(255,129,31,0.8),transparent_14%),radial-gradient(circle_at_18%_72%,rgba(255,129,31,0.55),transparent_12%),linear-gradient(180deg,rgba(0,0,0,0.02),rgba(0,0,0,0.35))]" />
+                  <span className="absolute inset-0 bg-[repeating-linear-gradient(90deg,rgba(0,0,0,0.34)_0_2px,transparent_2px_44px)] opacity-50" />
+                  <span className="absolute inset-0 grid place-items-center">
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 transition-transform group-hover:scale-105">
+                      <Play className="h-6 w-6 translate-x-0.5 fill-current" aria-hidden="true" />
+                    </span>
+                  </span>
+                </div>
+                <div className="px-6 pb-1 pt-5">
+                  <h3 className="truncate text-2xl font-normal text-[#438937]">
+                    {lec.title || "Untitled"}
+                  </h3>
+                  <p className="mt-4 text-base font-bold text-black">
+                    {formatLectureDate(lec.recorded_at || lec.created)}
+                    {lec.duration_secs > 0 && (
+                      <>
+                        {" | "}
+                        {formatDuration(lec.duration_secs)}
+                      </>
+                    )}
+                  </p>
+                  <div className="mt-5 flex justify-end">
+                    <span className="inline-flex min-w-40 items-center justify-center rounded-full border-2 border-[#d8f6df] bg-[#edfff2] px-8 py-2 text-lg font-normal text-[#438937] transition-colors group-hover:border-[#bdebc9]">
+                      View
+                    </span>
+                  </div>
+                </div>
               </Link>
             </li>
           ))}
@@ -191,17 +207,22 @@ export function RecentNotesDropdown({
   );
 }
 
-function formatRecency(iso?: string): string {
+function formatLectureDate(iso?: string): string {
   if (!iso) return "";
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "";
-  const diffMs = Date.now() - then;
-  const min = Math.floor(diffMs / 60_000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  return new Date(iso).toLocaleDateString();
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatDuration(seconds: number): string {
+  const totalMinutes = Math.max(1, Math.round(seconds / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours <= 0) return `${minutes}mins`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h${minutes}mins`;
 }

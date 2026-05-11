@@ -1,137 +1,55 @@
 /**
- * "Today" + "This week" lists rendered as a single typographic block.
+ * Dashboard assignments panel.
  *
- * Sources: PocketBase `assignments` (Canvas-synced) + scheduled `lectures`.
- * The component splits items into a "Today" group (due/recorded today) and
- * a "This week" group (next 7 days), each rendered as a borderless list with
- * subtle row dividers — no card grid, no shadows, no pills.
+ * The data comes from the Canvas-backed `assignments` collection and joins
+ * courses only for display labels. Empty states stay real: no sample rows are
+ * invented when integrations have not synced anything yet.
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { Calendar } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { Skeleton } from "../layout/Skeleton";
 import { EmptyState } from "../layout/EmptyState";
 import { pb } from "../../lib/pocketbase";
-import type {
-  Assignment,
-  Course,
-  Lecture,
-  CalendarEventRecord,
-} from "../../lib/types";
+import type { Assignment, Course } from "../../lib/types";
 
 interface UpcomingClassesProps {
   userId: string;
 }
 
-interface UpcomingItem {
-  id: string;
-  title: string;
-  /** Short context line (course code, time, etc.). */
-  meta: string;
-  /** Sort key — milliseconds since epoch. */
-  when: number;
-  /** External URL (e.g. Canvas, meeting link) — opens in a new tab when set. */
-  externalHref?: string;
-  /** Internal lecture id — when set, links to /lectures/$lectureId. */
-  lectureId?: string;
-  /** When set, this row links into /calendar (user-created event). */
-  calendarEvent?: boolean;
-  /** True when this is a live/joinable meeting link. */
-  isMeeting?: boolean;
-}
-
 export function UpcomingClasses({ userId }: UpcomingClassesProps) {
-  const [items, setItems] = useState<UpcomingItem[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    // Anchor at start-of-day so something due at 10am still shows up in
-    // "Today" when the dashboard is opened at 2pm. Without this the user
-    // would lose visibility of earlier-today items as the day progressed.
+
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    const startIso = startOfToday.toISOString();
-    const weekAheadIso = new Date(
-      startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000,
-    ).toISOString();
 
     Promise.all([
       pb
         .collection("assignments")
-        .getFullList<Assignment>({
-          filter: `user = "${userId}" && due_at >= "${startIso}" && due_at <= "${weekAheadIso}"`,
+        .getList<Assignment>(1, 8, {
+          filter: `user = "${userId}" && due_at >= "${startOfToday.toISOString()}"`,
           sort: "due_at",
+          requestKey: "dash-upcoming-assignments",
         })
+        .then((res) => res.items)
         .catch(() => [] as Assignment[]),
       pb
         .collection("courses")
-        .getFullList<Course>({ filter: `user = "${userId}"` })
+        .getFullList<Course>({
+          filter: `user = "${userId}"`,
+          requestKey: "dash-assignment-courses",
+        })
         .catch(() => [] as Course[]),
-      pb
-        .collection("lectures")
-        .getFullList<Lecture>({
-          filter: `user = "${userId}" && recorded_at >= "${startIso}" && recorded_at <= "${weekAheadIso}"`,
-          sort: "recorded_at",
-        })
-        .catch(() => [] as Lecture[]),
-      pb
-        .collection("calendar_events")
-        .getFullList<CalendarEventRecord>({
-          filter: `user = "${userId}" && start_at >= "${startIso}" && start_at <= "${weekAheadIso}"`,
-          sort: "start_at",
-        })
-        .catch(() => [] as CalendarEventRecord[]),
-    ]).then(([asg, courses, scheduledLectures, calEvents]) => {
+    ]).then(([assignmentItems, courseItems]) => {
       if (cancelled) return;
-      const courseById = new Map(courses.map((c) => [c.id, c]));
-
-      const fromAssignments: UpcomingItem[] = asg.map((a) => {
-        const course = a.course ? courseById.get(a.course) : undefined;
-        const courseLabel = course?.code || course?.name;
-        return {
-          id: `asg:${a.id}`,
-          title: a.title,
-          meta: courseLabel
-            ? `${courseLabel} · ${formatDueLine(a.due_at)}`
-            : formatDueLine(a.due_at),
-          when: new Date(a.due_at).getTime(),
-          externalHref: a.canvas_url || undefined,
-          isMeeting: isMeetingLike(a.canvas_url),
-        };
-      });
-
-      const fromLectures: UpcomingItem[] = scheduledLectures.map((l) => {
-        const course = l.course ? courseById.get(l.course) : undefined;
-        const courseLabel = course?.code || course?.name;
-        return {
-          id: `lec:${l.id}`,
-          title: l.title || "Untitled lecture",
-          meta: courseLabel
-            ? `${courseLabel} · ${formatDueLine(l.recorded_at)}`
-            : formatDueLine(l.recorded_at),
-          when: new Date(l.recorded_at).getTime(),
-          lectureId: l.id,
-        };
-      });
-
-      const fromEvents: UpcomingItem[] = calEvents.map((e) => ({
-        id: `evt:${e.id}`,
-        title: e.title || "Untitled event",
-        meta: formatDueLine(e.start_at),
-        when: new Date(e.start_at).getTime(),
-        externalHref: e.external_href || undefined,
-        calendarEvent: !e.external_href,
-        isMeeting: isMeetingLike(e.external_href),
-      }));
-
-      const merged = [...fromAssignments, ...fromLectures, ...fromEvents].sort(
-        (a, b) => a.when - b.when,
-      );
-
-      setItems(merged);
+      setAssignments(assignmentItems);
+      setCourses(courseItems);
       setLoading(false);
     });
 
@@ -140,176 +58,113 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
     };
   }, [userId]);
 
-  const { today, thisWeek } = useMemo(() => splitToday(items), [items]);
-
-  if (loading) {
-    return (
-      <section aria-label="Upcoming" className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-[var(--color-text)]">Today</h2>
-        <div className="space-y-2">
-          <Skeleton className="h-6" />
-          <Skeleton className="h-6" />
-          <Skeleton className="h-6" />
-        </div>
-      </section>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <section aria-label="Upcoming" className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-[var(--color-text)]">Today</h2>
-        <EmptyState
-          size="sm"
-          icon={Calendar}
-          title="Nothing scheduled"
-          description="Sync Canvas in Settings to see today's classes and assignments."
-        />
-      </section>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-8">
-      <Section title="Today" emptyText="Nothing due today.">
-        {today.map((item) => (
-          <UpcomingRow key={item.id} item={item} />
-        ))}
-      </Section>
-
-      <Section title="This week" emptyText="Nothing else this week.">
-        {thisWeek.map((item) => (
-          <UpcomingRow key={item.id} item={item} />
-        ))}
-      </Section>
-    </div>
+  const courseById = useMemo(
+    () => new Map(courses.map((course) => [course.id, course])),
+    [courses],
   );
-}
 
-function Section({
-  title,
-  emptyText,
-  children,
-}: {
-  title: string;
-  emptyText: string;
-  children: React.ReactNode[];
-}) {
   return (
-    <section aria-label={title} className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold text-[var(--color-text)]">{title}</h2>
-      {children.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-subtle)]">{emptyText}</p>
+    <section
+      aria-label="Upcoming assignments"
+      className="max-h-[850px] overflow-hidden rounded-lg border border-[#e8e8e8] bg-white p-5"
+    >
+      <h2 className="text-4xl font-normal tracking-tight text-black">
+        Upcoming assignments
+      </h2>
+
+      {loading ? (
+        <div className="mt-6 space-y-4">
+          <Skeleton className="h-36 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+        </div>
+      ) : assignments.length === 0 ? (
+        <div className="mt-6">
+          <EmptyState
+            size="sm"
+            icon={ClipboardList}
+            title="No upcoming assignments"
+            description="Connect or sync Canvas to fill this panel from your real coursework."
+          />
+        </div>
       ) : (
-        <ul className="divide-y divide-[var(--color-border)]">{children}</ul>
+        <ul className="mt-6 max-h-[720px] space-y-4 overflow-y-auto pr-1">
+          {assignments.map((assignment, index) => {
+            const course = assignment.course
+              ? courseById.get(assignment.course)
+              : undefined;
+            return (
+              <AssignmentCard
+                key={assignment.id}
+                assignment={assignment}
+                courseLabel={course?.code || course?.name || ""}
+                featured={index === 0}
+              />
+            );
+          })}
+        </ul>
       )}
     </section>
   );
 }
 
-function UpcomingRow({ item }: { item: UpcomingItem }) {
-  const tooltip = `${item.title} · ${item.meta}`;
-  const titleNode = (
-    <span
-      className="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors"
-      title={tooltip}
-    >
-      {item.title}
-      {item.isMeeting && (
-        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)] text-[10px] font-semibold uppercase tracking-wider">
-          Live
-        </span>
-      )}
-    </span>
-  );
-  const metaNode = (
-    <span className="shrink-0 text-xs text-[var(--color-text-subtle)] truncate max-w-[55%]">
-      {item.meta}
-    </span>
-  );
-  const rowClass =
-    "flex items-baseline justify-between gap-4 py-2 text-sm group focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] rounded-sm";
+function AssignmentCard({
+  assignment,
+  courseLabel,
+  featured,
+}: {
+  assignment: Assignment;
+  courseLabel: string;
+  featured: boolean;
+}) {
+  const title = assignment.title || courseLabel || "Untitled assignment";
+  const heading = featured ? title : courseLabel || title;
+  const subline = featured && courseLabel ? courseLabel : "";
 
-  if (item.externalHref) {
-    return (
-      <li>
+  return (
+    <li className="rounded-lg border-2 border-[#dddddd] bg-[#fbfbfb] p-5">
+      <h3
+        className={`truncate text-2xl font-normal ${
+          featured ? "text-[#438937]" : "text-black"
+        }`}
+        title={heading}
+      >
+        {heading}
+      </h3>
+      {subline && (
+        <p className="mt-1 truncate text-sm font-semibold text-black/70">
+          {subline}
+        </p>
+      )}
+      <p className="mt-5 text-lg font-bold text-black">
+        {formatDueDate(assignment.due_at)}
+      </p>
+      {featured && assignment.canvas_url && (
         <a
-          href={item.externalHref}
+          href={assignment.canvas_url}
           target="_blank"
           rel="noopener noreferrer"
-          className={rowClass}
+          className="mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-lg border-2 border-[#9e9e9e] bg-white px-4 text-lg font-bold text-black transition-colors hover:border-[#438937] hover:text-[#438937] focus:outline-none focus:ring-2 focus:ring-[#438937]"
         >
-          {titleNode}
-          {metaNode}
+          View assignment
         </a>
-      </li>
-    );
-  }
-  if (item.lectureId) {
-    return (
-      <li>
-        <Link
-          to="/lectures/$lectureId"
-          params={{ lectureId: item.lectureId }}
-          className={rowClass}
-        >
-          {titleNode}
-          {metaNode}
-        </Link>
-      </li>
-    );
-  }
-  if (item.calendarEvent) {
-    return (
-      <li>
-        <Link to="/calendar" className={rowClass}>
-          {titleNode}
-          {metaNode}
-        </Link>
-      </li>
-    );
-  }
-  return (
-    <li className={rowClass}>
-      {titleNode}
-      {metaNode}
+      )}
     </li>
   );
 }
 
-function splitToday(items: UpcomingItem[]) {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-
-  const today: UpcomingItem[] = [];
-  const thisWeek: UpcomingItem[] = [];
-  for (const it of items) {
-    if (it.when >= startOfToday.getTime() && it.when < startOfTomorrow.getTime()) {
-      today.push(it);
-    } else if (it.when >= startOfTomorrow.getTime()) {
-      thisWeek.push(it);
-    }
-  }
-  return { today, thisWeek };
-}
-
-function formatDueLine(iso?: string): string {
-  if (!iso) return "";
-  const t = new Date(iso);
-  if (Number.isNaN(t.getTime())) return "";
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-  const startOfDayAfter = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000);
-  const time = t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  if (t >= startOfToday && t < startOfTomorrow) return time;
-  if (t >= startOfTomorrow && t < startOfDayAfter) return `Tomorrow · ${time}`;
-  const date = t.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-  return `${date} · ${time}`;
-}
-
-function isMeetingLike(url?: string): boolean {
-  if (!url) return false;
-  return /zoom\.|meet\.google|teams\.microsoft|webex\./i.test(url);
+function formatDueDate(iso?: string): string {
+  if (!iso) return "No due date";
+  const due = new Date(iso);
+  if (Number.isNaN(due.getTime())) return "No due date";
+  const date = due.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const time = due.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${date} @ ${time}`;
 }

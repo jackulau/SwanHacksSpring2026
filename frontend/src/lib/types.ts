@@ -27,6 +27,13 @@ export interface UserPreferences {
   pomodoroLength: number;
 }
 
+export interface UserBadge {
+  label: string;
+  backgroundColor: string;
+  textColor?: string;
+  borderColor?: string;
+}
+
 export interface TranscriptSegment {
   start: number;
   end: number;
@@ -203,6 +210,7 @@ export interface User extends RecordModel {
   avatar: string;
   preferences: UserPreferences;
   onboarding_done: boolean;
+  badges?: UserBadge[];
 }
 
 export interface Course extends RecordModel {

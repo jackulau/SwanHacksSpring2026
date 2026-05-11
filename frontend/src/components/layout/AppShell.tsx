@@ -24,23 +24,30 @@ import { AudioPlayer } from "./AudioPlayer";
 import { CommandPalette } from "./CommandPalette";
 import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
-import { ConvergeLogo } from "./ConvergeLogo";
 import { RecentNotesDropdown } from "../dashboard/RecentNotesDropdown";
 import { pb } from "../../lib/pocketbase";
-import type { Lecture } from "../../lib/types";
+import type { Lecture, UserBadge } from "../../lib/types";
 import {
   Home,
   Mic,
   Settings,
   Accessibility,
-  BookOpen,
   ListTodo,
   Glasses,
   Trash2,
-  Calendar,
   LogOut,
   Search,
+  GraduationCap,
+  ChevronDown,
 } from "lucide-react";
+
+const SIDEBAR_LOGO_SRC = "/assets/converge_logo_vert.png";
+const DEFAULT_USER_BADGE: Required<UserBadge> = {
+  label: "Administrator",
+  backgroundColor: "#42a36e",
+  textColor: "#ffffff",
+  borderColor: "transparent",
+};
 
 function isMacPlatform(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -59,14 +66,12 @@ interface NavItem {
  */
 const TOP_NAV: readonly NavItem[] = [
   { to: "/", icon: Home, label: "Home" },
-  { to: "/capture", icon: Mic, label: "Record" },
 ];
 
 const BOTTOM_NAV: readonly NavItem[] = [
-  { to: "/courses", icon: BookOpen, label: "Courses" },
-  { to: "/calendar", icon: Calendar, label: "Calendar" },
-  { to: "/study", icon: Glasses, label: "Study" },
+  { to: "/courses", icon: GraduationCap, label: "Courses" },
   { to: "/study/planner", icon: ListTodo, label: "To-do" },
+  { to: "/study", icon: Glasses, label: "Study" },
   { to: "/trash", icon: Trash2, label: "Trash" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
@@ -198,7 +203,7 @@ export function AppShell({ children }: AppShellProps) {
   }, [user]);
 
   return (
-    <div className="min-h-screen text-[var(--color-text)] flex bg-[var(--color-bg)]">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
       {/* Skip link — visible only on focus, jumps over the entire sidebar */}
       <a
         href="#main"
@@ -208,35 +213,34 @@ export function AppShell({ children }: AppShellProps) {
       </a>
 
       {/* ── Sidebar (desktop only) ── */}
-      <aside className="w-64 hidden lg:flex flex-col bg-[var(--color-sidebar)] shrink-0">
-        {/* Logo */}
+      <aside className="hidden lg:flex w-[21.5rem] shrink-0 flex-col overflow-hidden bg-[#438937] text-white">
         <Link
           to="/"
-          className="flex items-center gap-2.5 px-5 pt-6 pb-3 text-white hover:opacity-90 transition-opacity"
+          className="px-7 pt-7 pb-8 hover:opacity-90 transition-opacity"
+          aria-label="Converge home"
         >
-          <ConvergeLogo className="w-8 h-8 shrink-0" />
-          <span className="font-semibold text-2xl tracking-tight">Converge</span>
+          <img
+            src={SIDEBAR_LOGO_SRC}
+            alt="Converge"
+            className="w-[288px] max-w-full h-auto"
+          />
         </Link>
 
-        {/* Command palette opener — visible affordance. */}
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          className="mx-3 mb-3 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
-          aria-label="Open command palette"
+          className="mx-7 mb-8 flex h-[58px] items-center gap-3 rounded-[14px] bg-[#232622] px-4 text-left text-white/80 shadow-sm transition-colors hover:bg-[#1c201c] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80"
+          aria-label={`Open command palette (${isMacPlatform() ? "Command K" : "Control K"})`}
         >
-          <span className="flex-1 text-left">Search or jump…</span>
-          <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/[0.12] text-white/80 border border-white/10">
-            {isMacPlatform() ? "⌘K" : "Ctrl K"}
-          </kbd>
+          <Search className="h-8 w-8 shrink-0 text-white" strokeWidth={3} aria-hidden="true" />
+          <span className="text-lg font-normal">Search</span>
         </button>
 
-        {/* Nav links */}
-        <nav className="flex-1 px-2 overflow-y-auto pb-4">
+        <nav className="flex-1 overflow-y-auto pb-8">
           <NavGroup items={TOP_NAV} pathname={location.pathname} />
 
           {/* Notes dropdown — caret-only toggle, label routes to /courses */}
-          <div className="my-1">
+          <div>
             <RecentNotesDropdown
               lectures={recentLectures}
               loading={recentLoading}
@@ -249,14 +253,13 @@ export function AppShell({ children }: AppShellProps) {
       </aside>
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
         {/* Slim top utility bar — only houses the user dropdown.
          * The greeting / page header lives inside the page body so the
          * grey "band" can extend across the greeting card per the mockup. */}
         <header className="h-12 shrink-0 flex items-center justify-between px-4 sm:px-6 lg:hidden bg-[var(--color-sidebar)]">
           <Link to="/" className="flex items-center gap-2 text-white">
-            <ConvergeLogo className="w-6 h-6" />
-            <span className="font-semibold tracking-tight">Converge</span>
+            <img src={SIDEBAR_LOGO_SRC} alt="Converge" className="h-8 w-auto" />
           </Link>
           <div className="flex items-center gap-2">
             <button
@@ -270,6 +273,7 @@ export function AppShell({ children }: AppShellProps) {
             <UserMenu
               email={user?.email}
               displayName={user?.display_name}
+              badges={user?.badges}
               open={userMenuOpen}
               onToggle={() => setUserMenuOpen((o) => !o)}
               onClose={() => setUserMenuOpen(false)}
@@ -279,10 +283,11 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Floating user menu (desktop) — sits on top of the page header band */}
-        <div className="hidden lg:block absolute top-4 right-6 z-30">
+        <div className="hidden lg:block absolute top-10 right-12 z-30">
           <UserMenu
             email={user?.email}
             displayName={user?.display_name}
+            badges={user?.badges}
             open={userMenuOpen}
             onToggle={() => setUserMenuOpen((o) => !o)}
             onClose={() => setUserMenuOpen(false)}
@@ -294,7 +299,7 @@ export function AppShell({ children }: AppShellProps) {
         <main
           id="main"
           tabIndex={-1}
-          className="flex-1 overflow-auto relative focus:outline-none"
+          className="flex-1 overflow-y-auto overflow-x-hidden relative focus:outline-none"
           data-focus-zone
           style={{
             paddingBottom: "calc(var(--audio-player-height, 0px))",
@@ -351,7 +356,7 @@ function NavGroup({
   pathname: string;
 }) {
   return (
-    <div className="space-y-0.5">
+    <div>
       {items.map((item) => {
         const active = isNavItemActive(item.to, pathname);
         return (
@@ -376,9 +381,7 @@ function NavGroup({
  */
 const NAV_TARGETS = [
   "/",
-  "/capture",
   "/courses",
-  "/calendar",
   "/study",
   "/study/planner",
   "/trash",
@@ -413,19 +416,19 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
     <Link
       to={to as string}
       aria-current={active ? "page" : undefined}
-      className={`relative flex items-center gap-3 pl-5 pr-3 py-2.5 mx-1 rounded-md text-sm transition-colors group ${
+      className={`relative flex h-16 items-center gap-5 pl-7 pr-6 text-[21px] transition-colors group ${
         active
-          ? "text-white bg-white/[0.12]"
-          : "text-white/70 hover:text-white hover:bg-white/[0.08]"
+          ? "font-bold text-white"
+          : "font-normal text-white/90 hover:text-white hover:bg-white/[0.08]"
       }`}
     >
       {active && (
         <span
-          className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-full bg-[var(--color-primary)]"
+          className="absolute left-0 top-0 bottom-0 w-2 bg-[#8ee95f]"
           aria-hidden="true"
         />
       )}
-      <Icon className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />
+      <Icon className="h-7 w-7 shrink-0" aria-hidden="true" />
       <span className="flex-1">{label}</span>
     </Link>
   );
@@ -435,9 +438,42 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
 /* User menu                                                              */
 /* ─────────────────────────────────────────────────────────────────────── */
 
+function normalizeBadges(badges: UserBadge[] | undefined): Required<UserBadge>[] {
+  if (!Array.isArray(badges) || badges.length === 0) return [DEFAULT_USER_BADGE];
+  const normalized = badges
+    .map((badge) => {
+      const label = typeof badge.label === "string" ? badge.label.trim() : "";
+      if (!label) return null;
+      return {
+        label,
+        backgroundColor: safeBadgeColor(badge.backgroundColor, "#42a36e"),
+        textColor: safeBadgeColor(badge.textColor, "#ffffff"),
+        borderColor: safeBadgeColor(badge.borderColor, "transparent"),
+      };
+    })
+    .filter((badge): badge is Required<UserBadge> => Boolean(badge));
+  return normalized.length > 0 ? normalized : [DEFAULT_USER_BADGE];
+}
+
+function safeBadgeColor(value: string | undefined, fallback: string): string {
+  if (!value) return fallback;
+  const color = value.trim();
+  if (
+    /^#[0-9a-f]{3,8}$/i.test(color) ||
+    /^rgba?\([\d\s.,%]+\)$/i.test(color) ||
+    /^hsla?\([\d\s.,%]+\)$/i.test(color) ||
+    /^var\(--[a-z0-9-_]+\)$/i.test(color) ||
+    /^[a-z]+$/i.test(color)
+  ) {
+    return color;
+  }
+  return fallback;
+}
+
 function UserMenu({
   email,
   displayName,
+  badges = [],
   open,
   onToggle,
   onClose,
@@ -445,6 +481,7 @@ function UserMenu({
 }: {
   email: string | undefined;
   displayName?: string;
+  badges?: UserBadge[];
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
@@ -452,7 +489,7 @@ function UserMenu({
 }) {
   const friendly =
     (displayName && displayName.trim()) || email?.split("@")[0] || "User";
-  const initial = (friendly[0] || email?.[0] || "?").toUpperCase();
+  const visibleBadges = normalizeBadges(badges);
 
   useEffect(() => {
     if (!open) return;
@@ -468,23 +505,27 @@ function UserMenu({
       <button
         type="button"
         onClick={onToggle}
-        className="flex items-center gap-2 bg-[var(--color-surface)] text-[var(--color-text)] text-sm px-3 py-1.5 rounded-full border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors shadow-sm"
+        className="flex min-h-12 items-center gap-2 rounded-full border border-white bg-white px-5 py-2 text-black shadow-sm transition-colors hover:border-black/10 focus:outline-none focus:ring-2 focus:ring-[#438937]"
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="w-5 h-5 rounded-full bg-[var(--color-primary-soft)] flex items-center justify-center text-[10px] font-semibold text-[var(--color-primary-strong)]">
-          {initial}
+        <span className="max-w-[140px] truncate text-lg font-bold leading-none">
+          {friendly}
         </span>
-        <span className="max-w-[140px] truncate">{friendly}</span>
-        <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path
-            d="M3 4.5L6 7.5L9 4.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        {visibleBadges.map((badge) => (
+          <span
+            key={`${badge.label}-${badge.backgroundColor}`}
+            className="hidden items-center px-2.5 py-1 text-xs font-bold uppercase leading-none sm:inline-flex"
+            style={{
+              backgroundColor: badge.backgroundColor,
+              color: badge.textColor,
+              border: `1px solid ${badge.borderColor}`,
+            }}
+          >
+            {badge.label}
+          </span>
+        ))}
+        <ChevronDown className="h-6 w-6 shrink-0 text-black" strokeWidth={4} aria-hidden="true" />
       </button>
       {open && (
         <>
@@ -496,7 +537,7 @@ function UserMenu({
           />
           <div
             role="menu"
-            className="absolute right-0 top-10 w-56 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl py-1 z-50"
+            className="absolute right-0 top-14 w-56 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl py-1 z-50"
           >
             <div className="px-3 py-2 text-xs text-[var(--color-text-subtle)] border-b border-[var(--color-border)] truncate">
               {email}

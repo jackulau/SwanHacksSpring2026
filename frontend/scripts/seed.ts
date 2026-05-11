@@ -27,6 +27,12 @@ interface DemoUser {
   password: string;
   display_name: string;
   onboarding_done: boolean;
+  badges?: {
+    label: string;
+    backgroundColor: string;
+    textColor?: string;
+    borderColor?: string;
+  }[];
 }
 
 interface DemoCourse {
@@ -219,6 +225,7 @@ async function upsertUser(pb: PocketBase, user: DemoUser): Promise<string> {
     name: user.display_name,
     display_name: user.display_name,
     onboarding_done: user.onboarding_done,
+    badges: user.badges ?? [],
   };
 
   try {

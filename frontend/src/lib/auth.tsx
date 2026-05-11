@@ -7,10 +7,10 @@ import {
   type ReactNode,
 } from "react";
 import { pb } from "./pocketbase";
-import type { RecordModel } from "pocketbase";
+import type { User } from "./types";
 
 interface AuthContext {
-  user: RecordModel | null;
+  user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
@@ -20,15 +20,15 @@ interface AuthContext {
 const AuthContext = createContext<AuthContext | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<RecordModel | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setUser(pb.authStore.record);
+    setUser(pb.authStore.record as User | null);
     setLoading(false);
 
     const unsub = pb.authStore.onChange((_token, record) => {
-      setUser(record);
+      setUser(record as User | null);
     });
     return unsub;
   }, []);
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = useCallback(async (email: string, password: string) => {
     await pb
       .collection("users")
-      .create({ email, password, passwordConfirm: password });
+      .create({ email, password, passwordConfirm: password, badges: [] });
     await pb.collection("users").authWithPassword(email, password);
   }, []);
 

@@ -19,7 +19,7 @@
  * Dates are computed at seed time so the streak is always "today minus N".
  *
  * @typedef {{
- *   user: { id: string, email: string, password: string, display_name: string, onboarding_done: boolean },
+ *   user: { id: string, email: string, password: string, display_name: string, onboarding_done: boolean, badges?: Array<{ label: string, backgroundColor: string, textColor?: string, borderColor?: string }> },
  *   courses: Array<{ id: string, name: string, code: string, color: string, semester: string }>,
  *   lectures: Array<{ id: string, course_id: string, title: string, duration_secs: number, days_ago: number }>,
  *   transcripts: Array<{ id: string, lecture_id: string, raw_text: string, clean_text: string, segments: any[], language: string, word_count: number }>,
@@ -516,6 +516,14 @@ const demoData = {
     password: "demohackstack",
     display_name: "Demo Student",
     onboarding_done: true,
+    badges: [
+      {
+        label: "Administrator",
+        backgroundColor: "#42a36e",
+        textColor: "#ffffff",
+        borderColor: "transparent",
+      },
+    ],
   },
   courses: [
     { id: COURSE_IDS.bio, name: "Biology 201",                code: "BIO 201",  semester: "Spring 2026", color: "#14b8a6" },

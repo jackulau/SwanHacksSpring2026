@@ -644,24 +644,22 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
         streakLoading={streak.loading}
       />
 
-      <div className="px-4 sm:px-6 lg:px-8 pt-6 pb-12">
-        <div className="max-w-3xl mx-auto flex flex-col gap-8">
-          <QuickActions
-            dueCount={loading ? null : dueCount}
-            loading={loading}
-          />
+      <div className="px-2 pb-2 pt-6">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.58fr)_minmax(340px,0.9fr)]">
+          <div className="min-w-0 space-y-2">
+            <QuickActions
+              dueCount={loading ? null : dueCount}
+              loading={loading}
+            />
 
-          <hr className="border-[var(--color-border)]" />
+            <RecentNotesDropdown
+              lectures={lectures}
+              loading={loading}
+              variant="card"
+            />
+          </div>
 
           <UpcomingClasses userId={userId} />
-
-          <hr className="border-[var(--color-border)]" />
-
-          <RecentNotesDropdown
-            lectures={lectures}
-            loading={loading}
-            variant="card"
-          />
         </div>
       </div>
     </div>

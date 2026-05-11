@@ -7,8 +7,6 @@
  * dashboard no longer competes with itself for the user's attention.
  */
 
-import { PageHeader } from "../layout/PageHeader";
-
 interface HeroHeaderProps {
   name: string;
   /** Streak data is accepted for backwards compatibility; rendered subtly inline. */
@@ -31,27 +29,32 @@ function formatToday(): string {
     weekday: "long",
     month: "long",
     day: "numeric",
+    year: "numeric",
   });
 }
 
 export function HeroHeader({
   name,
-  streak,
-  todayCompleted,
-  streakLoading = false,
+  streak: _streak,
+  todayCompleted: _todayCompleted,
+  streakLoading: _streakLoading = false,
 }: HeroHeaderProps) {
   const greeting = getGreeting();
   const dateLabel = formatToday();
 
-  // Streak surfaces only when meaningful, as a quiet trailing fragment in the
-  // subtitle — never as a heavy chip.
-  let subtitle = dateLabel;
-  if (!streakLoading && streak > 0) {
-    const suffix = todayCompleted
-      ? `${streak}-day streak, today complete`
-      : `${streak}-day streak`;
-    subtitle = `${dateLabel} · ${suffix}`;
-  }
+  const subtitle = dateLabel;
 
-  return <PageHeader title={`${greeting}, ${name}`} subtitle={subtitle} />;
+  return (
+    <section className="relative mx-2 mt-2 grid min-h-[430px] place-items-center rounded-t-[28px] bg-[linear-gradient(180deg,rgba(119,208,101,0.52)_0%,rgba(233,247,235,0.82)_62%,rgba(255,255,255,1)_100%)] px-6 py-16">
+      <div className="w-full text-center">
+        <h1 className="text-5xl font-bold tracking-tight text-black sm:text-6xl lg:text-7xl">
+          {greeting},{" "}
+          <span className="text-[#72d64f]">{name}</span>
+        </h1>
+        <p className="mt-6 text-2xl font-normal uppercase tracking-wide text-black sm:text-3xl">
+          {subtitle}
+        </p>
+      </div>
+    </section>
+  );
 }
