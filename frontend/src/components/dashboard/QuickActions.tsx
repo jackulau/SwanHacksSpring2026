@@ -34,33 +34,24 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
       <div className="mt-7 grid gap-3 md:grid-cols-3">
         <Link
           to="/calendar"
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg border-2 border-[#d8f6df] bg-[#edfff2] px-4 text-lg font-normal text-[#438937] transition-colors hover:border-[#bdebc9] focus:outline-none focus:ring-2 focus:ring-[#438937]"
+          className={quickActionButtonClass}
         >
           <Monitor className="h-7 w-7" aria-hidden="true" />
           Online lecture
         </Link>
         <Link
           to="/capture"
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg border border-[#eeeeee] bg-white px-4 text-lg font-normal text-black transition-colors hover:border-[#d8f6df] hover:text-[#438937] focus:outline-none focus:ring-2 focus:ring-[#438937]"
+          className={quickActionButtonClass}
         >
           <Mic className="h-7 w-7" aria-hidden="true" />
           Record lecture
         </Link>
         <Link
           to="/capture/upload"
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg border border-[#eeeeee] bg-white px-4 text-lg font-normal text-black transition-colors hover:border-[#d8f6df] hover:text-[#438937] focus:outline-none focus:ring-2 focus:ring-[#438937]"
+          className={quickActionButtonClass}
         >
           <Upload className="h-7 w-7" aria-hidden="true" />
           Upload lecture
-        </Link>
-      </div>
-
-      <div className="mt-4">
-        <Link
-          to="/capture"
-          className="inline-flex min-h-20 w-full items-center justify-center rounded-lg border-2 border-[#d8f6df] bg-[#edfff2] px-4 text-2xl font-normal text-[#438937] transition-colors hover:border-[#bdebc9] focus:outline-none focus:ring-2 focus:ring-[#438937]"
-        >
-          Share Screen
         </Link>
       </div>
 
@@ -75,3 +66,6 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
     </section>
   );
 }
+
+const quickActionButtonClass =
+  "inline-flex min-h-14 items-center justify-center gap-3 rounded-lg border border-[#eeeeee] bg-white px-4 text-lg font-normal text-black transition-colors hover:border-[#d8f6df] hover:bg-[#edfff2] hover:text-[#438937] focus:outline-none focus:ring-2 focus:ring-[#438937]";
