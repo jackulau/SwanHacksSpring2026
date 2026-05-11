@@ -167,10 +167,9 @@ export function RecentNotesDropdown({
       )}
 
       {loading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-6" />
-          <Skeleton className="h-6" />
-          <Skeleton className="h-6" />
+        <div className="grid flex-1 gap-5 md:grid-cols-2" aria-label="Loading recent notes">
+          <RecentNoteSkeleton />
+          <RecentNoteSkeleton />
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
@@ -189,7 +188,7 @@ export function RecentNotesDropdown({
                 to="/lectures/$lectureId"
                 params={{ lectureId: lec.id }}
                 title={lec.title || "Untitled"}
-                className="group block rounded-lg focus:outline-none focus:ring-2 focus:ring-[#438937]"
+                className="motion-hover-lift group block rounded-lg focus:outline-none focus:ring-2 focus:ring-[#438937]"
               >
                 <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-[linear-gradient(135deg,#1f321e,#111),radial-gradient(circle_at_72%_30%,rgba(244,112,23,0.85),transparent_19%),radial-gradient(circle_at_14%_78%,rgba(244,112,23,0.65),transparent_16%)]">
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_78%_35%,rgba(255,129,31,0.8),transparent_14%),radial-gradient(circle_at_18%_72%,rgba(255,129,31,0.55),transparent_12%),linear-gradient(180deg,rgba(0,0,0,0.02),rgba(0,0,0,0.35))]" />
@@ -214,7 +213,7 @@ export function RecentNotesDropdown({
                     )}
                   </p>
                   <div className="mt-5 flex justify-end">
-                    <span className="inline-flex min-w-40 items-center justify-center rounded-full border-2 border-[#d8f6df] bg-[#edfff2] px-8 py-2 text-lg font-normal text-[#438937] transition-colors group-hover:border-[#bdebc9]">
+                    <span className="inline-flex min-w-40 items-center justify-center rounded-full border-2 border-[#d8f6df] bg-[#edfff2] px-8 py-2 text-lg font-normal text-[#438937] transition-colors duration-200 ease-[var(--motion-ease)] group-hover:border-[#bdebc9]">
                       View
                     </span>
                   </div>
@@ -225,6 +224,21 @@ export function RecentNotesDropdown({
         </ul>
       )}
     </section>
+  );
+}
+
+function RecentNoteSkeleton() {
+  return (
+    <div className="min-w-0" aria-hidden="true">
+      <Skeleton className="aspect-[16/9] rounded-lg" />
+      <div className="px-6 pb-1 pt-5">
+        <Skeleton className="h-8 w-3/5 rounded-md" />
+        <Skeleton className="mt-4 h-5 w-4/5 rounded-md" />
+        <div className="mt-5 flex justify-end">
+          <Skeleton className="h-11 w-40 rounded-full" />
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -73,10 +73,10 @@ export function UpcomingClasses({ userId }: UpcomingClassesProps) {
       </h2>
 
       {loading ? (
-        <div className="mt-6 space-y-4">
-          <Skeleton className="h-36 rounded-lg" />
-          <Skeleton className="h-28 rounded-lg" />
-          <Skeleton className="h-28 rounded-lg" />
+        <div className="mt-6 flex-1 space-y-4" aria-label="Loading upcoming assignments">
+          <AssignmentSkeleton featured />
+          <AssignmentSkeleton />
+          <AssignmentSkeleton />
         </div>
       ) : assignments.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
@@ -122,7 +122,7 @@ function AssignmentCard({
   const subline = featured && courseLabel ? courseLabel : "";
 
   return (
-    <li className="rounded-lg border-2 border-[#dddddd] bg-[#fbfbfb] p-5">
+    <li className="motion-hover-lift rounded-lg border-2 border-[#dddddd] bg-[#fbfbfb] p-5 hover:border-[#cfe8d5] hover:bg-white">
       <h3
         className={`truncate text-2xl font-normal ${
           featured ? "text-[#438937]" : "text-black"
@@ -144,12 +144,26 @@ function AssignmentCard({
           href={assignment.canvas_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-lg border-2 border-[#9e9e9e] bg-white px-4 text-lg font-bold text-black transition-colors hover:border-[#438937] hover:text-[#438937] focus:outline-none focus:ring-2 focus:ring-[#438937]"
+          className="motion-hover-lift mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-lg border-2 border-[#9e9e9e] bg-white px-4 text-lg font-bold text-black hover:border-[#438937] hover:text-[#438937] focus:outline-none focus:ring-2 focus:ring-[#438937]"
         >
           View assignment
         </a>
       )}
     </li>
+  );
+}
+
+function AssignmentSkeleton({ featured = false }: { featured?: boolean }) {
+  return (
+    <div
+      className="rounded-lg border-2 border-[#dddddd] bg-[#fbfbfb] p-5"
+      aria-hidden="true"
+    >
+      <Skeleton className="h-8 w-3/5 rounded-md" />
+      {featured && <Skeleton className="mt-2 h-4 w-1/3 rounded-md" />}
+      <Skeleton className="mt-5 h-6 w-4/5 rounded-md" />
+      {featured && <Skeleton className="mt-5 h-14 w-full rounded-lg" />}
+    </div>
   );
 }
 

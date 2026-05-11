@@ -9,6 +9,7 @@ import { HeroHeader } from "../components/dashboard/HeroHeader";
 import { QuickActions } from "../components/dashboard/QuickActions";
 import { RecentNotesDropdown } from "../components/dashboard/RecentNotesDropdown";
 import { UpcomingClasses } from "../components/dashboard/UpcomingClasses";
+import { Skeleton } from "../components/layout/Skeleton";
 import type { Lecture } from "../lib/types";
 
 export const Route = createFileRoute("/")({
@@ -20,8 +21,20 @@ function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-white p-6" aria-label="Loading Converge">
+        <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[18rem_1fr]">
+          <Skeleton className="hidden min-h-[640px] rounded-2xl lg:block" />
+          <div className="space-y-4">
+            <Skeleton className="h-64 rounded-3xl" />
+            <div className="grid gap-4 xl:grid-cols-[1.5fr_0.9fr]">
+              <div className="space-y-4">
+                <Skeleton className="h-36 rounded-lg" />
+                <Skeleton className="h-80 rounded-lg" />
+              </div>
+              <Skeleton className="h-[460px] rounded-lg" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -636,7 +649,7 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
     (displayName && displayName.trim()) || email.split("@")[0];
 
   return (
-    <div>
+    <div className="dashboard-enter">
       <HeroHeader
         name={greetingName}
         streak={streak.streak}

@@ -68,4 +68,4 @@ export function QuickActions({ dueCount, loading }: QuickActionsProps) {
 }
 
 const quickActionButtonClass =
-  "inline-flex min-h-14 items-center justify-center gap-3 rounded-lg border border-[#eeeeee] bg-white px-4 text-lg font-normal text-black transition-colors hover:border-[#d8f6df] hover:bg-[#edfff2] hover:text-[#438937] focus:outline-none focus:ring-2 focus:ring-[#438937]";
+  "motion-hover-lift inline-flex min-h-14 items-center justify-center gap-3 rounded-lg border border-[#eeeeee] bg-white px-4 text-lg font-normal text-black hover:border-[#d8f6df] hover:bg-[#edfff2] hover:text-[#438937] focus:outline-none focus:ring-2 focus:ring-[#438937]";
