@@ -75,7 +75,7 @@ export function RecentNotesDropdown({
         <div className="flex h-16 items-center">
           <Link
             to="/courses"
-            className="flex h-full flex-1 items-center gap-5 pl-7 pr-2 text-[21px] font-normal text-white/90 transition-[background-color,color,transform] duration-200 ease-[var(--motion-ease)] hover:translate-x-1 hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80"
+            className="flex h-full flex-1 items-center gap-5 pl-7 pr-2 text-[21px] font-normal text-white/90 transition-[background-color,color] duration-200 ease-[var(--motion-ease)] hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80"
           >
             <NotebookPen className="h-7 w-7 shrink-0" aria-hidden="true" />
             <span>Notes</span>
@@ -123,10 +123,10 @@ export function RecentNotesDropdown({
                           to="/lectures/$lectureId"
                           params={{ lectureId: lec.id }}
                           aria-current={isActive ? "page" : undefined}
-                          className={`flex items-center justify-between gap-2 px-3 py-2 text-sm truncate rounded-md transition-[background-color,color,transform] duration-200 ease-[var(--motion-ease)] focus:outline-none focus:ring-2 focus:ring-white/80 ${
+                          className={`flex items-center justify-between gap-2 px-3 py-2 text-sm truncate rounded-md transition-[background-color,color] duration-200 ease-[var(--motion-ease)] focus:outline-none focus:ring-2 focus:ring-white/80 ${
                             isActive
                               ? "bg-white/[0.12] text-white"
-                              : "text-white/60 hover:translate-x-1 hover:text-white hover:bg-white/[0.08]"
+                              : "text-white/60 hover:text-white hover:bg-white/[0.08]"
                           }`}
                           title={lec.title}
                         >

@@ -14,7 +14,7 @@
  * the greeting card.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../lib/auth";
 import { ReadingRuler } from "../accessibility/ReadingRuler";
@@ -87,6 +87,12 @@ export function AppShell({ children }: AppShellProps) {
   const [a11yOpen, setA11yOpen] = useState<boolean>(false);
   const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
   const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
+  const navRef = useRef<HTMLElement | null>(null);
+  const [activeRail, setActiveRail] = useState({
+    top: 0,
+    height: 64,
+    visible: false,
+  });
   const userMenuInSidebar = location.pathname !== "/";
 
   // Recent lectures for the sidebar Notes dropdown.
@@ -102,6 +108,35 @@ export function AppShell({ children }: AppShellProps) {
   }, [location.pathname]);
 
   useReadingAidsShortcuts();
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const updateRail = () => {
+      const active = nav.querySelector<HTMLElement>(
+        '[data-sidebar-active="true"]',
+      );
+      if (!active) {
+        setActiveRail((prev) => ({ ...prev, visible: false }));
+        return;
+      }
+      setActiveRail({
+        top: active.offsetTop,
+        height: active.offsetHeight,
+        visible: true,
+      });
+    };
+
+    updateRail();
+    const observer = new ResizeObserver(updateRail);
+    observer.observe(nav);
+    window.addEventListener("resize", updateRail);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateRail);
+    };
+  }, [location.pathname, recentLectures.length, recentLoading]);
 
   // Global shortcuts: cmd/ctrl+K palette, ? overlay, g-then-X navigation.
   useEffect(() => {
@@ -237,7 +272,16 @@ export function AppShell({ children }: AppShellProps) {
           <span className="text-lg font-normal">Search</span>
         </button>
 
-        <nav className="flex-1 overflow-y-auto pb-8">
+        <nav ref={navRef} className="relative flex-1 overflow-y-auto pb-8">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 z-10 w-2 bg-[#8ee95f] transition-[height,opacity,transform] duration-300 ease-[var(--motion-ease-emphasis)]"
+            style={{
+              height: activeRail.height,
+              opacity: activeRail.visible ? 1 : 0,
+              transform: `translateY(${activeRail.top}px)`,
+            }}
+          />
           <NavGroup items={TOP_NAV} pathname={location.pathname} />
 
           {/* Notes dropdown — caret-only toggle, label routes to /courses */}
@@ -425,18 +469,13 @@ function NavRow({ to, icon: Icon, label, active }: NavRowProps) {
     <Link
       to={to as string}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex h-16 items-center gap-5 pl-7 pr-6 text-[21px] transition-[background-color,color,transform] duration-200 ease-[var(--motion-ease)] hover:translate-x-1 ${
+      data-sidebar-active={active ? "true" : undefined}
+      className={`group relative flex h-16 items-center gap-5 pl-7 pr-6 text-[21px] transition-[background-color,color] duration-200 ease-[var(--motion-ease)] ${
         active
           ? "font-bold text-white"
           : "font-normal text-white/90 hover:text-white hover:bg-white/[0.08]"
       }`}
     >
-      {active && (
-        <span
-          className="absolute left-0 top-0 bottom-0 w-2 bg-[#8ee95f]"
-          aria-hidden="true"
-        />
-      )}
       <Icon className="h-7 w-7 shrink-0" aria-hidden="true" />
       <span className="flex-1">{label}</span>
     </Link>
