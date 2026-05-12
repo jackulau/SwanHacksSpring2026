@@ -16,6 +16,7 @@ import { useAuth } from "../lib/auth";
 import { usePreferences, type Preferences } from "../lib/preferences";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
+import { AnimatedSelect } from "../components/layout/AnimatedSelect";
 import { CanvasConnect } from "../components/canvas/CanvasConnect";
 import { useCanvasSync } from "../hooks/useCanvasSync";
 import { pb } from "../lib/pocketbase";
@@ -249,19 +250,13 @@ function Select<T extends string>({
   ariaLabel,
 }: SelectProps<T>) {
   return (
-    <select
+    <AnimatedSelect<T>
       id={id}
-      aria-label={ariaLabel}
+      ariaLabel={ariaLabel}
       value={value}
-      onChange={(e) => onChange(e.target.value as T)}
-      className="bg-[var(--color-input)] border border-[var(--color-border)] text-[var(--color-text)] rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--color-primary)] min-w-44"
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
+      onChange={onChange}
+      options={options}
+    />
   );
 }
 
@@ -505,15 +500,15 @@ function AIModelSection() {
 
       <div className="space-y-4">
         <Row label="Provider" hint="Ollama runs locally with no API key needed.">
-          <select
+          <Select<LLMProvider>
+            ariaLabel="AI provider"
             value={config.provider}
-            onChange={(e) => switchProvider(e.target.value as LLMProvider)}
-            className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
-          >
-            {(Object.entries(PROVIDER_PRESETS) as [LLMProvider, typeof preset][]).map(([key, p]) => (
-              <option key={key} value={key}>{p.label}</option>
-            ))}
-          </select>
+            onChange={switchProvider}
+            options={(Object.entries(PROVIDER_PRESETS) as [
+              LLMProvider,
+              typeof preset,
+            ][]).map(([key, p]) => ({ value: key, label: p.label }))}
+          />
         </Row>
 
         {(config.provider === 'custom' || config.baseUrl !== preset.baseUrl) && (

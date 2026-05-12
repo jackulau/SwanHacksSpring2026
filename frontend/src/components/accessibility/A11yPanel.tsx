@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { usePreferences, type Preferences } from '../../lib/preferences';
+import { AnimatedSelect } from '../layout/AnimatedSelect';
 
 interface A11yPanelProps {
   isOpen: boolean;
@@ -235,18 +236,14 @@ function PanelSelect({
     <PanelRow
       label={label}
       control={
-        <select
-          aria-label={label}
+        <AnimatedSelect
+          ariaLabel={label}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="bg-[var(--color-input)] border border-[var(--color-border)] text-[var(--color-text)] rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[var(--color-primary)]"
-        >
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          onChange={onChange}
+          options={options}
+          className="min-w-36"
+          buttonClassName="min-h-9 px-2 py-1"
+        />
       }
     />
   );

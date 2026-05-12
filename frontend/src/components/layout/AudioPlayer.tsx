@@ -7,8 +7,10 @@ import {
 } from "lucide-react";
 import { useAudioPlayer } from "../../lib/audioPlayer";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { AnimatedSelect } from "./AnimatedSelect";
 
-const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+const SPEED_OPTIONS = ["0.5", "0.75", "1", "1.25", "1.5", "2"] as const;
+type SpeedOption = (typeof SPEED_OPTIONS)[number];
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -53,11 +55,6 @@ export function AudioPlayer() {
   const handleScrub = (event: React.ChangeEvent<HTMLInputElement>) => {
     const next = Number(event.target.value);
     if (!Number.isNaN(next)) seek(next);
-  };
-
-  const handleRateChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const next = Number(event.target.value);
-    if (!Number.isNaN(next)) setRate(next);
   };
 
   return (
@@ -133,18 +130,19 @@ export function AudioPlayer() {
 
       <label className="hidden sm:inline-flex items-center gap-1">
         <span className="sr-only">Playback speed</span>
-        <select
-          value={rate}
-          onChange={handleRateChange}
-          className="rounded border border-[var(--color-border)] bg-[var(--color-input)] px-1 py-0.5 font-mono text-xs text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)]"
-          aria-label="Playback speed"
-        >
-          {SPEED_OPTIONS.map((speed) => (
-            <option key={speed} value={speed}>
-              {speed}×
-            </option>
-          ))}
-        </select>
+        <AnimatedSelect<SpeedOption>
+          ariaLabel="Playback speed"
+          value={`${rate}` as SpeedOption}
+          onChange={(next) => setRate(Number(next))}
+          options={SPEED_OPTIONS.map((speed) => ({
+            value: speed,
+            label: `${speed}×`,
+          }))}
+          placement="up"
+          className="w-24"
+          buttonClassName="min-h-8 rounded-md px-2 py-1 font-mono text-xs text-[var(--color-text-muted)]"
+          menuClassName="w-28"
+        />
       </label>
 
       <button
