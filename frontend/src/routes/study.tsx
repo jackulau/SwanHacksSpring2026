@@ -82,6 +82,19 @@ function StudyHub({ userId }: { userId: string }) {
         {/* Typographic launcher rows — Things 3 / Linear style */}
         <ul className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
           <LauncherRow
+            to="/study/due"
+            label="Review due today"
+            description="Every deck, one queue"
+            meta={
+              counts === null
+                ? '…'
+                : counts.due === 0
+                  ? 'All caught up'
+                  : `${counts.due} due`
+            }
+            metaActive={counts !== null && counts.due > 0}
+          />
+          <LauncherRow
             to="/study/flashcards"
             label="Flashcards"
             description="Spaced repetition review"
@@ -116,6 +129,36 @@ function StudyHub({ userId }: { userId: string }) {
                   : `${counts.quizzes} available`
             }
             metaActive={counts !== null && counts.quizzes > 0}
+          />
+          <LauncherRow
+            to="/play"
+            label="Multiplayer"
+            description="Join a friend's quiz with a 6-character code"
+            meta="Open"
+          />
+          <LauncherRow
+            to="/sessions"
+            label="Sessions"
+            description="Hosted or joined rounds"
+            meta="History"
+          />
+          <LauncherRow
+            to="/decks"
+            label="Decks"
+            description="Per-deck stats, export, delete"
+            meta="Library"
+          />
+          <LauncherRow
+            to="/goals"
+            label="Goals"
+            description="Set and track learning targets"
+            meta="Plan"
+          />
+          <LauncherRow
+            to="/focus"
+            label="Focus"
+            description="Distraction-free pomodoro"
+            meta="25 min"
           />
         </ul>
       </div>

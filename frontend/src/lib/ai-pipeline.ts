@@ -6,6 +6,7 @@ import {
   QUIZ_GENERATION_SYSTEM,
 } from './prompts';
 import type { NoteBlock, QuizQuestion } from './types';
+import { ingestFlashcard, ingestLecture, ingestQuiz } from './knowledge/ingest';
 
 // ── LLM provider config ────────────────────────────────────────────────────
 // Supports any OpenAI-compatible endpoint: Ollama (local, no key), OpenRouter,
@@ -354,5 +355,44 @@ export async function runPipeline(lectureId: string, rawTranscript: string): Pro
     result.errors.length > 0 ? result.errors.join('; ') : undefined,
   );
 
+  // Knowledge index — fan out best-effort ingestion calls so the new
+  // lecture transcript and any auto-generated content become searchable
+  // immediately. We do this inline rather than via a PB hook because
+  // the chunker lives in the frontend; failing ingest must never demote
+  // the lecture to "error".
+  if (userId && result.errors.length === 0) {
+    void runKnowledgeIngestForLecture(userId, lectureId).catch(() => undefined);
+  }
+
   return result;
+}
+
+async function runKnowledgeIngestForLecture(
+  userId: string,
+  lectureId: string,
+): Promise<void> {
+  const lecture = await pb
+    .collection('lectures')
+    .getOne<import('./types').Lecture>(lectureId)
+    .catch(() => null);
+  if (!lecture) return;
+  const transcript = await pb
+    .collection('transcripts')
+    .getFirstListItem<import('./types').Transcript>(`lecture = "${lectureId}"`)
+    .catch(() => null);
+  await ingestLecture(userId, lecture, transcript);
+  const quizzes = await pb
+    .collection('quizzes')
+    .getFullList<import('./types').Quiz>({
+      filter: `lecture = "${lectureId}"`,
+    })
+    .catch(() => [] as import('./types').Quiz[]);
+  for (const q of quizzes) await ingestQuiz(userId, q);
+  const cards = await pb
+    .collection('flashcards')
+    .getFullList<import('./types').Flashcard>({
+      filter: `lecture = "${lectureId}"`,
+    })
+    .catch(() => [] as import('./types').Flashcard[]);
+  for (const c of cards) await ingestFlashcard(userId, c);
 }

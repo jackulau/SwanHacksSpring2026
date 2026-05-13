@@ -46,6 +46,31 @@ export default defineConfig({
     tailwindcss(),
     canvasProxy(),
   ],
+  build: {
+    // The bundle is large but reasonable to ship in one shot; keep the
+    // chunk warning floor a hair higher than rollup's default so it
+    // only fires when something genuinely surprising lands.
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        // Pull the heaviest 3rd-party families into their own chunks so
+        // users who never visit /asl don't download MediaPipe glue, and
+        // first-page hydration doesn't blow through 1.7MB. We don't try
+        // to split per-route because the TanStack Router plugin already
+        // produces lazy route chunks.
+        manualChunks: {
+          mediapipe: [
+            "@mediapipe/tasks-vision",
+            "@mediapipe/hands",
+            "@mediapipe/drawing_utils",
+          ],
+          motion: ["framer-motion"],
+          react: ["react", "react-dom"],
+          tanstack: ["@tanstack/react-router", "@tanstack/react-query"],
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     // COOP/COEP enable cross-origin isolation, which transformers.js

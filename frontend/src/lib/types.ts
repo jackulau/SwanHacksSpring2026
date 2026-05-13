@@ -132,10 +132,64 @@ export interface ImageBlock extends NoteBlockBase {
   caption?: string;
 }
 
+export interface TodoBlock extends NoteBlockBase {
+  type: "todo";
+  text: string;
+  checked: boolean;
+}
+
+export interface ToggleBlock extends NoteBlockBase {
+  type: "toggle";
+  text: string;
+  open: boolean;
+  children: NoteBlock[];
+}
+
+export interface NumberedItemBlock extends NoteBlockBase {
+  type: "numbered_item";
+  text: string;
+}
+
+export interface BulletItemBlock extends NoteBlockBase {
+  type: "bullet_item";
+  text: string;
+}
+
+export interface TableBlock extends NoteBlockBase {
+  type: "table";
+  rows: string[][];
+  hasHeader: boolean;
+}
+
+export interface MathBlock extends NoteBlockBase {
+  type: "math";
+  expression: string;
+}
+
+export interface EmbedBlock extends NoteBlockBase {
+  type: "embed";
+  url: string;
+  title?: string;
+}
+
+export interface PageRefBlock extends NoteBlockBase {
+  type: "page_ref";
+  pageId: string;
+  title: string;
+}
+
 export type NoteBlock =
   | HeadingBlock
   | ParagraphBlock
   | BulletListBlock
+  | BulletItemBlock
+  | NumberedItemBlock
+  | TodoBlock
+  | ToggleBlock
+  | TableBlock
+  | MathBlock
+  | EmbedBlock
+  | PageRefBlock
   | KeyTermBlock
   | ExampleBlock
   | CalloutBlock
@@ -230,6 +284,7 @@ export interface Lecture extends RecordModel {
   status: LectureStatus;
   error_message: string;
   recorded_at: string;
+  tags: string[];
 }
 
 export interface Transcript extends RecordModel {
@@ -284,6 +339,7 @@ export interface Quiz extends RecordModel {
   questions: QuizQuestion[];
   total_points: number;
   source: QuizSource;
+  tags: string[];
 }
 
 export interface QuizAttempt extends RecordModel {
@@ -360,6 +416,56 @@ export interface Assignment extends RecordModel {
   submission_types: string[];
 }
 
+// ──────────────────────────────────────────────
+// Note pages (rich, Notion-style standalone documents)
+// ──────────────────────────────────────────────
+
+export interface PageProperties {
+  tags?: string[];
+  status?: "draft" | "in_progress" | "done";
+  due_at?: string;
+}
+
+export interface NotePage extends RecordModel {
+  user: string;
+  title: string;
+  icon: string;
+  parent: string;
+  course: string;
+  lecture: string;
+  blocks: NoteBlock[];
+  properties: PageProperties;
+  archived: boolean;
+}
+
+export interface NoteLink extends RecordModel {
+  user: string;
+  source_page: string;
+  target_page: string;
+}
+
+export interface NoteCommentRecord extends RecordModel {
+  user: string;
+  page: string;
+  parent: string;
+  body: string;
+  resolved: boolean;
+}
+
+export interface NoteVersionRecord extends RecordModel {
+  user: string;
+  page: string;
+  blocks: NoteBlock[];
+  title: string;
+}
+
+export interface NotePresenceRecord extends RecordModel {
+  user: string;
+  page: string;
+  display_name: string;
+  last_seen: string;
+}
+
 export interface CalendarEventRecord extends RecordModel {
   user: string;
   title: string;
@@ -368,4 +474,138 @@ export interface CalendarEventRecord extends RecordModel {
   notes: string;
   color: string;
   external_href: string;
+}
+
+// ──────────────────────────────────────────────
+// Multiplayer quiz sessions
+// ──────────────────────────────────────────────
+
+export type QuizSessionState = "lobby" | "running" | "complete";
+
+export interface QuizSessionSettings {
+  question_seconds?: number;
+  speed_bonus?: boolean;
+  shuffle?: boolean;
+}
+
+export interface QuizSessionRecord extends RecordModel {
+  host_user: string;
+  quiz: string;
+  code: string;
+  state: QuizSessionState;
+  current_question_index: number;
+  started_at: string;
+  ended_at: string;
+  question_started_at: string;
+  settings: QuizSessionSettings;
+}
+
+export interface QuizSessionParticipantRecord extends RecordModel {
+  session: string;
+  user: string;
+  display_name: string;
+  score: number;
+  streak: number;
+  last_answer_at: string;
+}
+
+export interface QuizSessionAnswerRecord extends RecordModel {
+  session: string;
+  participant: string;
+  user: string;
+  question_index: number;
+  choice: number | string | boolean | null;
+  correct: boolean;
+  points_earned: number;
+  ms_to_answer: number;
+  answered_at: string;
+}
+
+// ──────────────────────────────────────────────
+// ASL segments
+// ──────────────────────────────────────────────
+
+export interface AslSegmentFrame {
+  data_url?: string;
+  ts?: number;
+}
+
+export interface AslSegmentRecord extends RecordModel {
+  user: string;
+  session_id: string;
+  transcription: string;
+  confidence: number;
+  provider: string;
+  model: string;
+  duration_ms: number;
+  frames: AslSegmentFrame[];
+  meta: Record<string, unknown>;
+  resigned: boolean;
+}
+
+// ──────────────────────────────────────────────
+// Knowledge DB (chunks + edges)
+// ──────────────────────────────────────────────
+
+export type KnowledgeSourceType =
+  | "note"
+  | "lecture_transcript"
+  | "flashcard"
+  | "quiz_question"
+  | "course_module"
+  | "calendar_event"
+  | "asl_segment"
+  | "file";
+
+export interface KnowledgeChunkRecord extends RecordModel {
+  user: string;
+  source_type: KnowledgeSourceType;
+  source_id: string;
+  section: string;
+  title: string;
+  text: string;
+  tokens: number;
+  embedding: number[] | null;
+  meta: Record<string, unknown>;
+  created_from_at: string;
+}
+
+export type KnowledgeEdgeKind = "mentions" | "derived_from" | "same_source";
+
+// ──────────────────────────────────────────────
+// Course modules
+// ──────────────────────────────────────────────
+
+export interface ChecklistItem {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+export interface CourseModuleRecord extends RecordModel {
+  user: string;
+  course: string;
+  title: string;
+  description: string;
+  sort_index: number;
+  checklist: ChecklistItem[];
+  done: boolean;
+}
+
+export interface GoalRecord extends RecordModel {
+  user: string;
+  title: string;
+  description: string;
+  target_date: string;
+  completed: boolean;
+  completed_at: string;
+  meta: Record<string, unknown>;
+}
+
+export interface KnowledgeEdgeRecord extends RecordModel {
+  user: string;
+  from_chunk: string;
+  to_chunk: string;
+  kind: KnowledgeEdgeKind;
+  weight: number;
 }

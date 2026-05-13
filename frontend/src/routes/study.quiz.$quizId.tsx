@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { ArrowLeft, FileQuestion } from "lucide-react";
+import { ArrowLeft, FileQuestion, Layers, Users } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { flashcardsFromQuiz } from "../lib/generate";
+import { toast } from "../lib/toasts";
 import { useAuth } from "../lib/auth";
 import { AppShell } from "../components/layout/AppShell";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -138,25 +141,48 @@ function QuizPage() {
     <AppShell>
       <PageHeader title={quiz.title} eyebrow="Quiz" />
       <div className="px-6 lg:px-8 pt-4 pb-8 max-w-2xl mx-auto">
-        <button
-          onClick={() => {
-            // Explicit `from=` (passed by lecture detail) wins over the
-            // implicit `quiz.lecture` so the user lands wherever they came
-            // from — the lecture detail's tab they were on, not the
-            // generic lecture page.
-            if (from) {
-              navigate({ to: from });
-            } else if (quiz.lecture) {
-              navigate({ to: "/lectures/$lectureId", params: { lectureId: quiz.lecture } });
-            } else {
-              navigate({ to: "/study" });
-            }
-          }}
-          className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" aria-hidden="true" />{" "}
-          {from || quiz.lecture ? "Back to lecture" : "Back to study"}
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => {
+              if (quiz.lecture) {
+                navigate({ to: "/lectures/$lectureId", params: { lectureId: quiz.lecture } });
+              } else {
+                navigate({ to: "/study" });
+              }
+            }}
+            className="inline-flex items-center gap-1 h-8 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          >
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to {quiz.lecture ? "lecture" : "study"}
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const out = await flashcardsFromQuiz(quiz.id);
+                  toast.success(
+                    `Made ${out.cardsCreated} card${out.cardsCreated === 1 ? "" : "s"}`,
+                    `Deck: ${out.deckName}`,
+                  );
+                } catch {
+                  toast.error("Couldn't make flashcards", "Try again later.");
+                }
+              }}
+              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs font-medium px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-raised)] hover:border-[var(--color-primary)]"
+            >
+              <Layers className="w-3.5 h-3.5" aria-hidden="true" />
+              Make flashcards
+            </button>
+            <Link
+              to="/study/quiz/$quizId/multiplayer"
+              params={{ quizId: quiz.id }}
+              className="inline-flex items-center gap-1.5 border border-[var(--color-border)] text-[var(--color-text)] text-xs font-medium px-2.5 h-8 rounded-md hover:bg-[var(--color-surface-raised)] hover:border-[var(--color-primary)]"
+            >
+              <Users className="w-3.5 h-3.5" aria-hidden="true" />
+              Play with friends
+            </Link>
+          </div>
+        </div>
         <QuizRunner
           questions={(quiz.questions as QuizQuestion[]) || []}
           onComplete={handleComplete}

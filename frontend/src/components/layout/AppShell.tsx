@@ -22,11 +22,14 @@ import { FocusMode } from "../accessibility/FocusMode";
 import { A11yPanel } from "../accessibility/A11yPanel";
 import { AudioPlayer } from "./AudioPlayer";
 import { CommandPalette } from "./CommandPalette";
+import { QuickCapture } from "./QuickCapture";
 import { ShortcutsOverlay } from "./ShortcutsOverlay";
+import { Toaster } from "./Toaster";
 import { useReadingAidsShortcuts } from "../../hooks/useReadingAidsShortcuts";
 import { ConvergeLogo } from "./ConvergeLogo";
 import { RecentNotesDropdown } from "../dashboard/RecentNotesDropdown";
 import { pb } from "../../lib/pocketbase";
+import { useInstallPrompt, useOnlineStatus } from "../../lib/pwa";
 import type { Lecture } from "../../lib/types";
 import {
   Home,
@@ -40,6 +43,10 @@ import {
   Calendar,
   LogOut,
   Search,
+  FileText,
+  Download,
+  CloudOff,
+  Sparkles,
 } from "lucide-react";
 
 function isMacPlatform(): boolean {
@@ -60,6 +67,7 @@ interface NavItem {
 const TOP_NAV: readonly NavItem[] = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/capture", icon: Mic, label: "Record" },
+  { to: "/notes", icon: FileText, label: "Notes" },
 ];
 
 const BOTTOM_NAV: readonly NavItem[] = [
@@ -83,10 +91,15 @@ export function AppShell({ children }: AppShellProps) {
   const [a11yOpen, setA11yOpen] = useState<boolean>(false);
   const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
   const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState<boolean>(false);
 
   // Recent lectures for the sidebar Notes dropdown.
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
   const [recentLoading, setRecentLoading] = useState<boolean>(true);
+
+  // PWA: install prompt + online status.
+  const { canInstall, prompt: promptInstall } = useInstallPrompt();
+  const online = useOnlineStatus();
 
   // Reset main scroll on route change so users don't land mid-page after
   // navigating from a long page like a transcript.
@@ -121,6 +134,14 @@ export function AppShell({ children }: AppShellProps) {
         setPaletteOpen((o) => !o);
         return;
       }
+      // Cmd/Ctrl+J opens the quick-capture composer. Like the palette,
+      // it should fire even while typing so users can stash a thought
+      // without breaking flow.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        setQuickCaptureOpen((o) => !o);
+        return;
+      }
       if (isTyping(e.target)) return;
 
       // ? opens shortcuts (Shift+/ on US layouts).
@@ -142,6 +163,20 @@ export function AppShell({ children }: AppShellProps) {
           r: "/capture",
           t: "/study/planner",
           o: "/courses",
+          n: "/notes",
+          d: "/today",
+          k: "/knowledge",
+          a: "/asl",
+          l: "/lab",
+          v: "/voice",
+          p: "/play",
+          x: "/activity",
+          y: "/today",
+          j: "/journal",
+          f: "/focus",
+          m: "/me",
+          q: "/sandbox",
+          b: "/backup",
         };
         const target = map[k];
         if (target) {
@@ -222,12 +257,28 @@ export function AppShell({ children }: AppShellProps) {
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          className="mx-3 mb-3 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
+          className="mx-3 mb-2 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
           aria-label="Open command palette"
         >
           <span className="flex-1 text-left">Search or jump…</span>
           <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/[0.12] text-white/80 border border-white/10">
             {isMacPlatform() ? "⌘K" : "Ctrl K"}
+          </kbd>
+        </button>
+
+        {/* Quick capture opener — sibling to the palette button. Kept
+         * subtle (matching weight) so it doesn't fight the primary
+         * search affordance for attention. */}
+        <button
+          type="button"
+          onClick={() => setQuickCaptureOpen(true)}
+          className="mx-3 mb-3 flex items-center gap-2 px-2.5 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white text-xs transition-colors"
+          aria-label="Open quick capture"
+        >
+          <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+          <span className="flex-1 text-left">Quick capture…</span>
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/[0.12] text-white/80 border border-white/10">
+            {isMacPlatform() ? "⌘J" : "Ctrl J"}
           </kbd>
         </button>
 
@@ -259,6 +310,8 @@ export function AppShell({ children }: AppShellProps) {
             <span className="font-semibold tracking-tight">Converge</span>
           </Link>
           <div className="flex items-center gap-2">
+            {!online && <OfflinePill />}
+            {canInstall && <InstallButton onClick={() => void promptInstall()} />}
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
@@ -279,7 +332,9 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Floating user menu (desktop) — sits on top of the page header band */}
-        <div className="hidden lg:block absolute top-4 right-6 z-30">
+        <div className="hidden lg:flex absolute top-4 right-6 z-30 items-center gap-2">
+          {!online && <OfflinePill />}
+          {canInstall && <InstallButton onClick={() => void promptInstall()} />}
           <UserMenu
             email={user?.email}
             displayName={user?.display_name}
@@ -318,8 +373,18 @@ export function AppShell({ children }: AppShellProps) {
           setPaletteOpen(false);
           setShortcutsOpen(true);
         }}
+        onOpenQuickCapture={() => {
+          setPaletteOpen(false);
+          setQuickCaptureOpen(true);
+        }}
+      />
+      <QuickCapture
+        open={quickCaptureOpen}
+        onClose={() => setQuickCaptureOpen(false)}
+        userId={user?.id}
       />
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <Toaster />
 
       {/* Floating accessibility button */}
       <button
@@ -535,5 +600,38 @@ function UserMenu({
         </>
       )}
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* PWA affordances                                                        */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function InstallButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-xs font-medium shadow-sm transition-colors"
+      aria-label="Install Converge as an app"
+      title="Install Converge"
+    >
+      <Download className="w-3.5 h-3.5" aria-hidden="true" />
+      <span>Install</span>
+    </button>
+  );
+}
+
+function OfflinePill() {
+  return (
+    <span
+      role="status"
+      aria-live="polite"
+      className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-medium border border-amber-500/30"
+      title="You're offline. Previously viewed pages are still available."
+    >
+      <CloudOff className="w-3.5 h-3.5" aria-hidden="true" />
+      <span>Offline</span>
+    </span>
   );
 }

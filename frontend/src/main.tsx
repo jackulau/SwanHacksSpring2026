@@ -9,7 +9,7 @@ import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "./lib/auth";
 import { PreferencesProvider } from "./lib/preferences";
 import { AudioPlayerProvider } from "./lib/audioPlayer";
-import { ToastProvider } from "./lib/toast";
+import { registerServiceWorker } from "./lib/pwa";
 
 function RouteErrorFallback({ error, reset }: ErrorComponentProps) {
   const message = error instanceof Error ? error.message : "Something went wrong.";
@@ -80,6 +80,9 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
+
+// Register the PWA service worker (no-op in dev) before mounting React.
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <AuthProvider>

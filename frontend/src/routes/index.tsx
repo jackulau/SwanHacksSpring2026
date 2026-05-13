@@ -8,6 +8,7 @@ import { useStudyStreak } from "../hooks/useStudyStreak";
 import { HeroHeader } from "../components/dashboard/HeroHeader";
 import { QuickActions } from "../components/dashboard/QuickActions";
 import { RecentNotesDropdown } from "../components/dashboard/RecentNotesDropdown";
+import { SyllabusDrop } from "../components/dashboard/SyllabusDrop";
 import { UpcomingClasses } from "../components/dashboard/UpcomingClasses";
 import { AIConnectionBanner } from "../components/dashboard/AIConnectionBanner";
 import { OnboardingChecklist } from "../components/dashboard/OnboardingChecklist";
@@ -672,6 +673,10 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
             loading={loading}
             variant="card"
           />
+
+          <hr className="border-[var(--color-border)]" />
+
+          <SyllabusDrop />
         </div>
       </div>
     </div>

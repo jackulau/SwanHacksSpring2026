@@ -15,10 +15,23 @@ import {
   Plus,
   Sparkles,
   Keyboard,
+  Brain,
+  Hand,
+  Users,
+  Download,
+  History,
+  Activity,
+  TestTube,
+  Tag as TagIcon,
+  Upload,
+  Dice5,
+  BarChart3,
+  BookmarkPlus,
+  Award,
 } from "lucide-react";
 import { pb } from "../../lib/pocketbase";
 import { useAuth } from "../../lib/auth";
-import type { Lecture, Course, Assignment } from "../../lib/types";
+import type { Lecture, Course, Assignment, NotePage } from "../../lib/types";
 
 function isMacPlatform(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -30,7 +43,7 @@ interface CommandItem {
   label: string;
   hint?: string;
   icon: typeof Home;
-  group: "Go" | "Action" | "Lecture" | "Course" | "Assignment";
+  group: "Go" | "Action" | "Lecture" | "Course" | "Assignment" | "Note";
   /** Searchable keywords. Concatenated with label for matching. */
   keywords?: string;
   run: () => void;
@@ -40,6 +53,7 @@ interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
   onShowShortcuts?: () => void;
+  onOpenQuickCapture?: () => void;
 }
 
 /**
@@ -47,7 +61,12 @@ interface CommandPaletteProps {
  * substring match, keyboard-first. The first non-trivial keystroke wins
  * focus; arrow keys navigate; Enter executes.
  */
-export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPaletteProps) {
+export function CommandPalette({
+  open,
+  onClose,
+  onShowShortcuts,
+  onOpenQuickCapture,
+}: CommandPaletteProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [query, setQuery] = useState("");
@@ -55,6 +74,7 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [notePages, setNotePages] = useState<NotePage[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
@@ -89,11 +109,16 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
       pb
         .collection("assignments")
         .getFullList<Assignment>({ filter: `user = "${user.id}"`, sort: "due_at", requestKey: "cmdk-asg" }),
+      pb
+        .collection("note_pages")
+        .getList<NotePage>(1, 30, { filter: `user = "${user.id}" && archived = false`, sort: "-updated", requestKey: "cmdk-notes" })
+        .then((r) => r.items),
     ]).then((res) => {
       if (cancelled) return;
       if (res[0].status === "fulfilled") setLectures(res[0].value);
       if (res[1].status === "fulfilled") setCourses(res[1].value);
       if (res[2].status === "fulfilled") setAssignments(res[2].value);
+      if (res[3].status === "fulfilled") setNotePages(res[3].value);
     });
     return () => {
       cancelled = true;
@@ -105,11 +130,45 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
       // Navigation — always available
       { id: "go-home", label: "Go to Home", icon: Home, group: "Go", run: () => navigate({ to: "/" }) },
       { id: "go-record", label: "Start a recording", keywords: "record capture audio mic", icon: Mic, group: "Action", run: () => navigate({ to: "/capture" }) },
+      { id: "go-voice", label: "Voice note", keywords: "dictate speech transcribe microphone speak", icon: Mic, group: "Action", run: () => navigate({ to: "/voice" }) },
       { id: "go-courses", label: "Go to Courses", icon: BookOpen, group: "Go", run: () => navigate({ to: "/courses" }) },
+      { id: "go-notes", label: "Go to Notes", keywords: "pages docs writing", icon: FileText, group: "Go", run: () => navigate({ to: "/notes" }) },
+      { id: "act-new-note", label: "New note page", keywords: "page create blank", icon: Plus, group: "Action", run: () => navigate({ to: "/notes" }) },
+      { id: "act-quick-capture", label: "Quick capture", hint: isMacPlatform() ? "⌘J" : "Ctrl J", keywords: "inbox thought scratch jot stash idea fast", icon: Sparkles, group: "Action", run: () => onOpenQuickCapture?.() },
       { id: "go-calendar", label: "Go to Calendar", icon: Calendar, group: "Go", run: () => navigate({ to: "/calendar" }) },
       { id: "go-study", label: "Go to Study", keywords: "flashcards quiz", icon: Glasses, group: "Go", run: () => navigate({ to: "/study" }) },
+      { id: "go-due", label: "Review due today", keywords: "due cards spaced repetition every deck unified queue", icon: Glasses, group: "Action", run: () => navigate({ to: "/study/due" }) },
       { id: "go-flashcards", label: "Review flashcards", keywords: "due cards spaced repetition", icon: Glasses, group: "Action", run: () => navigate({ to: "/study/flashcards" }) },
       { id: "go-planner", label: "To-do / planner", keywords: "tasks assignments", icon: ListTodo, group: "Go", run: () => navigate({ to: "/study/planner" }) },
+      { id: "go-knowledge", label: "Search knowledge", keywords: "find chunks library", icon: Brain, group: "Go", run: () => navigate({ to: "/knowledge" }) },
+      { id: "go-knowledge-ask", label: "Ask your knowledge", keywords: "ask qa rag question chat", icon: Sparkles, group: "Action", run: () => navigate({ to: "/knowledge/ask" }) },
+      { id: "go-asl", label: "ASL chat", keywords: "sign language webcam", icon: Hand, group: "Go", run: () => navigate({ to: "/asl" }) },
+      { id: "go-play", label: "Join a multiplayer game", keywords: "code multiplayer party", icon: Users, group: "Action", run: () => navigate({ to: "/play" }) },
+      { id: "go-sessions", label: "Multiplayer sessions", keywords: "history hosted joined games rounds", icon: History, group: "Go", run: () => navigate({ to: "/sessions" }) },
+      { id: "go-export", label: "Export decks and courses", keywords: "download anki json bundle markdown", icon: Download, group: "Action", run: () => navigate({ to: "/export" }) },
+      { id: "go-activity", label: "Activity feed", keywords: "recent everything notes lectures", icon: Activity, group: "Go", run: () => navigate({ to: "/activity" }) },
+      { id: "go-digest", label: "Weekly digest", keywords: "summary recap llm week recommendations", icon: Sparkles, group: "Go", run: () => navigate({ to: "/digest" }) },
+      { id: "go-import", label: "Import markdown", keywords: "import md paste upload note file", icon: Upload, group: "Action", run: () => navigate({ to: "/import" }) },
+      { id: "go-backup", label: "Backup library", keywords: "export json restore everything", icon: Download, group: "Action", run: () => navigate({ to: "/backup" }) },
+      { id: "go-random", label: "Random pick", keywords: "shuffle dice card note quiz", icon: Dice5, group: "Action", run: () => navigate({ to: "/random" }) },
+      { id: "go-lab", label: "Lab — system status", keywords: "providers diagnostics counts collections", icon: TestTube, group: "Go", run: () => navigate({ to: "/lab" }) },
+      { id: "go-tags", label: "Browse tags", keywords: "label categorize filter", icon: TagIcon, group: "Go", run: () => navigate({ to: "/tags" }) },
+      { id: "go-onboarding", label: "Onboarding tour", keywords: "tour welcome introduction help getting-started", icon: Sparkles, group: "Go", run: () => navigate({ to: "/onboarding" }) },
+      { id: "go-focus", label: "Focus mode", keywords: "pomodoro fullscreen distraction-free timer", icon: ListTodo, group: "Action", run: () => navigate({ to: "/focus" }) },
+      { id: "go-decks-import", label: "Import deck", keywords: "import csv anki json deck", icon: Upload, group: "Action", run: () => navigate({ to: "/decks/import" }) },
+      { id: "go-journal", label: "Journal", keywords: "diary daily entry today reflect", icon: FileText, group: "Action", run: () => navigate({ to: "/journal" }) },
+      { id: "go-sandbox", label: "Sandbox", keywords: "playground generate paste text scratch", icon: Sparkles, group: "Action", run: () => navigate({ to: "/sandbox" }) },
+      { id: "go-concepts", label: "Extract concepts", keywords: "key terms definitions glossary llm important", icon: BookmarkPlus, group: "Action", run: () => navigate({ to: "/concepts" }) },
+      { id: "go-me", label: "Account", keywords: "profile me settings logout sign out", icon: Settings, group: "Go", run: () => navigate({ to: "/me" }) },
+      { id: "go-shortcuts", label: "Keyboard shortcuts page", keywords: "keys hotkey help reference", icon: Keyboard, group: "Go", run: () => navigate({ to: "/shortcuts" }) },
+      { id: "go-goals", label: "Goals", keywords: "objective target plan season", icon: Sparkles, group: "Go", run: () => navigate({ to: "/goals" }) },
+      { id: "go-privacy", label: "Privacy", keywords: "data storage providers backup legal", icon: Settings, group: "Go", run: () => navigate({ to: "/privacy" }) },
+      { id: "go-assignments", label: "All assignments", keywords: "homework tasks canvas due", icon: ListTodo, group: "Go", run: () => navigate({ to: "/assignments" }) },
+      { id: "go-templates", label: "Note templates", keywords: "scaffold skeleton starter", icon: FileText, group: "Go", run: () => navigate({ to: "/templates" }) },
+      { id: "go-today", label: "Today", keywords: "dashboard daily focus today", icon: Sparkles, group: "Go", run: () => navigate({ to: "/today" }) },
+      { id: "go-decks", label: "Decks", keywords: "flashcard library deck stats", icon: Glasses, group: "Go", run: () => navigate({ to: "/decks" }) },
+      { id: "go-stats", label: "Stats", keywords: "analytics charts usage progress hours streak", icon: BarChart3, group: "Go", run: () => navigate({ to: "/stats" }) },
+      { id: "go-achievements", label: "Achievements", keywords: "badges unlock progress milestones trophies awards", icon: Award, group: "Go", run: () => navigate({ to: "/achievements" }) },
       { id: "go-trash", label: "Trash", icon: Trash2, group: "Go", run: () => navigate({ to: "/trash" }) },
       { id: "go-settings", label: "Settings", icon: Settings, group: "Go", run: () => navigate({ to: "/settings" }) },
       { id: "go-a11y", label: "Accessibility settings", keywords: "ruler focus mode contrast tts", icon: Accessibility, group: "Go", run: () => navigate({ to: "/settings/accessibility" }) },
@@ -150,12 +209,23 @@ export function CommandPalette({ open, onClose, onShowShortcuts }: CommandPalett
         group: "Assignment",
         run: () => {
           if (a.canvas_url) window.open(a.canvas_url, "_blank", "noopener,noreferrer");
-          else navigate({ to: "/study/planner" });
+          else navigate({ to: "/assignments/$assignmentId", params: { assignmentId: a.id } });
         },
       });
     }
+    for (const p of notePages.slice(0, 30)) {
+      list.push({
+        id: `np-${p.id}`,
+        label: p.title || "Untitled",
+        hint: p.updated ? new Date(p.updated).toLocaleDateString() : undefined,
+        keywords: `${p.title ?? ""} ${(p.properties?.tags ?? []).join(" ")}`,
+        icon: FileText,
+        group: "Note",
+        run: () => navigate({ to: "/notes/$pageId", params: { pageId: p.id } }),
+      });
+    }
     return list;
-  }, [lectures, courses, assignments, navigate, onShowShortcuts]);
+  }, [lectures, courses, assignments, notePages, navigate, onShowShortcuts, onOpenQuickCapture]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

@@ -17,9 +17,7 @@ import { useSignLanguage } from "../hooks/useSignLanguage";
 import { useWordSignRecognition } from "../hooks/useWordSignRecognition";
 import { pb } from "../lib/pocketbase";
 import { runPipeline } from "../lib/ai-pipeline";
-import type { Course } from "../lib/types";
-
-const LAST_COURSE_KEY = "converge_last_capture_course";
+import { toast } from "../lib/toasts";
 
 export const Route = createFileRoute("/capture")({
   component: CapturePage,
@@ -306,13 +304,8 @@ function RecordingInterface() {
 
         if (!fullTranscript) {
           setPipelineStage('error');
-          setPipelineError(
-            buildNoSpeechMessage({
-              durationSecs: audio.duration,
-              modelLoading: stt.modelLoading,
-              modelProgress: stt.modelProgress,
-            }),
-          );
+          setPipelineError('No speech detected in recording.');
+          toast.error('No speech detected', 'Try recording again.');
           return;
         }
 
@@ -322,12 +315,21 @@ function RecordingInterface() {
         if (result.errors.length > 0) {
           setPipelineStage('error');
           setPipelineError(result.errors.join('; '));
+          toast.error('Lecture pipeline errored', result.errors[0]);
         } else {
           setPipelineStage('done');
+          toast.success(
+            'Lecture ready',
+            'Notes, flashcards, and a quiz are ready to review.',
+          );
         }
       } catch (e) {
         setPipelineStage('error');
         setPipelineError(e instanceof Error ? e.message : 'Processing failed');
+        toast.error(
+          'Processing failed',
+          e instanceof Error ? e.message : undefined,
+        );
       }
     };
 
