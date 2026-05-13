@@ -49,6 +49,7 @@ const PROBE_HOOKS = [
   "/api/llm/anthropic-stream",
   "/api/llm/openai",
   "/api/llm/openai-stream",
+  "/api/llm/google",
   "/api/knowledge/ask",
 ];
 

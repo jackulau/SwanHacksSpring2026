@@ -7,8 +7,10 @@
 // Configure via env (loaded from backend/.env by dev.sh):
 //   ANTHROPIC_API_KEY
 //   OPENAI_API_KEY
+//   GEMINI_API_KEY        (also used by asl-vlm.pb.js)
 //   OPENAI_MODEL          (optional, default gpt-5)
 //   ANTHROPIC_MODEL       (optional, default claude-opus-4-7)
+//   GEMINI_LLM_MODEL      (optional, default gemini-2.0-flash)
 //   ANTHROPIC_VISION_MODEL (optional, default claude-opus-4-7)
 //   OPENAI_VISION_MODEL    (optional, default gpt-5)
 //
@@ -143,6 +145,89 @@ routerAdd("POST", "/api/llm/openai", (e) => {
     }
     const data = JSON.parse(res.body);
     const text = data?.choices?.[0]?.message?.content ?? "";
+    return e.json(200, { text });
+  } catch (err) {
+    return e.json(502, { error: String(err) });
+  }
+});
+
+// ───────────── Google Gemini chat ─────────────
+//
+// Forwards to Gemini's generateContent endpoint. Uses the same GEMINI_API_KEY
+// that powers the ASL vision hook so a single Google AI Studio key covers
+// both LLM and VLM features.
+routerAdd("POST", "/api/llm/google", (e) => {
+  const info = e.requestInfo();
+  if (!info || !info.auth) {
+    return e.json(401, { error: "auth required" });
+  }
+  const apiKey = $os.getenv("GEMINI_API_KEY");
+  if (!apiKey) {
+    return e.json(503, { error: "GEMINI_API_KEY not configured" });
+  }
+  const model = $os.getenv("GEMINI_LLM_MODEL") || "gemini-2.0-flash";
+
+  const body = info.body || {};
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  if (messages.length === 0) {
+    return e.json(400, { error: "messages[] required" });
+  }
+  const maxTokens = Number(body.max_tokens) > 0 ? Number(body.max_tokens) : 1024;
+  const temperature =
+    typeof body.temperature === "number" ? body.temperature : 0.7;
+
+  // Gemini puts the system message in `systemInstruction` and uses roles
+  // "user"/"model" (not "assistant") in `contents[]`.
+  let systemText = "";
+  const contents = [];
+  for (const m of messages) {
+    if (m.role === "system") {
+      systemText = systemText
+        ? `${systemText}\n\n${m.content}`
+        : String(m.content || "");
+      continue;
+    }
+    contents.push({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: String(m.content || "") }],
+    });
+  }
+
+  const generationConfig = {
+    maxOutputTokens: Math.min(8192, maxTokens),
+    temperature,
+  };
+  if (body.json) {
+    generationConfig.responseMimeType = "application/json";
+  }
+
+  const payload = { contents, generationConfig };
+  if (systemText) {
+    payload.systemInstruction = { parts: [{ text: systemText }] };
+  }
+
+  const targetModel = body.model || model;
+  try {
+    const res = $http.send({
+      method: "POST",
+      url:
+        "https://generativelanguage.googleapis.com/v1beta/models/" +
+        targetModel +
+        ":generateContent?key=" +
+        apiKey,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      timeout: 60,
+    });
+    if (res.statusCode >= 400) {
+      return e.json(res.statusCode, {
+        error: "google upstream",
+        detail: res.body,
+      });
+    }
+    const data = JSON.parse(res.body);
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const text = parts.map((p) => p.text || "").join("");
     return e.json(200, { text });
   } catch (err) {
     return e.json(502, { error: String(err) });
@@ -554,10 +639,11 @@ routerAdd("POST", "/api/knowledge/ask", (e) => {
     },
   ];
 
-  // Prefer Anthropic, then OpenAI, then 503 stub.
+  // Prefer Anthropic, then OpenAI, then Gemini, then 503 stub.
   const ant = $os.getenv("ANTHROPIC_API_KEY");
   const oai = $os.getenv("OPENAI_API_KEY");
-  const apiKey = ant || oai;
+  const gem = $os.getenv("GEMINI_API_KEY");
+  const apiKey = ant || oai || gem;
   if (!apiKey) {
     return e.json(503, { error: "no LLM provider configured" });
   }
@@ -598,28 +684,64 @@ routerAdd("POST", "/api/knowledge/ask", (e) => {
         .join("\n");
       return e.json(200, { answer: text });
     }
+    if (oai) {
+      const res = $http.send({
+        method: "POST",
+        url: "https://api.openai.com/v1/chat/completions",
+        headers: {
+          Authorization: "Bearer " + oai,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: $os.getenv("OPENAI_MODEL") || "gpt-5",
+          max_tokens: 800,
+          messages,
+        }),
+        timeout: 60,
+      });
+      if (res.statusCode >= 400) {
+        return e.json(res.statusCode, {
+          error: "openai upstream",
+          detail: res.body,
+        });
+      }
+      const data = JSON.parse(res.body);
+      const answer = data?.choices?.[0]?.message?.content ?? "";
+      return e.json(200, { answer });
+    }
+    // Gemini fallback.
+    const gemModel = $os.getenv("GEMINI_LLM_MODEL") || "gemini-2.0-flash";
     const res = $http.send({
       method: "POST",
-      url: "https://api.openai.com/v1/chat/completions",
-      headers: {
-        Authorization: "Bearer " + oai,
-        "Content-Type": "application/json",
-      },
+      url:
+        "https://generativelanguage.googleapis.com/v1beta/models/" +
+        gemModel +
+        ":generateContent?key=" +
+        gem,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: $os.getenv("OPENAI_MODEL") || "gpt-5",
-        max_tokens: 800,
-        messages,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: `Question: ${question}\n\nSources:\n${sourcesBlock}` },
+            ],
+          },
+        ],
+        systemInstruction: { parts: [{ text: prompt }] },
+        generationConfig: { maxOutputTokens: 800, temperature: 0.4 },
       }),
       timeout: 60,
     });
     if (res.statusCode >= 400) {
       return e.json(res.statusCode, {
-        error: "openai upstream",
+        error: "google upstream",
         detail: res.body,
       });
     }
     const data = JSON.parse(res.body);
-    const answer = data?.choices?.[0]?.message?.content ?? "";
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const answer = parts.map((p) => p.text || "").join("");
     return e.json(200, { answer });
   } catch (err) {
     return e.json(502, { error: String(err) });

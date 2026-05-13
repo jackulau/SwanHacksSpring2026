@@ -59,11 +59,17 @@ export interface LlmProvider {
   ): AsyncIterable<string>;
 }
 
-export type LlmProviderId = "stub" | "anthropic" | "openai" | "ollama";
+export type LlmProviderId =
+  | "stub"
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "ollama";
 
 export const ALL_LLM_PROVIDER_IDS: LlmProviderId[] = [
   "anthropic",
   "openai",
+  "google",
   "ollama",
   "stub",
 ];
@@ -597,6 +603,65 @@ export class OpenAIProvider implements LlmProvider {
 }
 
 /**
+ * Google Gemini provider — POSTs to /api/llm/google which forwards to
+ * Gemini's generateContent endpoint. Same hook pattern as Anthropic/OpenAI;
+ * the server reads GEMINI_API_KEY (the same key that powers ASL vision).
+ * No streaming hook is deployed yet, so completeStream falls back to a
+ * one-shot complete() yield.
+ */
+export class GoogleProvider implements LlmProvider {
+  readonly id = "google" as const;
+  readonly model: string;
+
+  constructor(model = "gemini-2.0-flash") {
+    this.model = model;
+  }
+
+  async isAvailable(): Promise<boolean> {
+    try {
+      const res = await fetch("/api/llm/google", { method: "POST" });
+      return res.status !== 404 && res.status !== 503;
+    } catch {
+      return false;
+    }
+  }
+
+  async complete(
+    messages: LlmMessage[],
+    opts?: LlmCompleteOptions,
+  ): Promise<LlmCompletion> {
+    const t0 = performance.now();
+    const res = await fetch("/api/llm/google", {
+      method: "POST",
+      headers: pbAuthedHeaders(),
+      body: JSON.stringify({
+        model: this.model,
+        messages,
+        max_tokens: opts?.maxTokens ?? 2048,
+        temperature: opts?.temperature ?? 0.4,
+        json: opts?.json ?? false,
+      }),
+      signal: opts?.abortSignal,
+    });
+    if (!res.ok) throw new Error(`google: HTTP ${res.status}`);
+    const data = (await res.json()) as ProviderHttpResponse;
+    return {
+      text: data.text ?? "",
+      json: opts?.json ? safeJsonParse(data.text ?? "") : undefined,
+      latencyMs: performance.now() - t0,
+    };
+  }
+
+  async *completeStream(
+    messages: LlmMessage[],
+    opts?: LlmCompleteOptions,
+  ): AsyncIterable<string> {
+    const full = await this.complete(messages, opts);
+    if (full.text) yield full.text;
+  }
+}
+
+/**
  * Ollama provider — talks directly to a locally-running daemon at
  * http://localhost:11434/api/chat. No API key needed; the user just has
  * to be running `ollama serve` with a model pulled. We probe with a HEAD
@@ -739,6 +804,9 @@ export async function resolveProvider(
     }
   };
   push(preferred);
+  push("anthropic");
+  push("openai");
+  push("google");
   push("ollama");
   push("stub");
   for (const id of ordered) {
@@ -758,6 +826,8 @@ function providerFor(id: LlmProviderId): LlmProvider {
       return new AnthropicProvider();
     case "openai":
       return new OpenAIProvider();
+    case "google":
+      return new GoogleProvider();
     case "ollama":
       return new OllamaProvider();
     case "stub":
