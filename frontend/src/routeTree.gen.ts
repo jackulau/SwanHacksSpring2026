@@ -46,6 +46,7 @@ import { Route as AslRouteImport } from './routes/asl'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as NotesIndexRouteImport } from './routes/notes.index'
 import { Route as TagsTagRouteImport } from './routes/tags.$tag'
 import { Route as StudyPlannerRouteImport } from './routes/study.planner'
 import { Route as StudyFlashcardsRouteImport } from './routes/study.flashcards'
@@ -249,6 +250,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotesIndexRoute = NotesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => NotesRoute,
+} as any)
 const TagsTagRoute = TagsTagRouteImport.update({
   id: '/$tag',
   path: '/$tag',
@@ -387,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
   '/tags/$tag': typeof TagsTagRoute
+  '/notes/': typeof NotesIndexRoute
   '/courses/$courseId/modules': typeof CoursesCourseIdModulesRoute
   '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
@@ -414,7 +421,6 @@ export interface FileRoutesByTo {
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
-  '/notes': typeof NotesRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/privacy': typeof PrivacyRoute
@@ -443,6 +449,7 @@ export interface FileRoutesByTo {
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
   '/tags/$tag': typeof TagsTagRoute
+  '/notes': typeof NotesIndexRoute
   '/courses/$courseId/modules': typeof CoursesCourseIdModulesRoute
   '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
@@ -500,6 +507,7 @@ export interface FileRoutesById {
   '/study/flashcards': typeof StudyFlashcardsRoute
   '/study/planner': typeof StudyPlannerRoute
   '/tags/$tag': typeof TagsTagRoute
+  '/notes/': typeof NotesIndexRoute
   '/courses/$courseId/modules': typeof CoursesCourseIdModulesRoute
   '/courses/$courseId/search': typeof CoursesCourseIdSearchRoute
   '/study/quiz/$quizId': typeof StudyQuizQuizIdRouteWithChildren
@@ -558,6 +566,7 @@ export interface FileRouteTypes {
     | '/study/flashcards'
     | '/study/planner'
     | '/tags/$tag'
+    | '/notes/'
     | '/courses/$courseId/modules'
     | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
@@ -585,7 +594,6 @@ export interface FileRouteTypes {
     | '/lab'
     | '/login'
     | '/me'
-    | '/notes'
     | '/onboarding'
     | '/play'
     | '/privacy'
@@ -614,6 +622,7 @@ export interface FileRouteTypes {
     | '/study/flashcards'
     | '/study/planner'
     | '/tags/$tag'
+    | '/notes'
     | '/courses/$courseId/modules'
     | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
@@ -670,6 +679,7 @@ export interface FileRouteTypes {
     | '/study/flashcards'
     | '/study/planner'
     | '/tags/$tag'
+    | '/notes/'
     | '/courses/$courseId/modules'
     | '/courses/$courseId/search'
     | '/study/quiz/$quizId'
@@ -979,6 +989,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notes/': {
+      id: '/notes/'
+      path: '/'
+      fullPath: '/notes/'
+      preLoaderRoute: typeof NotesIndexRouteImport
+      parentRoute: typeof NotesRoute
+    }
     '/tags/$tag': {
       id: '/tags/$tag'
       path: '/$tag'
@@ -1173,10 +1190,12 @@ const KnowledgeRouteWithChildren = KnowledgeRoute._addFileChildren(
 
 interface NotesRouteChildren {
   NotesPageIdRoute: typeof NotesPageIdRoute
+  NotesIndexRoute: typeof NotesIndexRoute
 }
 
 const NotesRouteChildren: NotesRouteChildren = {
   NotesPageIdRoute: NotesPageIdRoute,
+  NotesIndexRoute: NotesIndexRoute,
 }
 
 const NotesRouteWithChildren = NotesRoute._addFileChildren(NotesRouteChildren)
