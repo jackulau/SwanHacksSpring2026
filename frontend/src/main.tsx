@@ -88,7 +88,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <AuthProvider>
     <PreferencesProvider>
       <AudioPlayerProvider>
-        <RouterProvider router={router} />
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
       </AudioPlayerProvider>
     </PreferencesProvider>
   </AuthProvider>,

@@ -70,10 +70,13 @@ const KIND_STYLE: Record<EventKind, { bg: string; bar: string; text: string; sub
     sub: "text-[var(--color-text-muted)]",
   },
   assignment: {
+    // Use near-black text against the soft amber tint to clear WCAG 2.1 AA
+    // contrast (≥4.5:1). The amber stays as a left bar so the event is still
+    // visually categorical, but the body text reads cleanly on either theme.
     bg: "bg-amber-500/15 hover:bg-amber-500/25",
-    bar: "bg-amber-400",
-    text: "text-amber-50",
-    sub: "text-amber-200/80",
+    bar: "bg-amber-500",
+    text: "text-[var(--color-text)]",
+    sub: "text-[var(--color-text-muted)]",
   },
   user: {
     bg: "bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface-elevated)]",

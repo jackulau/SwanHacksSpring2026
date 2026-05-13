@@ -21,6 +21,12 @@ export interface LLMConfig {
   baseUrl: string;
   apiKey: string;
   model: string;
+  /**
+   * Optional free-form text appended to every system prompt — gives users a
+   * single place to nudge tone, language, or per-domain rules (e.g. "always
+   * include code examples for CS lectures"). Empty / missing is the default.
+   */
+  customInstructions?: string;
 }
 
 export const PROVIDER_PRESETS: Record<LLMProvider, { label: string; baseUrl: string; needsKey: boolean; defaultModel: string }> = {
@@ -36,6 +42,7 @@ const DEFAULT_CONFIG: LLMConfig = {
   baseUrl: PROVIDER_PRESETS.ollama.baseUrl,
   apiKey: '',
   model: PROVIDER_PRESETS.ollama.defaultModel,
+  customInstructions: '',
 };
 
 export function getLLMConfig(): LLMConfig {
@@ -112,6 +119,18 @@ async function callLLM(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
 
+  // Append the user's custom instructions, if any, as a second system block.
+  // We keep it as a separate message rather than concatenating so the model
+  // can disambiguate "core task rules" from "user preferences."
+  const trimmedCustom = (cfg.customInstructions ?? '').trim();
+  const systemMessages =
+    trimmedCustom.length > 0
+      ? [
+          { role: 'system' as const, content: systemPrompt },
+          { role: 'system' as const, content: `Additional user preferences:\n${trimmedCustom}` },
+        ]
+      : [{ role: 'system' as const, content: systemPrompt }];
+
   let res: Response;
   try {
     res = await fetch(`${base}/chat/completions`, {
@@ -120,7 +139,7 @@ async function callLLM(
       body: JSON.stringify({
         model: cfg.model,
         messages: [
-          { role: 'system', content: systemPrompt },
+          ...systemMessages,
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.3,

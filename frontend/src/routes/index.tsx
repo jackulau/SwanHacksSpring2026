@@ -10,6 +10,8 @@ import { QuickActions } from "../components/dashboard/QuickActions";
 import { RecentNotesDropdown } from "../components/dashboard/RecentNotesDropdown";
 import { SyllabusDrop } from "../components/dashboard/SyllabusDrop";
 import { UpcomingClasses } from "../components/dashboard/UpcomingClasses";
+import { AIConnectionBanner } from "../components/dashboard/AIConnectionBanner";
+import { OnboardingChecklist } from "../components/dashboard/OnboardingChecklist";
 import type { Lecture } from "../lib/types";
 
 export const Route = createFileRoute("/")({
@@ -647,6 +649,14 @@ function Dashboard({ userId, email, displayName }: DashboardProps) {
 
       <div className="px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         <div className="max-w-3xl mx-auto flex flex-col gap-8">
+          <AIConnectionBanner />
+
+          <OnboardingChecklist
+            userId={userId}
+            lectureCount={lectures.length}
+            loading={loading}
+          />
+
           <QuickActions
             dueCount={loading ? null : dueCount}
             loading={loading}

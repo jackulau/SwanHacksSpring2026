@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { FlashcardCard } from './FlashcardCard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useStudySession } from '../../hooks/useStudySession';
 import type { Flashcard } from '../../lib/types';
-import type { QualityRating } from '../../lib/sm2';
+import { sm2, QUALITY_MAP, type QualityRating } from '../../lib/sm2';
 
 interface FlashcardDeckProps {
   cards: Flashcard[];
@@ -19,6 +19,21 @@ const RATINGS: { key: QualityRating; label: string; shortcut: string }[] = [
   { key: 'good', label: 'Good', shortcut: '3' },
   { key: 'easy', label: 'Easy', shortcut: '4' },
 ];
+
+/**
+ * Format SM-2's interval-in-days output for the rating button hint. The SM-2
+ * implementation returns a whole-day count; pre-day intervals (1d, 4d, …) are
+ * the common case so we display them as "1 day" / "in N days". Anything ≥ 30
+ * collapses to weeks/months for readability.
+ */
+function formatInterval(days: number): string {
+  if (days <= 0) return 'today';
+  if (days === 1) return '1 day';
+  if (days < 30) return `${days} days`;
+  if (days < 60) return '~1 month';
+  if (days < 365) return `~${Math.round(days / 30)} months`;
+  return `~${Math.round(days / 365)}y`;
+}
 
 export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: FlashcardDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -176,22 +191,7 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
       {/* Footer controls */}
       <div className="space-y-4">
         {isFlipped ? (
-          <div className="flex justify-center gap-2 flex-wrap">
-            {RATINGS.map((r) => (
-              <button
-                key={r.key}
-                onClick={() => handleRate(r.key)}
-                className={`h-10 px-4 rounded-md text-sm font-medium transition-colors ${
-                  r.key === 'good'
-                    ? 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white'
-                    : 'border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] bg-transparent'
-                }`}
-              >
-                {r.label}
-                <span className="ml-2 text-[11px] opacity-60">{r.shortcut}</span>
-              </button>
-            ))}
-          </div>
+          <RatingRow card={currentCard} onRate={handleRate} />
         ) : (
           <div className="flex items-center justify-between">
             <button
@@ -224,6 +224,63 @@ export function FlashcardDeck({ cards, onRate, onComplete, lectureId }: Flashcar
           Space to flip · 1–4 to rate · ←/→ to navigate
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Footer row shown after the user flips a card. Each button carries:
+ *   - the human label (Again/Hard/Good/Easy)
+ *   - the keyboard shortcut (1–4)
+ *   - the predicted next-review interval based on the card's current SM-2
+ *     state. We compute this read-only via the same `sm2()` function used by
+ *     persistence — so the preview is always honest about what the rating
+ *     will produce.
+ */
+interface RatingRowProps {
+  card: Flashcard;
+  onRate: (rating: QualityRating) => void;
+}
+
+function RatingRow({ card, onRate }: RatingRowProps) {
+  const previews = useMemo(() => {
+    const sm2Input = {
+      easeFactor: card.ease_factor ?? 2.5,
+      intervalDays: card.interval_days ?? 0,
+      repetitions: card.repetitions ?? 0,
+    };
+    return RATINGS.map((r) => ({
+      ...r,
+      interval: sm2(QUALITY_MAP[r.key], sm2Input).interval,
+    }));
+  }, [card.ease_factor, card.interval_days, card.repetitions]);
+
+  return (
+    <div className="flex justify-center gap-2 flex-wrap">
+      {previews.map((r) => (
+        <button
+          key={r.key}
+          onClick={() => onRate(r.key)}
+          aria-label={`${r.label} — next review in ${formatInterval(r.interval)}`}
+          className={`flex flex-col items-center gap-0.5 h-auto px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-[88px] ${
+            r.key === 'good'
+              ? 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white'
+              : 'border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text)] bg-transparent'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2">
+            <span>{r.label}</span>
+            <span className="text-[11px] opacity-60">{r.shortcut}</span>
+          </span>
+          <span
+            className={`text-[10px] tabular-nums ${
+              r.key === 'good' ? 'text-white/75' : 'text-[var(--color-text-subtle)]'
+            }`}
+          >
+            {formatInterval(r.interval)}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
