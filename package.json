@@ -1,0 +1,9 @@
+{
+  "name": "converge-dev-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:tui": "node scripts/dev-tui.mjs",
+    "dev:tui:no-start": "node scripts/dev-tui.mjs --no-start"
+  }
+}
