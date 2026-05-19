@@ -7,6 +7,10 @@ It starts and supervises:
 - PocketBase from `backend/pocketbase.exe` on Windows, or `backend/pocketbase` on macOS/Linux.
 - The frontend with `npm run dev` from `frontend/`.
 
+On Windows, the TUI launches npm through `cmd.exe /d /s /c npm ...` so it
+behaves like typing the command in a normal terminal from the `frontend/`
+folder.
+
 ## Run
 
 Windows:
@@ -100,6 +104,18 @@ npm run build
 seed
 check-rules
 ```
+
+## Troubleshooting
+
+If the TUI exits before drawing the screen, check:
+
+```txt
+dev-tui-error.log
+```
+
+This file records startup errors such as terminal raw-mode failures or Windows
+process-spawn errors. If Vite fails, the log panel should show the exact command
+and working directory used for `npm run dev`.
 
 ## PocketBase Admin Editing
 

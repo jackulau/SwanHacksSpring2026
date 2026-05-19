@@ -13,6 +13,7 @@ const FRONTEND_DIR = path.join(ROOT, "frontend");
 const PB_URL = process.env.PB_URL || "http://127.0.0.1:8090";
 const VITE_URL = process.env.VITE_URL || "http://127.0.0.1:3000";
 const MAX_LOGS = 900;
+const STARTUP_LOG = path.join(ROOT, "dev-tui-error.log");
 
 const colors = {
   reset: "\x1b[0m",
@@ -63,6 +64,19 @@ function makeService(key, label, url) {
 }
 
 function main() {
+  process.on("SIGINT", () => void shutdown());
+  process.on("SIGTERM", () => void shutdown());
+  process.on("uncaughtException", (err) => {
+    writeStartupError(err);
+    if (process.stdout.isTTY) {
+      appendLog("tui", `uncaught: ${err.stack || err.message}`, "error");
+      void shutdown(1);
+    } else {
+      console.error(err);
+      process.exit(1);
+    }
+  });
+
   if (process.argv.includes("--help") || process.argv.includes("-h")) {
     printCliHelp();
     process.exit(0);
@@ -74,18 +88,21 @@ function main() {
     process.exit(1);
   }
 
-  process.stdout.write("\x1b[?1049h\x1b[?25l");
-  process.stdin.setRawMode(true);
+  enterScreen();
+  try {
+    process.stdin.setRawMode(true);
+  } catch (err) {
+    writeStartupError(err);
+    leaveScreen();
+    console.error("Could not enter interactive terminal mode.");
+    console.error(`Details were written to ${STARTUP_LOG}`);
+    console.error("Try running from PowerShell, Windows Terminal, Terminal.app, or use `node scripts/dev-tui.mjs --help`.");
+    process.exit(1);
+  }
   process.stdin.resume();
   process.stdin.setEncoding("utf8");
 
   process.stdin.on("data", handleKey);
-  process.on("SIGINT", () => void shutdown());
-  process.on("SIGTERM", () => void shutdown());
-  process.on("uncaughtException", (err) => {
-    appendLog("tui", `uncaught: ${err.stack || err.message}`, "error");
-    void shutdown(1);
-  });
 
   appendLog("tui", "Converge dev console ready.");
   appendLog("tui", `PocketBase URL: ${PB_URL}`);
@@ -167,8 +184,45 @@ function resolvePocketBaseBinary() {
   return null;
 }
 
-function npmBinary() {
-  return process.platform === "win32" ? "npm.cmd" : "npm";
+function npmCommand(args) {
+  if (process.platform !== "win32") {
+    return { command: "npm", args };
+  }
+  // Launch npm through cmd.exe on Windows. Directly spawning npm.cmd can throw
+  // EINVAL in some terminals because .cmd files are shell scripts, not native
+  // executables.
+  return {
+    command: "cmd.exe",
+    args: ["/d", "/s", "/c", "npm", ...args],
+  };
+}
+
+function spawnProcess(command, args, options) {
+  return spawn(command, args, {
+    windowsHide: true,
+    ...options,
+  });
+}
+
+function enterScreen() {
+  process.stdout.write("\x1b[?1049h\x1b[?25l");
+}
+
+function leaveScreen() {
+  process.stdout.write("\x1b[?25h\x1b[?1049l");
+}
+
+function writeStartupError(err) {
+  try {
+    const text = [
+      `[${new Date().toISOString()}]`,
+      err?.stack || err?.message || String(err),
+      "",
+    ].join("\n");
+    fs.appendFileSync(STARTUP_LOG, text, "utf8");
+  } catch {
+    // ignore logging failures
+  }
 }
 
 function startAll() {
@@ -199,19 +253,25 @@ function startService(key) {
     cwd = BACKEND_DIR;
     env = { ...process.env, ...backendEnv };
   } else {
-    command = npmBinary();
-    args = ["run", "dev"];
+    ({ command, args } = npmCommand(["run", "dev"]));
     cwd = FRONTEND_DIR;
   }
 
   appendLog(key, `starting: ${command} ${args.join(" ")}`);
-  const child = spawn(command, args, {
-    cwd,
-    env,
-    detached: process.platform !== "win32",
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-  });
+  let child;
+  try {
+    child = spawnProcess(command, args, {
+      cwd,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: process.platform !== "win32",
+    });
+  } catch (err) {
+    service.status = "error";
+    appendLog(key, `spawn failed in ${cwd}: ${err.code || ""} ${err.message}`, "error");
+    writeStartupError(err);
+    return;
+  }
 
   service.child = child;
   service.status = "starting";
@@ -295,12 +355,18 @@ async function restartService(key) {
 
 async function runOneShot(source, command, args, cwd, env = process.env) {
   appendLog(source, `$ ${command} ${args.join(" ")}`, "cmd");
-  const child = spawn(command, args, {
-    cwd,
-    env,
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-  });
+  let child;
+  try {
+    child = spawnProcess(command, args, {
+      cwd,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (err) {
+    appendLog(source, `command failed in ${cwd}: ${err.code || ""} ${err.message}`, "error");
+    writeStartupError(err);
+    return;
+  }
   pipeLogs(source, child.stdout);
   pipeLogs(source, child.stderr, "warn");
   child.on("exit", (code, signal) => {
@@ -433,10 +499,10 @@ async function runConsoleCommand(input) {
       logStatus();
       return;
     case "seed":
-      runOneShot("cmd", npmBinary(), ["run", "seed"], FRONTEND_DIR);
+      runNpmCommand(["run", "seed"]);
       return;
     case "check-rules":
-      runOneShot("cmd", npmBinary(), ["run", "check-rules"], FRONTEND_DIR);
+      runNpmCommand(["run", "check-rules"]);
       return;
     case "migrate":
       runPocketBaseCommand(["migrate", ...args]);
@@ -449,7 +515,7 @@ async function runConsoleCommand(input) {
       runPocketBaseCommand(args);
       return;
     case "npm":
-      runOneShot("cmd", npmBinary(), args, FRONTEND_DIR);
+      runNpmCommand(args);
       return;
     case "collections":
       await listCollections();
@@ -479,6 +545,11 @@ function runPocketBaseCommand(args) {
     ...process.env,
     ...loadBackendEnv(),
   });
+}
+
+function runNpmCommand(args) {
+  const { command, args: npmArgs } = npmCommand(args);
+  runOneShot("cmd", command, npmArgs, FRONTEND_DIR);
 }
 
 function showHelp() {
@@ -945,7 +1016,7 @@ async function shutdown(exitCode = 0) {
   render();
   await stopAll();
   setTimeout(() => {
-    process.stdout.write("\x1b[?25h\x1b[?1049l");
+    leaveScreen();
     process.exit(exitCode);
   }, 350);
 }
