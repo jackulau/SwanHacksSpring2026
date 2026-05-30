@@ -1,0 +1,30 @@
+{
+  "name": "converge-ad",
+  "version": "1.0.0",
+  "description": "Programmatic 30s SaaS explainer ad for Converge",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "render": "remotion render ConvergeAd-H out/converge-ad.mp4 --codec=h264 --crf=18",
+    "render:preview": "remotion render ConvergeAd-H out/preview.mp4 --codec=h264 --crf=28 --scale=0.4",
+    "capture:screens": "node scripts/capture-screens.mjs",
+    "synth:audio": "python3 scripts/synth-audio.py"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.336",
+    "@remotion/google-fonts": "4.0.336",
+    "@remotion/media-utils": "4.0.336",
+    "@remotion/noise": "4.0.336",
+    "@remotion/shapes": "4.0.336",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.336"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.0",
+    "@types/react-dom": "19.1.0",
+    "playwright": "1.48.2",
+    "typescript": "5.7.2"
+  }
+}

@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Remotion render output (build artifacts)
+out/
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# OS files
+.DS_Store
